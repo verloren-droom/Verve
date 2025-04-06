@@ -1,0 +1,159 @@
+namespace Verve.Unit
+{
+    using System;
+    using System.Linq;
+    using System.Reflection;
+    using System.Collections.Generic;
+    using System.Collections.Concurrent;
+    
+    
+    /// <summary>
+    /// 单元管理 
+    /// </summary>
+    [System.Serializable]
+    public sealed partial class UnitRules : ILifecycleHandler
+    {
+        private readonly ConcurrentDictionary<string, UnitInfo> m_Units = new ConcurrentDictionary<string, UnitInfo>();
+        private bool m_IsInitialized;
+        
+#if UNITY_EDITOR
+        [UnityEngine.SerializeField, PropertyDisable] private List<string> Units = new List<string>();
+#endif
+
+        /// <summary>
+        /// 初始化完成事件
+        /// </summary>
+        public event Action<UnitRules> onInitialized;
+        /// <summary>
+        /// 销毁事件
+        /// </summary>
+        public event Action onDispose;
+        
+        public void Initialize()
+        {
+            // if (m_IsInitialized) return;
+            foreach (var unitInfo in GetOrderedUnits())
+            {
+                // 遍历查找是否存在缺少的依赖未添加
+                // foreach (var dependencyUnit in unitInfo.Instance.DependencyUnits)
+                // {
+                //     var (name, _) = GetModuleMetadata(dependencyUnit);
+                //     if (!m_Units.ContainsKey(name))
+                //     {
+                //         throw new UnitDependencyNotFoundException(unitInfo.Instance.UnitName, name);
+                //     }
+                // }
+                unitInfo.Instance.Startup(this, unitInfo.StartupArgs);
+            }
+            m_IsInitialized = true;
+            onInitialized?.Invoke(this);
+        }
+
+        internal void Update(float deltaTime, float unscaledTime)
+        {
+            foreach (var unitInfo in GetOrderedUnits())
+            {
+                unitInfo.Instance.Tick(deltaTime, unscaledTime);
+            }
+        }
+    
+        public void Dispose()
+        {
+            // if (!m_IsInitialized) return;
+            foreach (var unitInfo in GetOrderedUnits().Reverse())
+            {
+                unitInfo.Instance.Shutdown();
+            }
+            m_Units.Clear();
+            m_IsInitialized = false;
+            onDispose?.Invoke();
+        }
+        
+        internal UnitRules AddDependency(Type unitType, params object[] startupArgs)
+        {
+            if (!typeof(ICustomUnit).IsAssignableFrom(unitType))
+                throw new InvalidUnitTypeException(unitType);
+            var (unitName, priority) = GetModuleMetadata(unitType);
+            if (m_Units.ContainsKey(unitName)) return this;
+            m_Units.TryAdd(unitName, new UnitInfo
+            {
+                UnitType = unitType,
+                Priority = priority,
+                StartupArgs = startupArgs,
+                Instance = (ICustomUnit)Activator.CreateInstance(unitType)
+            });
+
+#if UNITY_EDITOR
+            Units.Add(unitName);
+#endif
+            return this;
+        }
+
+        internal UnitRules AddDependency<TUnit>(params object[] startupArgs)
+            where TUnit : ICustomUnit => AddDependency(typeof(TUnit), startupArgs);
+
+        internal UnitRules AddDependency(string unitName, params object[] startupArgs) => AddDependency(FindUnitTypeByName(unitName), startupArgs);
+
+        internal bool TryGetDependency<TUnit>(out TUnit unit) where TUnit : ICustomUnit
+        {
+            if (!m_IsInitialized)
+            {
+                throw new UnitRulesNotInitializeException(GetType().Name);
+            }
+            var (moduleName, _) = GetModuleMetadata(typeof(TUnit));
+            unit = m_Units.TryGetValue(moduleName, out var info) ? (TUnit)info.Instance : default;
+            return unit != null;
+        }
+        
+        internal bool TryGetDependency(System.Type unitType, out ICustomUnit unit)
+        {
+            if (!m_IsInitialized)
+            {
+                throw new UnitRulesNotInitializeException(GetType().Name);
+            }
+            var (moduleName, _) = GetModuleMetadata(unitType);
+            unit = m_Units.TryGetValue(moduleName, out var info) ? info.Instance : null;
+            return unit != null;
+        }
+
+        private IEnumerable<UnitInfo> GetOrderedUnits()
+        {
+            return m_Units.Values.OrderBy(m => m.Priority).Reverse();
+        }
+    
+        private Type FindUnitTypeByName(string name)
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                       .SelectMany(a => a.GetTypes())
+                       .FirstOrDefault(t => 
+                           t.GetCustomAttribute<CustomUnitAttribute>()?.UnitName == name &&
+                           typeof(ICustomUnit).IsAssignableFrom(t)) 
+                   ?? throw new UnitNotFoundException(name);
+        }
+    
+        private (string name, int priority) GetModuleMetadata(Type unitType)
+        {
+            var attr = unitType.GetCustomAttribute<CustomUnitAttribute>();
+            return (attr?.UnitName ?? unitType.Name, attr?.Priority ?? 0);
+        }
+
+        public void CleanCache()
+        {
+            foreach (var unit in GetOrderedUnits())
+            {
+                if (unit.Instance is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+        }
+        
+        private struct UnitInfo
+        {
+            public Type UnitType { get; set; }
+            public int Priority { get; set; }
+            public object[] StartupArgs { get; set; }
+            public ICustomUnit Instance { get; set; }
+        }
+    }
+}
