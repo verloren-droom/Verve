@@ -2,7 +2,6 @@
 #define VERVE_FRAMEWORK_AUDIO
 #endif
 
-
 namespace Verve.Audio
 {
     using Unit;

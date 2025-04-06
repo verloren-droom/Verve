@@ -10,7 +10,7 @@ namespace Verve.Unit
     /// 单元基类
     /// </summary>
     [CustomUnit("Base")]
-    public abstract class UnitBase : ICustomUnit
+    public abstract partial class UnitBase : ICustomUnit
     {
         public virtual string UnitName => Regex.Replace(GetType().GetCustomAttribute<CustomUnitAttribute>()?.UnitName ?? GetType().Name, "Unit", string.Empty);
         public virtual int Priority => 0;

@@ -28,7 +28,7 @@ namespace Verve.ECS
             base.OnInitialized();
         }
 
-        public void Initialize()
+        internal void Initialize()
         {
             m_SystemContainer ??= new SystemContainer();
             m_SystemContainer?.ForEach(s => s?.Create());

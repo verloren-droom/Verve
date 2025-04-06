@@ -1,8 +1,3 @@
-#if !VERVE_FRAMEWORK_EVENT
-#define VERVE_FRAMEWORK_EVENT
-#endif
-
-
 namespace Verve.Event
 {
     using Unit;

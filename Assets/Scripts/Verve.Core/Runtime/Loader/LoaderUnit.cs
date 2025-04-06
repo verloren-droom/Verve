@@ -1,8 +1,3 @@
-#if !VERVE_FRAMEWORK_LOADER
-#define VERVE_FRAMEWORK_LOADER
-#endif
-
-
 namespace Verve.Loader
 {
     using Unit;

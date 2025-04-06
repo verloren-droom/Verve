@@ -1,8 +1,3 @@
-#if !VERVE_FRAMEWORK
-    #define VERVE_FRAMEWORK
-#endif
-
-
 namespace Verve
 {
     using Unit;
@@ -11,6 +6,8 @@ namespace Verve
     using UnityEngine;
 #endif
     
+using UnityEditor;
+
     
     /// <summary>
     /// 游戏启动器，框架入口

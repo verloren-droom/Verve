@@ -7,25 +7,8 @@ namespace Verve.ECS
     using System.Linq;
     using System.Reflection;
     using System.Collections.Generic;
-    
-    
-    public interface ICustomSystem
-    {
-        /// <summary>
-        /// 系统创建
-        /// </summary>
-        void OnCreate();
-        /// <summary>
-        /// 系统更新
-        /// </summary>
-        void OnUpdate();
-        /// <summary>
-        /// 系统销毁
-        /// </summary>
-        void OnDestroy();
-    }
-    
-    
+
+
     /// <summary>
     /// ECS系统
     /// </summary>
@@ -68,7 +51,7 @@ namespace Verve.ECS
         
         internal void Update() => OnUpdate();
 
-        public void Destroy()
+        internal void Destroy()
         {
             if (!m_IsCreated) return;
             OnDestroy();

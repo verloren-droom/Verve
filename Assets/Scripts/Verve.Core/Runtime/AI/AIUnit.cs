@@ -1,8 +1,3 @@
-#if !VERVE_FRAMEWORK_AI
-#define VERVE_FRAMEWORK_AI
-#endif
-
-
 namespace Verve.AI
 {
     using Unit;

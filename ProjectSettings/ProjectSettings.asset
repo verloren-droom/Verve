@@ -791,7 +791,8 @@ PlayerSettings:
   webGLThreadsSupport: 0
   webGLDecompressionFallback: 0
   webGLPowerPreference: 2
-  scriptingDefineSymbols: {}
+  scriptingDefineSymbols:
+    Standalone: _AI_AUDIO_STORAGE_ECS_SERIALIZABLE_NETWORK_MVC_LOADER_FILE_EVENT
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend: {}
