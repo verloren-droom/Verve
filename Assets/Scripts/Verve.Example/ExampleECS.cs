@@ -1,34 +1,26 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Verve.ECS;
-
-#if VERVE_FRAMEWORK
-#endif
-
-namespace Verve.Test
+namespace Verve.Example
 {
-    public class VerveTest1 : MonoBehaviour
+    using System.Collections;
+    using System.Collections.Generic;
+    using UnityEngine;
+    
+    
+#if VERVE_FRAMEWORK_ECS
+    using ECS;
+    
+    public class ExampleECS : MonoBehaviour
     {
         [SerializeField] private Entity m_Entity1 = Entity.Create(typeof(PositionComponent), typeof(ScaleComponent));
         [SerializeField] private Entity m_Entity2 = Entity.Create(typeof(PositionComponent), typeof(ScaleComponent));
         
-        // Start is called before the first frame update
         void Start()
         {
-#if VERVE_FRAMEWORK_ECS
             GameLauncher.Instance.AddUnit<ECSUnit>();
-#endif
             GameLauncher.Instance.Initialize();
         }
-    
-        // Update is called once per frame
-        void Update()
-        {
-            
-        }
+        
     }
-
+    
     public struct PositionComponent : IComponentBase
     {
         public float x;
@@ -58,5 +50,6 @@ namespace Verve.Test
             });
         }
     }
-    
+
+#endif
 }

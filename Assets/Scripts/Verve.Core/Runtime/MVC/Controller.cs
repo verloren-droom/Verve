@@ -1,14 +1,21 @@
 namespace Verve.MVC
 {
-    public interface IController : ILifecycleHandler
+    /// <summary>
+    /// MVC控制接口
+    /// </summary>
+    public interface IController
     {
-        void ExecuteCommand<TCommand>() where TCommand : ICommand, new();
+        void Initialize();
+        void DeInitialize();
     }
     
+    
+    /// <summary>
+    /// MVC控制基类
+    /// </summary>
     public abstract class ControllerBase : IController
     {
         public abstract void Initialize();
-        public virtual void ExecuteCommand<TCommand>() where TCommand : ICommand, new() { }
-        public virtual void Dispose() { }
+        public virtual void DeInitialize() { }
     }
 }

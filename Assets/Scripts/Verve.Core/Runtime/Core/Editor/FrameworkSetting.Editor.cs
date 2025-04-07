@@ -1,4 +1,6 @@
 
+using UnityEngine;
+
 namespace Verve
 {
 #if UNITY_EDITOR
@@ -27,11 +29,6 @@ namespace Verve
                 string newSymbols = currentSymbols + ";" + macroName;
                 PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, newSymbols);
             }
-            
-            EditorApplication.quitting += () =>
-            {
-                RemoveMacro(macroName);
-            };
         }
         
         /// <summary>

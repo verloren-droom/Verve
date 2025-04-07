@@ -250,7 +250,7 @@ GameObject:
   - component: {fileID: 1766446495}
   - component: {fileID: 1766446497}
   m_Layer: 0
-  m_Name: VerveTest1
+  m_Name: ExampleECS
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -11,19 +11,33 @@ namespace Verve.MVC
         
         protected void RegisterModel<TModel>(TModel model) where TModel : class, IModel
         {
+            model.Initialize();
             m_IocContainer.Register(model);
         }
         
         protected void RegisterModel<TModel>() where TModel : class, IModel, new() => RegisterModel<TModel>(new TModel());
 
-        public bool TryGetModel<TModel>(out TModel model) where TModel : class, IModel, new()
+        public TModel GetModel<TModel>() where TModel : class, IModel, new()
         {
-            return m_IocContainer.TryResolve<TModel>(out model);
+            return m_IocContainer.TryResolve<TModel>(out TModel model) ? model : null;
         }
-        
-        protected virtual void ExecuteCommand(ICommand command)
+
+        protected virtual void ExecuteCommand<TCommand>() where TCommand : class, ICommand, new()
         {
-            
+            if (!m_IocContainer.TryResolve<TCommand>(out _))
+            {
+                m_IocContainer.Register(new TCommand());
+            }
+            m_IocContainer.Resolve<TCommand>()?.Execute();
+        }
+
+        protected virtual void UndoCommand<TCommand>() where TCommand : class, ICommand, new()
+        {
+            if (!m_IocContainer.TryResolve<TCommand>(out _))
+            {
+                m_IocContainer.Register(new TCommand());
+            }
+            m_IocContainer.Resolve<TCommand>()?.Undo();
         }
     }
 }
