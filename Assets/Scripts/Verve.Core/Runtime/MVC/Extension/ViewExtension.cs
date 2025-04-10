@@ -5,6 +5,6 @@ namespace Verve.MVC
     /// </summary>
     public static class ViewExtension
     {
-        // public static T GetModel<T>(this IView self) where T : class, IModel =>
+        // public static T GetModel<T>(this IView self) where T : class, IModel, new() => self.Activity?.GetModel<T>();
     }
 }

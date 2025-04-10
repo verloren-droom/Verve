@@ -1,11 +1,12 @@
 namespace Verve.Loader
 {
+#if UNITY_5_3_OR_NEWER
     using System;
     using System.Collections;
     using System.Threading.Tasks;
     
     
-    public class AssetBundleLoader : IAssetLoader
+    public sealed partial class AssetBundleLoader : IAssetLoader
     {
         public TObject LoadAsset<TObject>(string assetPath)
         {
@@ -37,4 +38,5 @@ namespace Verve.Loader
             throw new NotImplementedException();
         }
     }
+#endif
 }

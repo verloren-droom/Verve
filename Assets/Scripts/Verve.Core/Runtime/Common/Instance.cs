@@ -42,7 +42,10 @@ namespace Verve
     /// </summary>
     /// <typeparam name="T"></typeparam>
     [DisallowMultipleComponent]
-    public abstract class MonoInstanceBase<T> : UnityEngine.MonoBehaviour where T : UnityEngine.MonoBehaviour
+    public abstract class MonoInstanceBase<T> : MonoBehaviour where T : MonoBehaviour
+#else
+    public abstract class MonoInstanceBase<T> where T : class, new()
+#endif
     {
         private static T m_Instance;
         
@@ -50,6 +53,7 @@ namespace Verve
         {
             get
             {
+#if UNITY_5_3_OR_NEWER
                 m_Instance ??= GameObject.FindObjectOfType<T>();
                 if (m_Instance == null)
                 {
@@ -58,6 +62,13 @@ namespace Verve
                     DontDestroyOnLoad(obj);
                     (m_Instance as MonoInstanceBase<T>).OnInitialized();
                 }
+#else
+                if (m_Instance == null)
+                {
+                    m_Instance = new T();
+                    (m_Instance as InstanceBase<T>).OnInitialized();
+                }
+#endif
                 return m_Instance;
             }
             private set => m_Instance = value;
@@ -68,5 +79,4 @@ namespace Verve
         /// </summary>
         protected virtual void OnInitialized() { }
     }
-#endif
 }

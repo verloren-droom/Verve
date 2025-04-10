@@ -18,9 +18,13 @@ namespace Verve.Loader
         public override void Startup(UnitRules parent, params object[] args)
         {
             base.Startup(parent, args);
+#if UNITY_2018_3_OR_NEWER
             m_Loaders.Add(typeof(AddressablesLoader), new AddressablesLoader());
+#endif
+#if UNITY_5_3_OR_NEWER
             m_Loaders.Add(typeof(ResourcesLoader), new ResourcesLoader());
             m_Loaders.Add(typeof(AssetBundleLoader), new AssetBundleLoader());
+#endif
         }
 
         public override void Shutdown()

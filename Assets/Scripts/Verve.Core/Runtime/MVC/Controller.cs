@@ -3,19 +3,11 @@ namespace Verve.MVC
     /// <summary>
     /// MVC控制接口
     /// </summary>
-    public interface IController
+    public interface IController : IBelongToActivity
     {
-        void Initialize();
-        void DeInitialize();
-    }
-    
-    
-    /// <summary>
-    /// MVC控制基类
-    /// </summary>
-    public abstract class ControllerBase : IController
-    {
-        public abstract void Initialize();
-        public virtual void DeInitialize() { }
+        /// <summary>
+        /// 反初始化
+        /// </summary>
+        void Deinitialize();
     }
 }

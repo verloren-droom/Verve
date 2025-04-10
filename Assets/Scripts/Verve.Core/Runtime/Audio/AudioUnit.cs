@@ -1,7 +1,3 @@
-#if !VERVE_FRAMEWORK_AUDIO
-#define VERVE_FRAMEWORK_AUDIO
-#endif
-
 namespace Verve.Audio
 {
     using Unit;
@@ -53,6 +49,7 @@ namespace Verve.Audio
 #endif
         private float m_Volume = 1.0f;
 
+        
         public float Volume
         {
             get => m_Volume;

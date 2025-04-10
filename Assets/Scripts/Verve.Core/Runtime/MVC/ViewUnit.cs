@@ -3,7 +3,9 @@ namespace Verve.MVC
     using Unit;
     using Loader;
     using System;
+#if UNITY_5_3_OR_NEWER
     using UnityEngine;
+#endif
     using System.Threading.Tasks;
     using System.Collections.Generic;
     
@@ -15,7 +17,9 @@ namespace Verve.MVC
     public sealed partial class ViewUnit : UnitBase, IDisposable
     {
         public override HashSet<System.Type> DependencyUnits => new HashSet<Type>() { typeof(LoaderUnit) };
+#if UNITY_5_3_OR_NEWER
         private Transform m_ViewRootParent;
+#endif
         private readonly Dictionary<Type, IView> m_CachedView = new Dictionary<Type, IView>();
 
         private LoaderUnit m_LoaderUnit;
@@ -23,7 +27,9 @@ namespace Verve.MVC
         public override void Startup(UnitRules parent, params object[] args)
         {
             base.Startup(parent, args);
+#if UNITY_5_3_OR_NEWER
             m_ViewRootParent = args.Length > 0 && args[0] is Transform ? args[0] as Transform : (GameObject.FindObjectOfType<Canvas>().transform ?? new GameObject("ViewRoot").AddComponent<Canvas>().transform);
+#endif
             parent.onInitialized += (_) =>
             {
                 parent.TryGetDependency<LoaderUnit>(out m_LoaderUnit);
@@ -42,8 +48,10 @@ namespace Verve.MVC
         }
 
         public bool TryOpen<TView>(
-            bool isCloseAllOther = false, 
-            Transform parent = null, 
+            bool isCloseAllOther = false,
+#if UNITY_5_3_OR_NEWER
+            Transform parent = null,
+#endif
             Action<TView> onOpened = null
         ) where TView : ViewBase, IView
         {
@@ -63,8 +71,10 @@ namespace Verve.MVC
         public bool TryOpen(
             string resourcePath,
             Type loaderType,
-            bool isCloseAllOther = false, 
+            bool isCloseAllOther = false,
+#if UNITY_5_3_OR_NEWER
             Transform parent = null,
+#endif
             Action<ViewBase> onOpened = null
             )
         {
@@ -78,7 +88,12 @@ namespace Verve.MVC
             return false;
         }
 
-        private TView LoadView<TView>(Type loaderType, string path, Transform parent = null) where TView : IView =>
+        private TView LoadView<TView>(
+            Type loaderType, string path
+#if UNITY_5_3_OR_NEWER
+            ,Transform parent = null
+#endif
+            ) where TView : IView =>
             (TView)LoadView(typeof(TView), loaderType, path, parent);
         
         private IView LoadView(Type viewType, Type loaderType, string path, Transform parent = null)

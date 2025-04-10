@@ -6,19 +6,13 @@ namespace Verve
     using UnityEngine;
 #endif
     
-using UnityEditor;
-
     
     /// <summary>
     /// 游戏启动器，框架入口
     /// </summary>
-#if UNITY_5_3_OR_NEWER
     public sealed partial class GameLauncher : MonoInstanceBase<GameLauncher>
-#else
-    public sealed partial class GameLauncher : InstanceBase<GameLauncher>
-#endif
     {
-#if UNITY_5_3_OR_NEWER
+#if UNITY_5_3_OR_NEWER && UNITY_EDITOR
         [SerializeField]
 #endif
         private UnitRules m_UnitRules = new UnitRules();
@@ -58,7 +52,6 @@ using UnityEditor;
         {
 #if UNITY_5_3_OR_NEWER
             Application.Quit();
-#else
 #endif
             
 #if UNITY_EDITOR

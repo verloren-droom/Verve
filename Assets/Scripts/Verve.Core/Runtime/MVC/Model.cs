@@ -5,9 +5,9 @@ namespace Verve.MVC
     /// </summary>
     public interface IModel
     {
-        void Initialize();
-        void DeInitialize();
+        void Deinitialize();
     }
+    
     
     /// <summary>
     /// MVC模型基类，用于共享数据存储
@@ -15,7 +15,6 @@ namespace Verve.MVC
     [System.Serializable]
     public abstract class ModelBase : IModel
     {
-        public abstract void Initialize();
-        public virtual void DeInitialize() { }
+        public virtual void Deinitialize() { }
     }
 }

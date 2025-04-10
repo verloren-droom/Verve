@@ -7,6 +7,7 @@ namespace Verve.Storage
     using System.Collections.Generic;
     using System.Collections.Concurrent;
     
+    
     public sealed partial class BuiltInStorage : IStorage, IDisposable
     {
         private readonly ConcurrentDictionary<string, object> m_MemoryCache = new ConcurrentDictionary<string, object>();

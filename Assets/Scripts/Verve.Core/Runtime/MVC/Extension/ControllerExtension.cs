@@ -5,9 +5,11 @@ namespace Verve.MVC
     /// </summary>
     public static class ControllerExtension
     {
-        public static void ExecuteCommand<TCommand>(this IController self) where TCommand : ICommand, new()
-        {
-            
-        }
+        public static T GetModel<T>(this IController self) where T : class, IModel, new() =>
+            self.Activity?.GetModel<T>();
+
+        public static void ExecuteCommand<TCommand>(this IController self) where TCommand : class, ICommand, new() => self.Activity?.ExecuteCommand<TCommand>();
+        public static void UndoCommand<TCommand>(this IController self) where TCommand : class, ICommand, new() => self.Activity?.UndoCommand<TCommand>();
+
     }
 }

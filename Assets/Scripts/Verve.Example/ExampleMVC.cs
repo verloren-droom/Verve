@@ -1,3 +1,5 @@
+using System;
+
 namespace Verve.Example
 {
 #if VERVE_FRAMEWORK_EVENT
@@ -7,7 +9,7 @@ namespace Verve.Example
     using MVC;
     
     
-    public class ExampleProcedure : Procedure<ExampleProcedure>
+    public class ExampleActivity : ActivityBase<ExampleActivity>
     {
         protected override void OnInitialized()
         {
@@ -19,17 +21,26 @@ namespace Verve.Example
 
     public class ExampleModel : ModelBase
     {
-        public PropertyProxy<int> Value = new PropertyProxy<int>(5);
+        public PropertyProxy<int> Value = new PropertyProxy<int>(5545);
+    }
 
-        public override void Initialize()
+    public class ExampleMVC : ViewBase, IController
+    {
+        public override IActivity Activity { get; set; } = ExampleActivity.Instance;
+
+        private void Awake()
+        {
+            this.GetModel<ExampleModel>().Value.PropertyChanged += (_, _) =>
+            { 
+                UnityEngine.Debug.Log("MVC ->" + this.GetModel<ExampleModel>()?.Value);
+            };
+            this.GetModel<ExampleModel>().Value.Value += 10;
+        }
+
+        public void Deinitialize()
         {
             
         }
     }
-
-    // public class ExampleView : ViewBase, IController
-    // {
-    //
-    // }
 #endif
 }

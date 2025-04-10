@@ -10,6 +10,11 @@ namespace Verve
     [InitializeOnLoad]
     public static partial class FrameworkSettingEditor
     {
+        /// <summary>
+        /// 是否自动添加框架中的宏到项目中
+        /// </summary>
+        public static bool isAutoAddMacro = false;
+        
         static FrameworkSettingEditor()
         {
             AddMacro("VERVE_FRAMEWORK");
@@ -21,7 +26,7 @@ namespace Verve
         /// <param name="macroName">宏名</param>
         public static void AddMacro(string macroName)
         {
-            if (string.IsNullOrEmpty(macroName)) return;
+            if (string.IsNullOrEmpty(macroName) && !isAutoAddMacro) return;
             string currentSymbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
         
             if (!currentSymbols.Contains(macroName))

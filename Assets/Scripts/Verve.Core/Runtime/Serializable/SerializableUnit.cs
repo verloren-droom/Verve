@@ -1,8 +1,3 @@
-#if !VERVE_FRAMEWORK_SERIAL
-#define VERVE_FRAMEWORK_SERIAL
-#endif
-
-
 namespace Verve.Serializable
 {
     using Unit;

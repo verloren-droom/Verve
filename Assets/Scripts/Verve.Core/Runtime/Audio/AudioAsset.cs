@@ -17,8 +17,7 @@ namespace Verve.Audio
 #if UNITY_5_3_OR_NEWER
             [SerializeField]
 #endif
-        [PropertyDisable]
-        private string m_AssetName;
+        [PropertyDisable] private string m_AssetName;
 
         /// <summary>
         /// 音效被播放事件
@@ -41,7 +40,11 @@ namespace Verve.Audio
         {
             get => m_Source.volume;
             set  {
+#if UNITY_5_3_OR_NEWER
                 m_Source.volume = Mathf.Clamp01(value);
+#else
+                m_Source.volume = Math.Clamp(value, 0, 1);
+#endif
                 if (Mathf.Approximately(m_Source.volume, 0))
                 {
                     onMuted?.Invoke();

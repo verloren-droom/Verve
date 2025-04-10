@@ -13,7 +13,7 @@ namespace Verve
     {
         private readonly ConcurrentDictionary<Type, object> m_Factories = new ConcurrentDictionary<Type, object>();
 
-        public void Register<T>(T instance, bool overwrite = true) where T : class
+        public void Register<T>(T instance, bool overwrite = true) where T : new()
         {
             instance = instance ?? throw new ArgumentNullException(nameof(instance));
             m_Factories.AddOrUpdate(typeof(T), instance, (type, oldInstance) => overwrite ? instance : oldInstance);
@@ -54,17 +54,17 @@ namespace Verve
             });
         }
 
-        public T Resolve<T>() where T : class
+        public T Resolve<T>() where T : new()
         {
-            return m_Factories.TryGetValue(typeof(T), out var value) ? (T)value : null;
+            return m_Factories.TryGetValue(typeof(T), out var value) ? (T)value : default;
         }
 
-        public T ResolveOrRegister<T>(Func<System.Type, object> valueFactory) where T : class
+        public T ResolveOrRegister<T>(Func<System.Type, object> valueFactory) where T : new()
         {
             return (T)ResolveOrRegister(typeof(T), valueFactory);
         }
 
-        public T ResolveOrRegister<T>(params object[] args) where T : class
+        public T ResolveOrRegister<T>(params object[] args) where T : new()
         {
             return ResolveOrRegister<T>(_ =>
             {
@@ -81,7 +81,7 @@ namespace Verve
             });
         }
 
-        public bool TryResolve<T>(out T outInstance) where T : class
+        public bool TryResolve<T>(out T outInstance) where T : new()
         {
             outInstance = Resolve<T>();
             return outInstance != null;

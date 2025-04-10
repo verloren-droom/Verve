@@ -3,22 +3,21 @@ namespace Verve.Example
     using System.Collections;
     using System.Collections.Generic;
     using UnityEngine;
-    
+
     
 #if VERVE_FRAMEWORK_ECS
     using ECS;
     
-    public class ExampleECS : MonoBehaviour
+    public class ExampleECS : ComponentBase
     {
         [SerializeField] private Entity m_Entity1 = Entity.Create(typeof(PositionComponent), typeof(ScaleComponent));
         [SerializeField] private Entity m_Entity2 = Entity.Create(typeof(PositionComponent), typeof(ScaleComponent));
-        
-        void Start()
+
+        protected override void Start()
         {
-            GameLauncher.Instance.AddUnit<ECSUnit>();
-            GameLauncher.Instance.Initialize();
+            base.Start();
+            VerveExample.Instance.Initialize();
         }
-        
     }
     
     public struct PositionComponent : IComponentBase

@@ -1,8 +1,3 @@
-#if !VERVE_FRAMEWORK_NETWORK
-#define VERVE_FRAMEWORK_NETWORK
-#endif
-
-
 namespace Verve.Network
 {
     using Unit;

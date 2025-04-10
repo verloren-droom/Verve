@@ -1,8 +1,3 @@
-#if !VERVE_FRAMEWORK_FILE
-#define VERVE_FRAMEWORK_FILE
-#endif
-
-
 namespace Verve.File
 {
     using Unit;

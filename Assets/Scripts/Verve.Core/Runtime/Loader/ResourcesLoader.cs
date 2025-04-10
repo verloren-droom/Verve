@@ -1,5 +1,6 @@
 namespace Verve.Loader
 {
+# if UNITY_5_3_OR_NEWER
     using System;
     using UnityEngine;
     using System.Collections;
@@ -70,4 +71,5 @@ namespace Verve.Loader
             Resources.UnloadUnusedAssets();
         }
     }
+#endif
 }

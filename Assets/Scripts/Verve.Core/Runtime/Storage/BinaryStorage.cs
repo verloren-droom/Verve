@@ -4,6 +4,7 @@ namespace Verve.Storage
     using Serializable;
     using System.Collections.Concurrent;
     
+    
     public sealed partial class BinaryStorage : IStorage, IDisposable
     {
         public readonly ConcurrentDictionary<string, byte[]> m_MemoryCache = new ConcurrentDictionary<string, byte[]>();

@@ -3,6 +3,8 @@ namespace Verve.MVC
     using System;
 #if UNITY_5_3_OR_NEWER
     using UnityEngine;
+#elif GODOT
+    using Godot;
 #endif
     using System.Text.RegularExpressions;
 
@@ -10,7 +12,7 @@ namespace Verve.MVC
     /// <summary>
     /// MVC视图接口
     /// </summary>
-    public interface IView
+    public interface IView : IBelongToActivity
     {
         /// <summary>
         /// 视图名
@@ -28,15 +30,33 @@ namespace Verve.MVC
     /// </summary>
 #if UNITY_5_3_OR_NEWER
     [DisallowMultipleComponent]
+    public abstract partial class ViewBase : MonoBehaviour, IView
+#elif GODOT
+    [Tool]
+    public abstract class GodotViewBase : Node, IView
+#else
+    public abstract class ViewBase : IView
 #endif
-    public abstract class ViewBase : MonoBehaviour, IView
     {
 #if UNITY_5_3_OR_NEWER
         [SerializeField, PropertyDisable]
+#elif GODOT
+        [Export]
 #endif
         private string m_ViewName;
-        public virtual string ViewName => m_ViewName ??= 
-            Regex.Replace(name, @"View$", string.Empty, RegexOptions.IgnoreCase);
+
+        public virtual string ViewName
+        {
+            get => m_ViewName ??= 
+                Regex.Replace(
+#if UNITY_5_3_OR_NEWER
+                    gameObject.name
+#elif GODOT
+                GetName()
+#endif
+                    , @"View$", string.Empty, RegexOptions.IgnoreCase);
+            set => m_ViewName = value;
+        } 
     
         public event Action<IView> OnOpened;
         public event Action<IView> OnClosed;
@@ -54,7 +74,16 @@ namespace Verve.MVC
         {
             OnClosing();
             OnClosed?.Invoke(this);
+#if UNITY_5_3_OR_NEWER
             Destroy(gameObject);
+#elif GODOT
+            if (IsInsideTree())
+            {
+                QueueFree();
+            }
+#endif
         }
+
+        public abstract IActivity Activity { get; set; }
     }
 }

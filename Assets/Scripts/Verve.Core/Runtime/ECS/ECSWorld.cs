@@ -1,8 +1,3 @@
-#if !VERVE_FRAMEWORK_ECS
-#define VERVE_FRAMEWORK_ECS
-#endif
-
-
 namespace Verve.ECS
 {
 #if UNITY_5_3_OR_NEWER
@@ -10,11 +5,7 @@ namespace Verve.ECS
 #endif
     
     
-#if UNITY_5_3_OR_NEWER
     public class ECSWorld : MonoInstanceBase<ECSWorld>
-#else
-    public class ECSWorld : InstanceBase<ECSWorld>
-#endif
     {
 #if UNITY_5_3_OR_NEWER
         [SerializeField]

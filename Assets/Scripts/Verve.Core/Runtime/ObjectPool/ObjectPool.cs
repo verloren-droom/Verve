@@ -13,6 +13,10 @@ namespace Verve.ObjectPool
     }
     
     
+    /// <summary>
+    /// 对象池
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     [System.Serializable]
     public class ObjectPool<T> : IObjectPool<T> where T : class
     {

@@ -1,8 +1,3 @@
-#if !VERVE_FRAMEWORK_STORAGE
-#define VERVE_FRAMEWORK_STORAGE
-#endif
-
-
 namespace Verve.Storage
 {
     using Unit;
