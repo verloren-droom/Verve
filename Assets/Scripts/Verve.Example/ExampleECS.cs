@@ -40,13 +40,13 @@ namespace Verve.Example
         protected override void OnUpdate()
         {
             base.OnUpdate();
-            Entities.ForEach(e =>
-            {
-                if (e.TryGetComponent(out PositionComponent pos))
-                {
-                    Debug.Log($"{e.ID} -> {pos.x} : {pos.y} : {pos.z}");
-                }
-            });
+            // Entities.ForEach(e =>
+            // {
+            //     if (e.TryGetComponent(out PositionComponent pos))
+            //     {
+            //         Debug.Log($"{e.ID} -> {pos.x} : {pos.y} : {pos.z}");
+            //     }
+            // });
         }
     }
 

@@ -10,6 +10,5 @@ namespace Verve.MVC
 
         public static void ExecuteCommand<TCommand>(this IController self) where TCommand : class, ICommand, new() => self.Activity?.ExecuteCommand<TCommand>();
         public static void UndoCommand<TCommand>(this IController self) where TCommand : class, ICommand, new() => self.Activity?.UndoCommand<TCommand>();
-
     }
 }

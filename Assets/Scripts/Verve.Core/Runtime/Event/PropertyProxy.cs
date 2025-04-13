@@ -56,5 +56,20 @@ namespace Verve.Event
         }
 
         public override string ToString() => m_Value?.ToString() ?? "null";
+
+        public void AddListener(PropertyChangedEventHandler propertyChanged)
+        {
+            m_PropertyChanged += propertyChanged;
+        }
+        
+        public void RemoveListener(PropertyChangedEventHandler propertyChanged)
+        {
+            m_PropertyChanged -= propertyChanged;
+        }
+
+        public void RemoveAllListeners()
+        {
+            m_PropertyChanged = null;
+        }
     }
 }

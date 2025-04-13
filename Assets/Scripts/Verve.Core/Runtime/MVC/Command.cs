@@ -3,7 +3,7 @@ namespace Verve.MVC
     /// <summary>
     /// MVC命令接口
     /// </summary>
-    public interface ICommand
+    public interface ICommand : IBelongToActivity
     {
         /// <summary>
         /// 执行
@@ -21,7 +21,13 @@ namespace Verve.MVC
     /// </summary>
     public abstract class CommandBase : ICommand
     {
-        public abstract void Execute();
-        public virtual void Undo() { }
+        void ICommand.Execute() => OnExecute();
+        void ICommand.Undo() => OnUndo();
+        
+        public IActivity Activity { get; set; }
+        
+
+        protected abstract void OnExecute();
+        protected virtual void OnUndo() {}
     }
 }

@@ -5,9 +5,5 @@ namespace Verve.MVC
     /// </summary>
     public interface IController : IBelongToActivity
     {
-        /// <summary>
-        /// 反初始化
-        /// </summary>
-        void Deinitialize();
     }
 }

@@ -2,6 +2,6 @@ namespace Verve.MVC
 {
     public interface IBelongToActivity
     {
-        IActivity Activity { get; }
+        IActivity Activity { get; set; }
     }
 }

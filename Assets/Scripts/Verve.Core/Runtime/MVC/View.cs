@@ -3,6 +3,8 @@ namespace Verve.MVC
     using System;
 #if UNITY_5_3_OR_NEWER
     using UnityEngine;
+    using UnityEngine.UI;
+    using UnityEngine.EventSystems;
 #elif GODOT
     using Godot;
 #endif
@@ -85,5 +87,99 @@ namespace Verve.MVC
         }
 
         public abstract IActivity Activity { get; set; }
+        
+#if UNITY_5_3_OR_NEWER
+        protected void AddEventTrigger(EventTrigger eventTrigger, EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)
+        {
+            if (eventTrigger == null || callback == null) return;
+            var entry = System.Array.Find(eventTrigger.triggers.ToArray(), 
+                e => e.eventID == type);
+
+            if (entry == null)
+            {
+                entry = new EventTrigger.Entry { eventID = type };
+                eventTrigger.triggers.Add(entry);
+            }
+
+            entry.callback.AddListener(callback);
+        }
+
+        protected void AddEventTrigger(MaskableGraphic graphic, EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)
+        {
+            AddEventTrigger(graphic?.gameObject.GetComponent<EventTrigger>() ?? graphic?.gameObject.AddComponent<EventTrigger>(), type, callback);
+        }
+        
+        protected void RemoveEventTrigger(EventTrigger eventTrigger, EventTriggerType type)
+        {
+            if (eventTrigger == null) return;
+            eventTrigger.triggers.RemoveAll(entry => entry.eventID == type);
+        }
+        
+        protected void RemoveEventTrigger(EventTrigger eventTrigger, EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)
+        {
+            if (eventTrigger == null || callback == null) return;
+
+            foreach (var entry in eventTrigger.triggers)
+            {
+                if (entry.eventID == type)
+                {
+                    entry.callback.RemoveListener(callback);
+                }
+            }
+        }
+        
+        protected void RemoveEventTrigger(MaskableGraphic graphic, EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)
+        {
+            if (graphic == null || !graphic.TryGetComponent<EventTrigger>(out var eventTrigger)) return;
+
+            if (callback == null)
+            {
+                RemoveEventTrigger(eventTrigger, type);
+            }
+            else
+            {
+                RemoveEventTrigger(eventTrigger, type, callback);
+            }
+        }
+        
+        /// <summary>
+        /// 清除所有事件监听
+        /// </summary>
+        public void ClearAllTriggers(EventTrigger eventTrigger)
+        {
+            if (eventTrigger != null)
+            {
+                foreach (var entry in eventTrigger.triggers)
+                {
+                    entry.callback.RemoveAllListeners();
+                }
+                eventTrigger.triggers.Clear();
+            }
+        }
+        
+        public void ClearAllTriggers(MaskableGraphic graphic)
+        {
+            if (graphic == null || !graphic.TryGetComponent<EventTrigger>(out var eventTrigger)) return;
+
+            foreach (var entry in eventTrigger.triggers)
+            {
+                entry.callback.RemoveAllListeners();
+            }
+            eventTrigger.triggers.Clear();
+        }
+
+        /// <summary>
+        /// 批量添加多个事件类型
+        /// </summary>
+        public void AddMultipleEvents(
+            EventTrigger eventTrigger,
+            params (EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)[] events)
+        {
+            foreach (var e in events)
+            {
+                AddEventTrigger(eventTrigger, e.type, e.callback);
+            }
+        }
+#endif
     }
 }

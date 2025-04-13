@@ -1,0 +1,19 @@
+{
+    "name": "Verve.Example",
+    "rootNamespace": "",
+    "references": [
+        "Verve.Core",
+        "Verve.Editor",
+        "Unity.Addressables",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
