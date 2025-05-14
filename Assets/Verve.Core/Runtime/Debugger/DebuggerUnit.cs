@@ -1,19 +1,15 @@
 namespace Verve.Debugger
 {
+    
     using Unit;
     using System.Diagnostics;
-    using System;
-    using System.Collections.Generic;
     
     
-    public sealed partial class DebuggerUnit : UnitBase
+    [CustomUnit("Debugger")]
+    public partial class DebuggerUnit : UnitBase<IDebugger>
     {
-        private readonly IDebugger m_Debugger =
-#if UNITY_5_3_OR_NEWER
-            new UnityDebugger();
-#else
+        protected IDebugger m_Debugger =
             new ConsoleDebugger();
-#endif
 
         [DebuggerHidden, DebuggerStepThrough]
         public void Log(object msg)

@@ -1,9 +1,8 @@
 namespace Verve.Serializable
 {
+    
     using Unit;
-    using System;
     using System.IO;
-    using System.Collections.Concurrent;
     using System.Runtime.Serialization.Formatters.Binary;
     
     
@@ -11,35 +10,22 @@ namespace Verve.Serializable
     /// 序列化单元
     /// </summary>
     [CustomUnit("Serializable"), System.Serializable]
-    public sealed partial class SerializableUnit : UnitBase
+    public partial class SerializableUnit : UnitBase<ISerializableConverter>
     {
-        private ConcurrentDictionary<Type, ISerializableConverter> m_SerializableConverters =
-            new ConcurrentDictionary<Type, ISerializableConverter>();
-
         protected override void OnStartup(UnitRules parent, params object[] args)
         {
             base.OnStartup(parent, args);
-            m_SerializableConverters.TryAdd(typeof(JsonSerializableConverter), Activator.CreateInstance<JsonSerializableConverter>());
-            m_SerializableConverters.TryAdd(typeof(CustomSerializableConverter),
-                Activator.CreateInstance<CustomSerializableConverter>());
+            Register(new JsonSerializableConverter());
         }
 
-        public TValue Deserialize<TSerializable, TValue>(string value) where TSerializable : ISerializableConverter
+        public TValue Deserialize<TSerializable, TValue>(string value) where TSerializable : class, ISerializableConverter
         {
-            if (m_SerializableConverters.TryGetValue(typeof(TSerializable), out var converter))
-            {
-                return converter.Deserialize<TValue>(value);
-            }
-            throw new ArgumentException();
+            return Resolve<TSerializable>().Deserialize<TValue>(value);
         }
 
-        public string Serialize<TSerializable>(object obj) where TSerializable : ISerializableConverter
+        public string Serialize<TSerializable>(object obj) where TSerializable : class, ISerializableConverter
         {
-            if (m_SerializableConverters.TryGetValue(typeof(TSerializable), out var converter))
-            {
-                return converter.Serialize(obj);
-            }
-            throw new ArgumentException();
+            return Resolve<TSerializable>()?.Serialize(obj);
         }
         
         public byte[] Serialize<T>(T data)
@@ -61,4 +47,5 @@ namespace Verve.Serializable
             }
         }
     }
+    
 }

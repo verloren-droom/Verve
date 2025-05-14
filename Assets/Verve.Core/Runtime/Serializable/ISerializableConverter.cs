@@ -1,6 +1,6 @@
 namespace Verve.Serializable
 {
-    public interface ISerializableConverter
+    public interface ISerializableConverter : Unit.IUnitService
     {
         /// <summary>
         /// 反序列化

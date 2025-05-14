@@ -13,12 +13,7 @@ namespace Verve.Unit
         /// 优先级
         /// </summary>
         int Priority { get; }
-        
-        /// <summary>
-        /// 依赖单元
-        /// </summary>
-        System.Collections.Generic.HashSet<System.Type> DependencyUnits { get; }
-        
+
         /// <summary>
         /// 单元启用，由 UnitRules 管理生命周期
         /// </summary>

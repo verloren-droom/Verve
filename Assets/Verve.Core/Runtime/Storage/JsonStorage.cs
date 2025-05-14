@@ -1,5 +1,6 @@
 namespace Verve.Storage
 {
+    
     using File;
     using System;
     using System.IO;
@@ -7,7 +8,7 @@ namespace Verve.Storage
     using System.Collections.Generic;
 
     
-    public sealed partial class JsonStorage : IStorage
+    public sealed partial class JsonStorage : StorageBase
     {
         private SerializableUnit m_Unit;
 
@@ -30,7 +31,7 @@ namespace Verve.Storage
         /// <summary>
         /// 写入数据
         /// </summary>
-        public void Write<T>(string fileName, string key, T data)
+        public override void Write<T>(string fileName, string key, T data)
         {
             ValidateKey(key);
             var fullPath = BuildSafePath(fileName);
@@ -76,7 +77,7 @@ namespace Verve.Storage
         /// <summary>
         /// 读取数据
         /// </summary>
-        public bool TryRead<T>(string fileName, string key, out T outValue, T defaultValue = default)
+        public override bool TryRead<T>(string fileName, string key, out T outValue, T defaultValue = default)
         {
             ValidateKey(key);
             var fullPath = BuildSafePath(fileName);
@@ -151,7 +152,7 @@ namespace Verve.Storage
         /// <summary>
         /// 删除指定文件
         /// </summary>
-        public void Delete(string fileName, string key)
+        public override void Delete(string fileName, string key)
         {
             var fullPath = BuildSafePath(fileName);
             m_MemoryCache.Remove(fullPath);
@@ -161,13 +162,11 @@ namespace Verve.Storage
             }
             catch { }
         }
-        
-        // public void Delete(string fileName, string key)
 
         /// <summary>
         /// 清空所有缓存（内存+磁盘）
         /// </summary>
-        public void DeleteAll()
+        public override void DeleteAll()
         {
             m_MemoryCache.Clear();
 
@@ -185,9 +184,10 @@ namespace Verve.Storage
 
         public void Write<T>(string key, T value) => Write(null, key, value);
         
-        public void Dispose()
+        public override void Dispose()
         {
             m_MemoryCache.Clear();
         }
     }
+    
 }

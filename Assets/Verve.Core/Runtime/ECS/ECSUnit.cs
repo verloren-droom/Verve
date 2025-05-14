@@ -9,7 +9,7 @@ namespace Verve.ECS
         protected override void OnStartup(UnitRules parent, params object[] args)
         {
             base.OnStartup(parent, args);
-            ECSWorld.Instance.Initialize();
+            // ECSWorld.Instance.Initialize();
         }
     }
 }

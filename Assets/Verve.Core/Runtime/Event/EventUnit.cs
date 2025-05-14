@@ -1,5 +1,6 @@
 namespace Verve.Event
 {
+    
     using Unit;
     using System;
     using System.Collections.Concurrent;
@@ -9,7 +10,7 @@ namespace Verve.Event
     /// 全局事件单元
     /// </summary>
     [CustomUnit("Event", 100), System.Serializable]
-    public sealed partial class EventUnit : UnitBase
+    public partial class EventUnit : UnitBase
     {
         protected override void OnShutdown()
         {
@@ -118,4 +119,5 @@ namespace Verve.Event
 
     [System.Serializable]
     public abstract partial class EventArgsBase : EventArgs { }
+    
 }

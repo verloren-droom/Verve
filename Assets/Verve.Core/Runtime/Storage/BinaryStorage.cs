@@ -1,11 +1,12 @@
 namespace Verve.Storage
 {
+    
     using System;
     using Serializable;
     using System.Collections.Concurrent;
     
     
-    public sealed partial class BinaryStorage : IStorage, IDisposable
+    public sealed partial class BinaryStorage : IStorage
     {
         public readonly ConcurrentDictionary<string, byte[]> m_MemoryCache = new ConcurrentDictionary<string, byte[]>();
         
@@ -48,4 +49,5 @@ namespace Verve.Storage
             m_MemoryCache.Clear();
         }
     }
+    
 }

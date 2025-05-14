@@ -1,6 +1,7 @@
 namespace Verve.Storage
 {
-    public interface IStorage : System.IDisposable
+    
+    public interface IStorage : System.IDisposable, Unit.IUnitService
     {
         /// <summary>
         /// 尝试读取数据
@@ -34,4 +35,5 @@ namespace Verve.Storage
         /// </summary>
         void DeleteAll();
     }
+    
 }

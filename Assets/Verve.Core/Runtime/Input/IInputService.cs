@@ -7,7 +7,7 @@ namespace Verve.Input
     /// <summary>
     /// 输入系统接口
     /// </summary>
-    public interface IInputService : IDisposable
+    public interface IInputService : IDisposable, Unit.IUnitService
     {
         /// <summary> 是否有效 </summary>
         bool IsValid { get; }

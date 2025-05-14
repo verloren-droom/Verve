@@ -1,6 +1,6 @@
 {
     "name": "Verve.Core.Editor",
-    "rootNamespace": "Verve",
+    "rootNamespace": "VerveEditor",
     "references": [
         "Unity.Addressables",
         "Unity.InputSystem",

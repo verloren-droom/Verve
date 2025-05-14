@@ -1,5 +1,6 @@
 namespace Verve.Event
 {
+    
     using System;
     using System.Threading;
     using System.ComponentModel;
@@ -10,7 +11,7 @@ namespace Verve.Event
     /// 变量代理，用于监听值改变
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    [System.Serializable]
+    [Serializable]
     public partial class PropertyProxy<T> : INotifyPropertyChanged
     {
 #if UNITY_5_3_OR_NEWER

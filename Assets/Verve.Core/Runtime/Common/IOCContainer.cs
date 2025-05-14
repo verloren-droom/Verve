@@ -1,9 +1,6 @@
 namespace Verve
 {
     using System;
-#if UNITY_5_3_OR_NEWER
-    using UnityEngine;
-#endif
     using System.Reflection;
     using System.Collections.Generic;
     using System.Collections.Concurrent;
@@ -41,16 +38,15 @@ namespace Verve
             return ResolveOrRegister(type, _ =>
             {
 #if UNITY_5_3_OR_NEWER
-                if (typeof(MonoBehaviour).IsAssignableFrom(type))
-                {
-                    return GameObject.FindObjectOfType(type);
-                }
-                else
+                    if (typeof(UnityEngine.MonoBehaviour).IsAssignableFrom(type))
+                    {
+                        return UnityEngine.GameObject.FindObjectOfType(type);
+                    }
+                    else
 #endif
-                {
-                    return Activator.CreateInstance(type, args);
-                }
-                
+                    {
+                        return Activator.CreateInstance(type, args);
+                    }
             });
         }
 
@@ -69,9 +65,9 @@ namespace Verve
             return ResolveOrRegister<T>(_ =>
             {
 #if UNITY_5_3_OR_NEWER
-                if (typeof(MonoBehaviour).IsAssignableFrom(typeof(T)))
+                if (typeof(UnityEngine.MonoBehaviour).IsAssignableFrom(typeof(T)))
                 {
-                    return GameObject.FindObjectOfType(typeof(T));
+                    return UnityEngine.GameObject.FindObjectOfType(typeof(T));
                 }
                 else
 #endif

@@ -7,7 +7,7 @@ namespace Verve.AI
     /// AI单元
     /// </summary>
     [CustomUnit("AI"), System.Serializable]
-    public sealed partial class AIUnit : UnitBase
+    public partial class AIUnit : UnitBase
     {
         
     }

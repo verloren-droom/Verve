@@ -1,0 +1,18 @@
+{
+    "name": "com.verloren-droom.verve-unity-extension",
+    "displayName": "Verve UniEx",
+    "version": "0.0.1-prerelease",
+    "unity": "2018.3",
+    "description": "Development Framework Extension for Unity",
+    "dependencies": {
+        "com.verloren-droom.verve-core": "0.0.1-prerelease"
+    },
+    "author": {
+        "name": "Benfach"
+    },
+    "license": "See LICENSE.md file",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/verloren-droom/Verve.git"
+    }
+}

@@ -5,7 +5,7 @@ namespace Verve.Debugger
     using System.Diagnostics;
     
     
-    public interface IDebugger
+    public interface IDebugger : Unit.IUnitService
     {
         public bool IsEnable { get; set; }
         [DebuggerHidden, DebuggerStepThrough]

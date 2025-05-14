@@ -1,0 +1,21 @@
+{
+    "name": "Verve.Core.Test",
+    "rootNamespace": "Verve",
+    "references": [
+        "Unity.Addressables",
+        "Unity.InputSystem",
+        "Unity.ResourceManager",
+        "Verve.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Newtonsoft.Json.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

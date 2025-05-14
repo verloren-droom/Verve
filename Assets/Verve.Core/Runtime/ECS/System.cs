@@ -14,24 +14,14 @@ namespace Verve.ECS
     /// </summary>
     [System.Serializable]
     public abstract class SystemBase
-    {
-#if UNITY_5_3_OR_NEWER
-        [SerializeField]
-#endif
-        [PropertyDisable] private int m_Order;
+    { 
+        private int m_Order;
         public int Order => m_Order;
         
-#if UNITY_5_3_OR_NEWER
-        [SerializeField]
-#endif
         private EntityQuery m_Entities;
         
         public EntityQuery Entities => m_Entities;
-
-#if UNITY_5_3_OR_NEWER
-        [SerializeField]
-#endif
-        [PropertyDisable]
+        
         private bool m_IsCreated;
 
         protected SystemBase()
@@ -42,16 +32,16 @@ namespace Verve.ECS
 
         ~SystemBase() => Destroy();
 
-        internal void Create()
+        public void Create()
         {
             if (m_IsCreated) return;
             OnCreate();
             m_IsCreated = true;
         }
         
-        internal void Update() => OnUpdate();
+        public void Update() => OnUpdate();
 
-        internal void Destroy()
+        public void Destroy()
         {
             if (!m_IsCreated) return;
             OnDestroy();
@@ -81,12 +71,9 @@ namespace Verve.ECS
     {
         private Dictionary<Type, SystemBase> m_Systems = new Dictionary<Type, SystemBase>();
         
-#if UNITY_5_3_OR_NEWER
-        [SerializeField]
-#endif
         private List<SystemBase> m_OrderedSystems = new List<SystemBase>();
 
-        internal SystemContainer()
+        public SystemContainer()
         {
             foreach (var sys in AppDomain.CurrentDomain.GetAssemblies()
                          .SelectMany(a => a.GetTypes())

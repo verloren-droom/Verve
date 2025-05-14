@@ -31,22 +31,24 @@ namespace Verve.Unit
             
             foreach (var unitInfo in GetOrderedUnits())
             {
+#if UNITY_EDITOR || DEBUG
                 // 遍历查找是否存在缺少的依赖未添加
-                // foreach (var dependencyUnit in unitInfo.Instance.DependencyUnits)
-                // {
-                //     var (name, _) = GetModuleMetadata(dependencyUnit);
-                //     if (!m_Units.ContainsKey(name))
-                //     {
-                //         throw new UnitDependencyNotFoundException(unitInfo.Instance.UnitName, name);
-                //     }
-                // }
+                foreach (var dependencyUnit in unitInfo.Instance.GetType().GetCustomAttribute<CustomUnitAttribute>()?.DependencyUnits)
+                {
+                    var (name, _) = GetModuleMetadata(dependencyUnit);
+                    if (!m_Units.ContainsKey(name))
+                    {
+                        throw new UnitDependencyNotFoundException(unitInfo.Instance.UnitName, name);
+                    }
+                }
+#endif
                 unitInfo.Instance.Startup(this, unitInfo.StartupArgs);
             }
             m_IsInitialized = true;
             onInitialized?.Invoke(this);
         }
 
-        internal void Update(float deltaTime, float unscaledTime)
+        public void Update(float deltaTime, float unscaledTime)
         {
             if (m_IsInitialized || !m_Units.Any()) return;
             
@@ -71,10 +73,7 @@ namespace Verve.Unit
     
         public void Dispose()
         {
-            if (!m_IsInitialized)
-            {
-                throw new UnitRulesNotInitializeException(GetType().Name);
-            }
+            if (!m_IsInitialized) return;
             foreach (var unitInfo in GetOrderedUnits())
             {
                 unitInfo.Instance.Dispose();
@@ -89,7 +88,6 @@ namespace Verve.Unit
             if (m_Units.ContainsKey(unitName)) return this;
             m_Units.TryAdd(unitName, new UnitInfo
             {
-                UnitType = unitType,
                 Priority = priority,
                 StartupArgs = startupArgs,
                 Instance = (ICustomUnit)Activator.CreateInstance(unitType)
@@ -98,12 +96,12 @@ namespace Verve.Unit
             return this;
         }
 
-        internal UnitRules AddDependency<TUnit>(params object[] startupArgs)
+        public UnitRules AddDependency<TUnit>(params object[] startupArgs)
             where TUnit : ICustomUnit => AddDependency(typeof(TUnit), startupArgs);
 
-        internal UnitRules AddDependency(string unitName, params object[] startupArgs) => AddDependency(FindUnitTypeByName(unitName), startupArgs);
+        public UnitRules AddDependency(string unitName, params object[] startupArgs) => AddDependency(FindUnitTypeByName(unitName), startupArgs);
 
-        internal bool TryGetDependency<TUnit>(out TUnit unit) where TUnit : ICustomUnit
+        public bool TryGetDependency<TUnit>(out TUnit unit) where TUnit : ICustomUnit
         {
             if (!m_IsInitialized)
             {
@@ -114,7 +112,7 @@ namespace Verve.Unit
             return unit != null;
         }
         
-        internal bool TryGetDependency(System.Type unitType, out ICustomUnit unit)
+        public bool TryGetDependency(System.Type unitType, out ICustomUnit unit)
         {
             if (!m_IsInitialized)
             {
@@ -148,7 +146,6 @@ namespace Verve.Unit
 
         private struct UnitInfo
         {
-            public Type UnitType { get; set; }
             public int Priority { get; set; }
             public object[] StartupArgs { get; set; }
             public ICustomUnit Instance { get; set; }

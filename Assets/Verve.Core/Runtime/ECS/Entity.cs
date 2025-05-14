@@ -17,10 +17,7 @@ namespace Verve.ECS
     [Serializable]
     public sealed partial class Entity : IDisposable
     {
-#if UNITY_5_3_OR_NEWER
-        [SerializeField]
-#endif
-        [PropertyDisable] private string m_ID;
+        private string m_ID;
 
         /// <summary>
         /// 实体唯一ID
@@ -280,10 +277,7 @@ namespace Verve.ECS
     /// </summary>
     [Serializable]
     public sealed partial class EntityQuery
-    {
-#if UNITY_5_3_OR_NEWER
-        [SerializeField]
-#endif
+    { 
         private HashSet<Entity> m_Entities = new HashSet<Entity>();
         
         internal EntityQuery(IEnumerable<Entity> entities)

@@ -4,7 +4,7 @@ namespace Verve.Debugger
     using System;
     
     
-    internal sealed partial class ConsoleDebugger : DebuggerBase
+    public sealed partial class ConsoleDebugger : DebuggerBase
     {
         [System.Diagnostics.DebuggerHidden, System.Diagnostics.DebuggerStepThrough]
         protected override void Log_Implement(string msg, LogLevel level)

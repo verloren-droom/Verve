@@ -1,11 +1,12 @@
 namespace Verve.File
 {
+    
     using System.IO;
 #if UNITY_5_3_OR_NEWER
     using UnityEngine;
 #endif
 
-    
+
     /// <summary>
     /// 文件相关的共享变量和方法
     /// </summary>
@@ -16,7 +17,7 @@ namespace Verve.File
             Application.persistentDataPath;
 #else
 #endif
-            
+ 
 
         public static string BasePath
         {
@@ -44,6 +45,6 @@ namespace Verve.File
         {
             return Path.Combine(BasePath, relativePath);
         }
-        
     }
+    
 }

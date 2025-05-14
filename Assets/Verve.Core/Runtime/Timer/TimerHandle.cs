@@ -1,10 +1,8 @@
-
-using System.Threading;
-
 namespace Verve.Timer
 {
     using System;
     using UnityEngine;
+    using System.Threading;
     
     public class TimerHandle : IComparable<TimerHandle>
     {
@@ -35,14 +33,16 @@ namespace Verve.Timer
 
         public async void Start(bool ignoreTimeScale = false)
         {
-            if (ignoreTimeScale)
-            {
-                await new WaitForSecondsRealtime(TriggerTime);
-            }
-            else
-            {
-                await new WaitForSeconds(TriggerTime);
-            }
+// #if VERVE_UNIEX_0_0_1_OR_NEWER
+//             if (ignoreTimeScale)
+//             {
+//                 await new WaitForSecondsRealtime(TriggerTime);
+//             }
+//             else
+//             {
+//                 await new WaitForSeconds(TriggerTime);
+//             }
+// #endif
             m_OnTimeout?.Invoke();
         }
 

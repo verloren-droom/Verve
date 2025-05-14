@@ -1,5 +1,6 @@
 namespace Verve.File
 {
+    
     using Unit;
     using System;
     using System.IO;
@@ -8,23 +9,21 @@ namespace Verve.File
     using Newtonsoft.Json;
     using System.Collections.Generic;
 
-    
+
     /// <summary>
     /// 文件单元
     /// </summary>
-    [CustomUnit("File"), System.Serializable]
-    public sealed partial class FileUnit : UnitBase
+    [CustomUnit("File", dependencyUnits: typeof(SerializableUnit)), System.Serializable]
+    public partial class FileUnit : UnitBase
     {
-        public override HashSet<Type> DependencyUnits { get; protected set; } = new HashSet<Type>() { typeof(SerializableUnit) };
-        
-        private SerializableUnit m_Unit;
+        private SerializableUnit m_Serializable;
 
         protected override void OnStartup(UnitRules parent, params object[] args)
         {
             base.OnStartup(parent, args);
             parent.onInitialized += (_) =>
             {
-                parent.TryGetDependency<SerializableUnit>(out m_Unit);
+                parent.TryGetDependency<SerializableUnit>(out m_Serializable);
             };
         }
 
@@ -54,7 +53,7 @@ namespace Verve.File
                 return false;
             }
             byte[] bytes = File.ReadAllBytes(fullPath);
-            data = binary ? m_Unit.Deserialize<T>(bytes) : JsonConvert.DeserializeObject<T>(Encoding.GetEncoding("UTF-8").GetString(bytes));
+            data = binary ? m_Serializable.Deserialize<T>(bytes) : JsonConvert.DeserializeObject<T>(Encoding.GetEncoding("UTF-8").GetString(bytes));
             return true;
         }
 
@@ -69,7 +68,7 @@ namespace Verve.File
             string fullPath = FileDefine.GetFileAbsolutePath(relativePath);
             CreateDirectory(Path.GetDirectoryName(fullPath));
             byte[] bytes = binary ? 
-                m_Unit.Serialize(data) : 
+                m_Serializable.Serialize(data) : 
                 Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(data));
 
             try
