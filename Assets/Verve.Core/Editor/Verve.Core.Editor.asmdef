@@ -1,0 +1,23 @@
+{
+    "name": "Verve.Core.Editor",
+    "rootNamespace": "Verve",
+    "references": [
+        "Unity.Addressables",
+        "Unity.InputSystem",
+        "Unity.ResourceManager",
+        "Verve.Core"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Newtonsoft.Json.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
