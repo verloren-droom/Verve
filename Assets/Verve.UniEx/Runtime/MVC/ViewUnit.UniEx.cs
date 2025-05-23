@@ -1,14 +1,14 @@
+#if UNITY_5_3_OR_NEWER
+    
 namespace VerveUniEx.MVC
 {
-    
-#if UNITY_5_3_OR_NEWER
     using System;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
-    using UnityEngine;
-    using Verve.Loader;
     using Verve.MVC;
     using Verve.Unit;
+    using UnityEngine;
+    using Verve.Loader;
+    using System.Threading.Tasks;
+    using System.Collections.Generic;
     
     
     [CustomUnit("View", dependencyUnits: typeof(VerveUniEx.Loader.LoaderUnit)), System.Serializable]
@@ -18,9 +18,9 @@ namespace VerveUniEx.MVC
 
         private Transform m_ViewRootParent;
         
-        protected override void OnStartup(UnitRules parent, params object[] args)
+        protected override void OnStartup(params object[] args)
         {
-            base.OnStartup(parent, args);
+            base.OnStartup(args);
             m_ViewRootParent = args.Length > 0 && args[0] is Transform ? args[0] as Transform : (GameObject.FindObjectOfType<Canvas>().transform ?? new GameObject("ViewRoot").AddComponent<Canvas>().transform);
         }
         
@@ -96,6 +96,6 @@ namespace VerveUniEx.MVC
         
         private ViewInfoAttribute GetViewInfo<T>() => GetViewInfo(typeof(T));
     }
-#endif
-    
 }
+    
+#endif

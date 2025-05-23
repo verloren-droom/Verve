@@ -1,5 +1,8 @@
 namespace Verve.Storage
 {
+    using System.Threading;
+    using System.Threading.Tasks;
+
     
     public interface IStorage : System.IDisposable, Unit.IUnitService
     {
@@ -34,6 +37,15 @@ namespace Verve.Storage
         /// 删除所有数据
         /// </summary>
         void DeleteAll();
+
+        /// <summary>
+        /// 异步读取数据
+        /// </summary>
+        Task<TData> ReadAsync<TData>(string fileName, string key, TData defaultValue = default, CancellationToken cancellationToken = default);
+        /// <summary>
+        /// 异步写入数据
+        /// </summary>
+        Task WriteAsync<TData>(string fileName, string key, TData value, CancellationToken cancellationToken = default);
     }
     
 }

@@ -1,6 +1,5 @@
 namespace Verve.MVC
 {
-
     public interface IActivity
     {
         /// <summary>
@@ -88,5 +87,4 @@ namespace Verve.MVC
             command.Undo();
         }
     }
-    
 }

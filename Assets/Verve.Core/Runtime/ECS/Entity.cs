@@ -3,9 +3,6 @@ namespace Verve.ECS
     using System;
     using System.Text;
     using System.Linq;
-#if UNITY_5_3_OR_NEWER
-    using UnityEngine;
-#endif
     using System.Threading;
     using System.Collections.Generic;
     using System.Collections.Concurrent;

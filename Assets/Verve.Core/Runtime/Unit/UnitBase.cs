@@ -3,6 +3,7 @@ namespace Verve.Unit
     
     using System;
     using System.Reflection;
+    using System.Threading.Tasks;
     using System.Collections.Generic;
     using System.Text.RegularExpressions;
 
@@ -10,14 +11,24 @@ namespace Verve.Unit
     /// <summary>
     /// 单元基类
     /// </summary>
-    [CustomUnit("Base")]
     public abstract partial class UnitBase : ICustomUnit
     {
         public virtual string UnitName => Regex.Replace(GetType().GetCustomAttribute<CustomUnitAttribute>()?.UnitName ?? GetType().Name, "Unit", string.Empty);
         public virtual int Priority => GetType().GetCustomAttribute<CustomUnitAttribute>()?.Priority ?? 0;
 
-        void ICustomUnit.Startup(UnitRules parent, params object[] args) => OnStartup(parent, args);
-        void ICustomUnit.Tick(float deltaTime, float unscaledTime) => OnTick(deltaTime, unscaledTime);
+        public virtual bool CanEverTick { get; protected set; }
+        
+        void ICustomUnit.Startup(UnitRules parent, params object[] args)
+        {
+            OnStartup(args);
+            parent.OnInitialized += OnPostStartup;
+            parent.OnDeinitialized += OnPostShutdown;
+        }
+        void ICustomUnit.Tick(float deltaTime, float unscaledTime)
+        {
+            if (!CanEverTick) return;
+            OnTick(deltaTime, unscaledTime);
+        }
         void ICustomUnit.Shutdown()
         {
             Dispose();
@@ -29,9 +40,17 @@ namespace Verve.Unit
         /// <summary>
         /// 单元被启用
         /// </summary>
-        /// <param name="parent"></param>
         /// <param name="args"></param>
-        protected virtual void OnStartup(UnitRules parent, params object[] args) { }
+        protected virtual void OnStartup(params object[] args) { }
+
+        /// <summary>
+        /// 单元被初始化后被调用
+        /// </summary>
+        /// <param name="parent"></param>
+        protected virtual void OnPostStartup(UnitRules parent)
+        {
+            parent.OnInitialized -= OnPostStartup;
+        }
 
         /// <summary>
         /// 单元每帧被调用
@@ -44,50 +63,72 @@ namespace Verve.Unit
         /// 单元被卸载
         /// </summary>
         protected virtual void OnShutdown() { }
+
+        /// <summary>
+        /// 单元被卸载后被调用
+        /// </summary>
+        protected virtual void OnPostShutdown(UnitRules parent)
+        {
+            parent.OnDeinitialized -= OnPostShutdown;
+        }
     }
 
     
     public abstract partial class UnitBase<TUnitService> : UnitBase where TUnitService : IUnitService
     {
-        private readonly Dictionary<Type, TUnitService> m_UnitServices = new Dictionary<Type, TUnitService>();
+        protected readonly Dictionary<Type, TUnitService> m_UnitServices = new Dictionary<Type, TUnitService>();
 
         
-        protected TUnitService Resolve(Type type)
+        public TUnitService GetService(Type type)
         {
+            if (!typeof(TUnitService).IsAssignableFrom(type))
+            {
+                throw new Exception($"{type.Name} is not a {typeof(TUnitService).Name}");
+            }
             return m_UnitServices.TryGetValue(type, out var factory) ? factory : default;
         }
         
-        protected T Resolve<T>() where T : class, IUnitService
+        public T GetService<T>() where T : class, IUnitService
         {
             return m_UnitServices.TryGetValue(typeof(T), out var factory) ? factory as T : null;
         }
         
-        protected void Register(Func<TUnitService> factory)
+        public void AddService<T>() where T : class, IUnitService
         {
-            if (factory != null || !m_UnitServices.ContainsKey(typeof(TUnitService)))
+            if (!m_UnitServices.ContainsKey(typeof(T)))
             {
-                m_UnitServices[typeof(TUnitService)] = factory.Invoke();
+                m_UnitServices[typeof(T)] = (TUnitService)Activator.CreateInstance(typeof(T));
+            }
+        }
+
+        public void AddService(TUnitService factory)
+        {
+            if (factory != null || !m_UnitServices.ContainsKey(factory.GetType()))
+            {
+                m_UnitServices[factory.GetType()] = factory;
             }
         }
         
-        protected void Register(TUnitService factory)
+        public void RemoveService<T>() where T : class, IUnitService
         {
-            if (factory != null || !m_UnitServices.ContainsKey(typeof(TUnitService)))
+            if (m_UnitServices.ContainsKey(typeof(T)))
             {
-                m_UnitServices[typeof(TUnitService)] = factory;
+                m_UnitServices.Remove(typeof(T));
             }
         }
         
-        public override void Dispose()
+        public void RemoveService(TUnitService factory)
         {
-            base.Dispose();
-            m_UnitServices.Clear();
+            if (factory != null && m_UnitServices.ContainsKey(factory.GetType()))
+            {
+                m_UnitServices.Remove(factory.GetType());
+            }
         }
-        
+
         protected override void OnShutdown()
         {
             base.OnShutdown();
-            Dispose();
+            m_UnitServices.Clear();
         }
     }
 

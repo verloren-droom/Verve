@@ -19,11 +19,11 @@ namespace Verve.Unit
         /// <summary>
         /// 初始化完成事件
         /// </summary>
-        public event Action<UnitRules> onInitialized;
+        public event Action<UnitRules> OnInitialized;
         /// <summary>
         /// 销毁事件
         /// </summary>
-        public event Action onDeinitialized;
+        public event Action<UnitRules> OnDeinitialized;
 
         public void Initialize()
         {
@@ -45,12 +45,12 @@ namespace Verve.Unit
                 unitInfo.Instance.Startup(this, unitInfo.StartupArgs);
             }
             m_IsInitialized = true;
-            onInitialized?.Invoke(this);
+            OnInitialized?.Invoke(this);
         }
 
         public void Update(float deltaTime, float unscaledTime)
         {
-            if (m_IsInitialized || !m_Units.Any()) return;
+            if (!m_IsInitialized || !m_Units.Any()) return;
             
             foreach (var unitInfo in GetOrderedUnits())
             {
@@ -66,11 +66,11 @@ namespace Verve.Unit
             {
                 unitInfo.Instance.Shutdown();
             }
-            m_Units.Clear();
+            OnDeinitialized?.Invoke(this);
             m_IsInitialized = false;
-            onDeinitialized?.Invoke();
+            m_Units.Clear();
         }
-    
+
         public void Dispose()
         {
             if (!m_IsInitialized) return;
@@ -79,7 +79,7 @@ namespace Verve.Unit
                 unitInfo.Instance.Dispose();
             }
         }
-        
+
         internal UnitRules AddDependency(Type unitType, params object[] startupArgs)
         {
             if (!typeof(ICustomUnit).IsAssignableFrom(unitType))

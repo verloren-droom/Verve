@@ -6,7 +6,7 @@ namespace Verve
     using System.Collections.Concurrent;
 
     
-    public class IOCContainer
+    public partial class IOCContainer
     {
         private readonly ConcurrentDictionary<Type, object> m_Factories = new ConcurrentDictionary<Type, object>();
 
@@ -33,21 +33,9 @@ namespace Verve
             return m_Factories.GetOrAdd(type, valueFactory);
         }
 
-        public object ResolveOrRegister(System.Type type, params object[] args)
+        public virtual object ResolveOrRegister(System.Type type, params object[] args)
         {
-            return ResolveOrRegister(type, _ =>
-            {
-#if UNITY_5_3_OR_NEWER
-                    if (typeof(UnityEngine.MonoBehaviour).IsAssignableFrom(type))
-                    {
-                        return UnityEngine.GameObject.FindObjectOfType(type);
-                    }
-                    else
-#endif
-                    {
-                        return Activator.CreateInstance(type, args);
-                    }
-            });
+            return ResolveOrRegister(type, _ => Activator.CreateInstance(type, args));
         }
 
         public T Resolve<T>() where T : new()
@@ -60,21 +48,9 @@ namespace Verve
             return (T)ResolveOrRegister(typeof(T), valueFactory);
         }
 
-        public T ResolveOrRegister<T>(params object[] args) where T : new()
+        public virtual T ResolveOrRegister<T>(params object[] args) where T : new()
         {
-            return ResolveOrRegister<T>(_ =>
-            {
-#if UNITY_5_3_OR_NEWER
-                if (typeof(UnityEngine.MonoBehaviour).IsAssignableFrom(typeof(T)))
-                {
-                    return UnityEngine.GameObject.FindObjectOfType(typeof(T));
-                }
-                else
-#endif
-                {
-                    return Activator.CreateInstance(typeof(T), args);
-                }
-            });
+            return ResolveOrRegister<T>(_ => Activator.CreateInstance(typeof(T), args));
         }
 
         public bool TryResolve<T>(out T outInstance) where T : new()
@@ -101,39 +77,6 @@ namespace Verve
             m_Factories.Clear();
         }
 
-        public void InjectDependencies(object target)
-        {
-            if (target == null) return;
-
-            var fields = target.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-            foreach (var field in fields)
-            {
-                if (field.GetCustomAttribute(typeof(InjectAttribute)) is InjectAttribute injectAttribute)
-                {
-                    var fieldType = field.FieldType;
-                    var instance = injectAttribute.Args is { Length: > 0 } ? ResolveOrRegister(fieldType, injectAttribute.Args) : Resolve(fieldType);
-                    if (!injectAttribute.IsAdd)
-                    {
-                        instance = Resolve(fieldType);
-                    }
-                    if (!TryResolve(fieldType, out var _))
-                    {
-                        throw new InvalidOperationException($"无法找到类型为 {fieldType.FullName} 的注入实例，请确保已注册该类型");
-                    }
-                    field.SetValue(target, instance);
-                }
-            }
-        }
-
-
-        public void InjectDependencies(IEnumerable<object> targets)
-        {
-            foreach (var target in targets)
-            {
-                InjectDependencies(target);
-            }
-        }
-
         public static IOCContainer operator +(IOCContainer left, IOCContainer right)
         {
             var merged = new IOCContainer();
@@ -154,26 +97,6 @@ namespace Verve
                 );
             }
             return merged;
-        }
-    }
-
-    [AttributeUsage(AttributeTargets.Field)]
-    public class InjectAttribute : Attribute
-    {
-        public object[] Args { get; }
-        public bool IsAdd { get; } = false;
-
-        public InjectAttribute()
-        {
-            IsAdd = false;
-        }
-
-        public InjectAttribute(object arg1, params object[] args)
-        {
-            IsAdd = true;
-            Args = new object[args.Length + 1];
-            Args[0] = arg1;
-            Array.Copy(args, 0, Args, 1, args.Length);
         }
     }
 }

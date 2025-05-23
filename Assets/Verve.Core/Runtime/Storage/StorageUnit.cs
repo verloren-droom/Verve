@@ -4,6 +4,7 @@ namespace Verve.Storage
     using Unit;
     using System;
     using Serializable;
+    using System.Threading.Tasks;
     using System.Collections.Generic;
     
     
@@ -14,44 +15,53 @@ namespace Verve.Storage
     public partial class StorageUnit : UnitBase<IStorage>
     {
         protected SerializableUnit m_Serializable;
+        
 
-        private Dictionary<Type, IStorage> m_Storages = new Dictionary<Type, IStorage>();
-
-        protected override void OnStartup(UnitRules parent, params object[] args)
+        protected override void OnPostStartup(UnitRules parent)
         {
-            base.OnStartup(parent, args);
-
-            parent.onInitialized += rules =>
-            {
-                parent.TryGetDependency(out m_Serializable);
-                Register(new JsonStorage(m_Serializable));
-                Register(new BinaryStorage(m_Serializable));
-            };
+            base.OnPostStartup(parent);
+            parent.TryGetDependency(out m_Serializable);
+            AddService(new JsonStorage(m_Serializable));
+            AddService(new BinaryStorage(m_Serializable));
         }
 
-        public void Write<TStorage, TData>(string key, TData data) where TStorage : IStorage =>
+        public void Write<TStorage, TData>(string key, TData data) where TStorage : class, IStorage =>
             Write<TStorage, TData>(null, key, data);
-        public void Write<TStorage, TData>(string fileName, string key, TData data) where TStorage : IStorage
+        public void Write<TStorage, TData>(string fileName, string key, TData data) where TStorage : class, IStorage
         {
-            m_Storages?[typeof(TStorage)]?.Write(fileName, key, data);
+            GetService<TStorage>()?.Write(fileName, key, data);
         }
 
         public bool TryRead<TStorage, TData>(string key, out TData outValue, TData defaultValue = default)
-            where TStorage : IStorage => TryRead<TStorage, TData>(null, key, out outValue, defaultValue);
-        public bool TryRead<TStorage, TData>(string fileName, string key, out TData outValue, TData defaultValue = default) where TStorage : IStorage
+            where TStorage : class, IStorage => TryRead<TStorage, TData>(null, key, out outValue, defaultValue);
+        public bool TryRead<TStorage, TData>(string fileName, string key, out TData outValue, TData defaultValue = default) where TStorage : class, IStorage
         {
-            return m_Storages[typeof(TStorage)].TryRead(fileName, key, out outValue, defaultValue);
+            return GetService<TStorage>().TryRead(fileName, key, out outValue, defaultValue);
         }
         
-        public void Delete<TStorage>(string key) where TStorage : IStorage => Delete<TStorage>(null, key);
-        public void Delete<TStorage>(string fileName, string key)where TStorage : IStorage
+        public void Delete<TStorage>(string key) where TStorage : class, IStorage => Delete<TStorage>(null, key);
+        public void Delete<TStorage>(string fileName, string key)where TStorage : class, IStorage
         {
-            m_Storages?[typeof(TStorage)]?.Delete(fileName, key);
+            GetService<TStorage>()?.Delete(fileName, key);
         }
 
-        public void DeleteAll<TStorage>() where TStorage : IStorage
+        public void DeleteAll<TStorage>() where TStorage : class, IStorage
         {
-            m_Storages?[typeof(TStorage)]?.DeleteAll();
+            GetService<TStorage>()?.DeleteAll();
+        }
+        
+        public async Task WriteAsync<TStorage, TData>(string key, TData data) where TStorage : class, IStorage =>
+            await WriteAsync<TStorage, TData>(null, key, data);
+        public async Task WriteAsync<TStorage, TData>(string fileName, string key, TData data) where TStorage : class, IStorage
+        {
+            await GetService<TStorage>().WriteAsync(fileName, key, data);
+        }
+        
+        public async Task<TData> ReadAsync<TStorage, TData>(string key, TData defaultValue = default) where TStorage : class, IStorage =>
+            await ReadAsync<TStorage, TData>(null, key, defaultValue);
+        public async Task<TData> ReadAsync<TStorage, TData>(string fileName, string key, TData defaultValue = default) where TStorage : class, IStorage
+        {
+            return await GetService<TStorage>().ReadAsync(fileName, key, defaultValue);
         }
     }
 }

@@ -1,9 +1,11 @@
+#if UNITY_5_3_OR_NEWER
+    
 namespace VerveUniEx.Storage
 {
-    
-#if UNITY_5_3_OR_NEWER
-    using Verve.Serializable;
+    using System;
     using Verve.Unit;
+    using System.Collections;
+    using Verve.Serializable;
     
     
     /// <summary>
@@ -12,15 +14,36 @@ namespace VerveUniEx.Storage
     [CustomUnit("Storage", dependencyUnits: typeof(SerializableUnit)), System.Serializable]
     public partial class StorageUnit : Verve.Storage.StorageUnit
     {
-        protected override void OnStartup(UnitRules parent, params object[] args)
+        protected override void OnPostStartup(UnitRules parent)
         {
-            base.OnStartup(parent, args);
-            parent.onInitialized += rules =>
-            {
-                Register((() => new BuiltInStorage(m_Serializable)));
-            };
+            base.OnPostStartup(parent);
+            AddService(new BuiltInStorage(m_Serializable));
+        }
+
+        public IEnumerator ReadAsync<TStorage, TData>(string fileName, string key, Action<TData> onComplete, TData defaultValue = default) 
+            where TStorage : class, IStorage
+        {
+            yield return GetService<TStorage>().ReadAsync(fileName, key, onComplete, defaultValue);
+        }
+        
+        public IEnumerator ReadAsync<TStorage, TData>(string key, Action<TData> onComplete, TData defaultValue = default)
+            where TStorage : class, IStorage
+        {
+            yield return GetService<TStorage>().ReadAsync(null, key, onComplete, defaultValue);
+        }
+
+        public IEnumerator WriteAsync<TStorage, TData>(string fileName, string key, TData value, Action onComplete)
+            where TStorage : class, IStorage
+        {
+            yield return GetService<TStorage>().WriteAsync(fileName, key, value, onComplete);
+        }
+        
+        public IEnumerator WriteAsync<TStorage, TData>(string key, TData value, Action onComplete)
+            where TStorage : class, IStorage
+        {
+            yield return GetService<TStorage>().WriteAsync(null, key, value, onComplete);
         }
     }
-#endif
-    
 }
+    
+#endif

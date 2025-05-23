@@ -12,15 +12,12 @@ namespace Verve.MVC
     public partial class ViewUnit : UnitBase
     {
         protected LoaderUnit m_LoaderUnit;
+
         
-        protected override void OnStartup(UnitRules parent, params object[] args)
+        protected override void OnPostStartup(UnitRules parent)
         {
-            base.OnStartup(parent, args);
-            parent.onInitialized += (_) =>
-            {
-                parent.TryGetDependency<LoaderUnit>(out m_LoaderUnit);
-            };
+            base.OnPostStartup(parent);
+            parent.TryGetDependency<LoaderUnit>(out m_LoaderUnit);
         }
     }
-
 }

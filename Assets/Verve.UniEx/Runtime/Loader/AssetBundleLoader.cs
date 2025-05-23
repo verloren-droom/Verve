@@ -1,12 +1,16 @@
+#if UNITY_5_3_OR_NEWER
+    
 namespace VerveUniEx.Loader
 {
-    
-#if UNITY_5_3_OR_NEWER
     using System;
-
+    using UnityEngine;
+    using System.Collections.Generic;
     
+
     public sealed partial class AssetBundleLoader : VerveUniEx.Loader.AssetLoaderBase
     {
+        private readonly Dictionary<string, AssetBundle> m_LoadedBundles = new Dictionary<string, AssetBundle>();
+        
         public override TObject LoadAsset<TObject>(string assetPath)
         {
             throw new NotImplementedException();
@@ -17,6 +21,6 @@ namespace VerveUniEx.Loader
             throw new NotImplementedException();
         }
     }
-#endif
-    
 }
+    
+#endif

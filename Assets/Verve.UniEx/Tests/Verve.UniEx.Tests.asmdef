@@ -1,0 +1,19 @@
+{
+    "name": "Verve.UniEx.Tests",
+    "rootNamespace": "VerveUniEx.Tests",
+    "references": [
+        "Verve.Core",
+        "Verve.UniEx"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

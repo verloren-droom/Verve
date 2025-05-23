@@ -1,7 +1,7 @@
+# if UNITY_5_3_OR_NEWER
+    
 namespace VerveUniEx.Loader
 {
-    
-# if UNITY_5_3_OR_NEWER
     using System;
     using UnityEngine;
     using Verve.Loader;
@@ -70,6 +70,6 @@ namespace VerveUniEx.Loader
             }
         }
     }
-#endif
-    
 }
+    
+#endif

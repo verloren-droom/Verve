@@ -1,6 +1,5 @@
 namespace Verve.Loader
 {
-    
     /// <summary>
     /// 资源加载回调上下文
     /// </summary>
@@ -22,5 +21,4 @@ namespace Verve.Loader
             IsDone = isDone;
         }
     }
-    
 }

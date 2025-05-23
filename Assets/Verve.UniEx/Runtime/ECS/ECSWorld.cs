@@ -1,12 +1,12 @@
+#if UNITY_5_3_OR_NEWER
+    
 namespace VerveUniEx.ECS
 {
-    
-#if UNITY_5_3_OR_NEWER
     using Verve.ECS;
     using UnityEngine;
     
     
-    public class ECSWorld : ComponentInstanceBase<ECSWorld>
+    internal class ECSWorld : ComponentInstanceBase<ECSWorld>
     {
         [SerializeField] private SystemContainer m_SystemContainer;
         
@@ -48,6 +48,6 @@ namespace VerveUniEx.ECS
         // public void AddSystems<T1, T2, T3, T4>() where T1 : SystemBase where T2 : SystemBase where T3 : SystemBase where T4 : SystemBase => AddSystems(typeof(T1), typeof(T2), typeof(T3), typeof(T4));
         // public void AddSystems<T1, T2, T3, T4, T5>() where T1 : SystemBase where T2 : SystemBase where T3 : SystemBase where T4 : SystemBase where T5 : SystemBase => AddSystems(typeof(T1), typeof(T2), typeof(T3), typeof(T4), typeof(T5));
     }
-#endif
-    
 }
+    
+#endif

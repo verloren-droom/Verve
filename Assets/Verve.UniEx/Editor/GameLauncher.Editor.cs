@@ -9,7 +9,7 @@ namespace VerveEditor.UniEx
     /// <summary>
     /// 启动器，框架入口（编辑器模式）
     /// </summary>
-    public sealed partial class Launcher : VerveUniEx.Launcher
+    public sealed partial class Launcher : VerveUniEx.GameLauncher
     {
         
     }

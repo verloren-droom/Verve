@@ -3,7 +3,7 @@ namespace Verve.Serializable
     
     using Unit;
     using System.IO;
-    using System.Runtime.Serialization.Formatters.Binary;
+    using System.Text;
     
     
     /// <summary>
@@ -12,40 +12,43 @@ namespace Verve.Serializable
     [CustomUnit("Serializable"), System.Serializable]
     public partial class SerializableUnit : UnitBase<ISerializableConverter>
     {
-        protected override void OnStartup(UnitRules parent, params object[] args)
+        protected override void OnStartup(params object[] args)
         {
-            base.OnStartup(parent, args);
-            Register(new JsonSerializableConverter());
+            base.OnStartup(args);
+            AddService(new JsonSerializableConverter());
+            AddService(new ProtoBufSerializableConverter());
         }
 
-        public TValue Deserialize<TSerializable, TValue>(string value) where TSerializable : class, ISerializableConverter
+        public TValue Deserialize<TSerializable, TValue>(string value) 
+            where TSerializable : class, ISerializableConverter
         {
-            return Resolve<TSerializable>().Deserialize<TValue>(value);
+            return string.IsNullOrEmpty(value) ? default : Deserialize<TSerializable, TValue>(Encoding.UTF8.GetBytes(value));
+        }
+
+        public TValue Deserialize<TSerializable, TValue>(byte[] value)
+            where TSerializable : class, ISerializableConverter
+        {
+            return GetService<TSerializable>().Deserialize<TValue>(value);
+        }
+
+        public TValue DeserializeFromStream<TSerializable, TValue>(Stream stream) where TSerializable : class, ISerializableConverter
+        {
+            return GetService<TSerializable>().DeserializeFromStream<TValue>(stream);
         }
 
         public string Serialize<TSerializable>(object obj) where TSerializable : class, ISerializableConverter
         {
-            return Resolve<TSerializable>()?.Serialize(obj);
+            return Encoding.UTF8.GetString(SerializeToBytes<TSerializable>(obj));
         }
         
-        public byte[] Serialize<T>(T data)
+        public byte[] SerializeToBytes<TSerializable>(object obj) where TSerializable : class, ISerializableConverter
         {
-            using (MemoryStream ms = new MemoryStream())
-            {
-                BinaryFormatter formatter = new BinaryFormatter();
-                formatter.Serialize(ms, data);
-                return ms.ToArray();
-            }
+            return GetService<TSerializable>()?.Serialize(obj);
         }
-        
-        public T Deserialize<T>(byte[] data)
+
+        public void Serialize<TSerializable>(Stream stream, object obj) where TSerializable : class, ISerializableConverter
         {
-            using (MemoryStream ms = new MemoryStream(data))
-            {
-                BinaryFormatter formatter = new BinaryFormatter();
-                return (T)formatter.Deserialize(ms);
-            }
+            GetService<TSerializable>()?.Serialize(stream, obj);
         }
     }
-    
 }

@@ -1,7 +1,7 @@
+#if UNITY_5_3_OR_NEWER && ENABLE_AUDIO
+    
 namespace VerveUniEx.Audio
 {
-    
-#if UNITY_5_3_OR_NEWER && ENABLE_AUDIO
     using Verve;
     using System;
     using UnityEngine;
@@ -238,6 +238,6 @@ namespace VerveUniEx.Audio
             return new AudioAsset(clip, playOnAwake, baseVolume, mixerGroup, parent);
         }
     }
-#endif
-    
 }
+    
+#endif

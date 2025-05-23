@@ -23,7 +23,7 @@ namespace Verve.Storage
         private string BuildSafePath(string fileName)
         {
             var safeFileName = Path.GetFileName(fileName) ?? "default";
-            return Path.Combine(FileDefine.BasePath, $"{safeFileName}{DefaultFileExtension}");
+            return Path.Combine(FileDefine.PersistentDataPath, $"{safeFileName}{DefaultFileExtension}");
         }
         
         #region 核心API
@@ -37,8 +37,10 @@ namespace Verve.Storage
             var fullPath = BuildSafePath(fileName);
             if (!Directory.Exists(Path.GetDirectoryName(fullPath)))
                 Directory.CreateDirectory(Path.GetDirectoryName(fullPath));
-            var tempPath = Path.Combine(FileDefine.TempPath, Guid.NewGuid().ToString());
-
+            var tempPath = FileDefine.TempFilePath;
+            if (!Directory.Exists(Path.GetDirectoryName(tempPath)))
+                Directory.CreateDirectory(Path.GetDirectoryName(tempPath));
+            
             try
             {
                 Dictionary<string, object> dataDict = new Dictionary<string, object>();
@@ -47,14 +49,14 @@ namespace Verve.Storage
                 {
                     try
                     {
-                        dataDict = m_Unit.Deserialize<Dictionary<string, object>>(File.ReadAllBytes(fullPath));
+                        dataDict = m_Unit.Deserialize<JsonSerializableConverter, Dictionary<string, object>>(File.ReadAllBytes(fullPath));
                     }
                     catch { }
                 }
 
                 dataDict[key] = data;
 
-                var bytes = m_Unit.Serialize(dataDict);
+                var bytes = m_Unit.SerializeToBytes<JsonSerializableConverter>(dataDict);
                 
                 m_MemoryCache[fullPath] = bytes;
                 
@@ -63,10 +65,6 @@ namespace Verve.Storage
                 {
                     File.Move(tempPath, fullPath);
                 }
-            }
-            catch (Exception e)
-            {
-                throw new StorageException("Data write failed", e);
             }
             finally
             {
@@ -116,7 +114,7 @@ namespace Verve.Storage
         {
             try
             {
-                var dataDict = m_Unit.Deserialize<Dictionary<string, object>>(bytes);
+                var dataDict = m_Unit.Deserialize<JsonSerializableConverter, Dictionary<string, object>>(bytes);
                 if (dataDict.TryGetValue(key, out object value))
                 {
                     return value is T typedValue ? typedValue : defaultValue;
@@ -170,9 +168,9 @@ namespace Verve.Storage
         {
             m_MemoryCache.Clear();
 
-            if (Directory.Exists(FileDefine.BasePath))
+            if (Directory.Exists(FileDefine.PersistentDataPath))
             {
-                foreach (var file in Directory.GetFiles(FileDefine.BasePath))
+                foreach (var file in Directory.GetFiles(FileDefine.PersistentDataPath))
                 {
                     try { File.Delete(file); }
                     catch { }

@@ -6,10 +6,9 @@ namespace Verve.ECS
     [CustomUnit("ECS")]
     public class ECSUnit : UnitBase
     {
-        protected override void OnStartup(UnitRules parent, params object[] args)
+        protected override void OnStartup(params object[] args)
         {
-            base.OnStartup(parent, args);
-            // ECSWorld.Instance.Initialize();
+            base.OnStartup(args);
         }
     }
 }

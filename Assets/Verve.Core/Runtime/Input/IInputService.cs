@@ -1,6 +1,5 @@
 namespace Verve.Input
 {
-    
     using System;
 
     
@@ -56,5 +55,4 @@ namespace Verve.Input
         /// <returns></returns>
         string SaveBindingsAsJson();
     }
-
 }

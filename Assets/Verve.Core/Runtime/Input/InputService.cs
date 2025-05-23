@@ -1,6 +1,5 @@
 namespace Verve.Input
 {
-    
     using System;
     
     
@@ -106,5 +105,4 @@ namespace Verve.Input
         public string cancelKey;
         public string filter;
     }
-    
 }

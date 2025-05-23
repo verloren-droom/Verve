@@ -4,9 +4,7 @@ namespace Verve.File
     using Unit;
     using System;
     using System.IO;
-    using System.Text;
     using Serializable;
-    using Newtonsoft.Json;
     using System.Collections.Generic;
 
 
@@ -17,21 +15,19 @@ namespace Verve.File
     public partial class FileUnit : UnitBase
     {
         private SerializableUnit m_Serializable;
+        
 
-        protected override void OnStartup(UnitRules parent, params object[] args)
+        protected override void OnPostStartup(UnitRules parent)
         {
-            base.OnStartup(parent, args);
-            parent.onInitialized += (_) =>
-            {
-                parent.TryGetDependency<SerializableUnit>(out m_Serializable);
-            };
+            base.OnPostStartup(parent);
+            parent.TryGetDependency<SerializableUnit>(out m_Serializable);
         }
 
         public bool CreateDirectory(string relativePath)
         {
             if (string.IsNullOrEmpty(relativePath))
                 return false;
-            string fullPath = FileDefine.GetFileAbsolutePath(relativePath);
+            string fullPath = FileDefine.GetPersistentFilePath(relativePath);
             if (!Directory.Exists(fullPath))
             {
                 Directory.CreateDirectory(fullPath);
@@ -40,63 +36,60 @@ namespace Verve.File
             return false;
         }
         
-        public bool TryReadFile<T>(
-            string relativePath,
-            out T data,
-            bool binary = false
-        )
+        public bool TryReadFile<TSerializable, TData>(string relativePath, out TData data)
+            where TSerializable : class, ISerializableConverter
         {
-            string fullPath = FileDefine.GetFileAbsolutePath(relativePath);
+            string fullPath = FileDefine.GetPersistentFilePath(relativePath);
             if (!File.Exists(fullPath))
             {
                 data = default;
                 return false;
             }
-            byte[] bytes = File.ReadAllBytes(fullPath);
-            data = binary ? m_Serializable.Deserialize<T>(bytes) : JsonConvert.DeserializeObject<T>(Encoding.GetEncoding("UTF-8").GetString(bytes));
+            using (FileStream fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
+            {
+                data = m_Serializable.DeserializeFromStream<TSerializable, TData>(fs);
+            }
             return true;
         }
 
-        public bool WriteFile<T>(
-            string relativePath, 
-            T data, 
-            bool binary = false
-        ) {
+        public bool WriteFile<TSerializable, TData>(string relativePath, TData data, bool isOverwrite = true)
+            where TSerializable : class, ISerializableConverter
+        {
             if (string.IsNullOrEmpty(relativePath) || data == null)
                 return false;
 
-            string fullPath = FileDefine.GetFileAbsolutePath(relativePath);
+            string fullPath = FileDefine.GetPersistentFilePath(relativePath);
             CreateDirectory(Path.GetDirectoryName(fullPath));
-            byte[] bytes = binary ? 
-                m_Serializable.Serialize(data) : 
-                Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(data));
 
             try
             {
                 bool fileExists = File.Exists(fullPath);
 
-                if (fileExists)
+                if (fileExists && !isOverwrite)
                 {
-                    if (binary)
+                    using (FileStream fs = new FileStream(fullPath, FileMode.Append, FileAccess.Write))
                     {
-                        using (FileStream fs = new FileStream(fullPath, FileMode.Append, FileAccess.Write))
-                        using (BinaryWriter writer = new BinaryWriter(fs))
-                        {
-                            writer.Write(bytes.Length);
-                            writer.Write(bytes);
-                        }
-                    }
-                    else
-                    {
-                        string jsonData = (fileExists ? "\n" : "") + JsonConvert.SerializeObject(data);
-                        File.AppendAllText(fullPath, jsonData, Encoding.UTF8);
+                        m_Serializable.Serialize<TSerializable>(fs, data);
                     }
                 }
                 else
                 {
-                    string tempPath = Path.Combine(FileDefine.TempPath, Guid.NewGuid().ToString());
-                    File.WriteAllBytes(tempPath, bytes);
-                    File.Move(tempPath, fullPath);
+                    string tempPath = FileDefine.TempFilePath;
+                    if (!Directory.Exists(Path.GetDirectoryName(tempPath)))
+                        Directory.CreateDirectory(Path.GetDirectoryName(tempPath));
+                    using (FileStream fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write))
+                    {
+                        m_Serializable.Serialize<TSerializable>(fs, data);
+                    }
+
+                    if (fileExists)
+                    {
+                        File.Replace(tempPath, fullPath, null);
+                    }
+                    else
+                    {
+                        File.Move(tempPath, fullPath);
+                    }
                 }
 
                 return true;
@@ -106,12 +99,12 @@ namespace Verve.File
                 return false;
             }
         }
-        
+
         public bool DeleteFile(string relativePath)
         {
             if (string.IsNullOrEmpty(relativePath))
                 return false;
-            string fullPath = FileDefine.GetFileAbsolutePath(relativePath);
+            string fullPath = FileDefine.GetPersistentFilePath(relativePath);
             if (!File.Exists(fullPath)) return false;
             File.Delete(fullPath);
             return true;
@@ -121,7 +114,7 @@ namespace Verve.File
         {
             if (string.IsNullOrEmpty(relativePath))
                 return false;
-            string fullPath = FileDefine.GetFileAbsolutePath(relativePath);
+            string fullPath = FileDefine.GetPersistentFilePath(relativePath);
             if (Directory.Exists(fullPath))
             {
                 Directory.Delete(fullPath, recursive);

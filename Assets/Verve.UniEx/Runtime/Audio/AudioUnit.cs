@@ -1,14 +1,13 @@
+#if UNITY_5_3_OR_NEWER && ENABLE_AUDIO
+    
 namespace VerveUniEx.Audio
 {
-    
-#if UNITY_5_3_OR_NEWER && ENABLE_AUDIO
     using Verve.Unit;
     using System;
     using Verve.Pool;
     using UnityEngine;
     using UnityEngine.Audio;
     using System.Collections.Generic;
-    
     using IAssetLoader = VerveUniEx.Loader.IAssetLoader;
     using LoaderUnit = VerveUniEx.Loader.LoaderUnit;
 
@@ -64,9 +63,9 @@ namespace VerveUniEx.Audio
         private ObjectPool<AudioAsset> m_AmbientAudioPool;
 
 
-        protected override void OnStartup(UnitRules parent, params object[] args)
+        protected override void OnStartup(params object[] args)
         {
-            base.OnStartup(parent, args);
+            base.OnStartup(args);
             
             m_SfxGroup = args.Length > 0 && args[0] is AudioMixerGroup ? args[0] as AudioMixerGroup : null;
             m_MusicGroup = args.Length > 1 && args[1] is AudioMixerGroup ? args[1] as AudioMixerGroup : null;
@@ -96,11 +95,12 @@ namespace VerveUniEx.Audio
                     asset?.Stop();
                     asset?.Reset();
                 }, asset => asset?.Dispose());
-            
-            parent.onInitialized += (_) =>
-            {
-                parent.TryGetDependency<LoaderUnit>(out m_LoaderUnit);
-            };
+        }
+
+        protected override void OnPostStartup(UnitRules parent)
+        {
+            base.OnPostStartup(parent);
+            parent.TryGetDependency<LoaderUnit>(out m_LoaderUnit);
         }
 
         public void PreloadSound<TLoaderType>(string audioPath) where TLoaderType : class, IAssetLoader
@@ -262,6 +262,6 @@ namespace VerveUniEx.Audio
             }
         }
     }
-#endif
-
 }
+
+#endif

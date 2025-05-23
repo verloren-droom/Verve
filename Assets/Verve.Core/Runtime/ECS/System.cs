@@ -1,9 +1,6 @@
 namespace Verve.ECS
 {
     using System;
-#if UNITY_5_3_OR_NEWER
-    using UnityEngine;
-#endif
     using System.Linq;
     using System.Reflection;
     using System.Collections.Generic;

@@ -1,7 +1,7 @@
+#if UNITY_2019_4_OR_NEWER && ENABLE_INPUT_SYSTEM
+    
 namespace VerveUniEx.Input
 {
-    
-#if UNITY_2019_4_OR_NEWER && ENABLE_INPUT_SYSTEM
     using System;
     using Verve.Input;
     using UnityEngine;
@@ -296,6 +296,6 @@ namespace VerveUniEx.Input
             }
         }
     }
-#endif
-    
 }
+    
+#endif

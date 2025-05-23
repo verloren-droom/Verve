@@ -1,12 +1,11 @@
 namespace Verve.Sample
 {
+    using ECS;
+    using UnityEngine;
     using System.Collections;
     using System.Collections.Generic;
-    using UnityEngine;
 
-    
-    using ECS;
-    
+
     public class ECSSample : MonoBehaviour
     {
         [SerializeField] private Entity m_Entity1 = Entity.Create(typeof(PositionComponent), typeof(ScaleComponent));

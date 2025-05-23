@@ -1,6 +1,5 @@
 namespace Verve.Loader
 {
-    
     using System.Threading.Tasks;
     
     
@@ -16,5 +15,4 @@ namespace Verve.Loader
         public virtual void UnloadAllAsset() {}
         public virtual void Dispose() {}
     }
-    
 }

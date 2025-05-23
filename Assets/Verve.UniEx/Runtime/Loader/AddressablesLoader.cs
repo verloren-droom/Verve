@@ -1,7 +1,7 @@
+#if UNITY_2018_3_OR_NEWER
+    
 namespace VerveUniEx.Loader
 {
-    
-#if UNITY_2018_3_OR_NEWER
     using System;
     using UnityEngine;
     using Verve.Loader;
@@ -118,6 +118,6 @@ namespace VerveUniEx.Loader
             return new SceneLoaderCallbackContext(handle.Result);
         }
     }
-#endif
-    
 }
+    
+#endif

@@ -1,7 +1,7 @@
+#if UNITY_5_3_OR_NEWER
+    
 namespace VerveUniEx
 {
-    
-#if UNITY_5_3_OR_NEWER
     using UnityEngine;
     using System.Threading;
     using System.Collections;
@@ -69,6 +69,6 @@ namespace VerveUniEx
             Instance.gameObject.hideFlags = HideFlags.HideAndDontSave;
         }
     }
-#endif
-    
 }
+    
+#endif

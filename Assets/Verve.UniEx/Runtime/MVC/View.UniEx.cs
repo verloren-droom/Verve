@@ -1,7 +1,7 @@
+#if UNITY_5_3_OR_NEWER
+    
 namespace VerveUniEx.MVC
 {
-    
-#if UNITY_5_3_OR_NEWER
     using Verve;
     using System;
     using Verve.MVC;
@@ -138,17 +138,7 @@ namespace VerveUniEx.MVC
                 AddEventTrigger(eventTrigger, e.type, e.callback);
             }
         }
-        
-#if UNITY_EDITOR
-        protected virtual void OnValidate()
-        {
-            if (string.IsNullOrEmpty(m_ViewName))
-            {
-                m_ViewName = gameObject.name;
-            }
-        }
-#endif
     }
-#endif
-
 }
+
+#endif

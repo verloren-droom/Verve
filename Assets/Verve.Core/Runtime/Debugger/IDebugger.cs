@@ -1,6 +1,5 @@
 namespace Verve.Debugger
 {
-    
     using System;
     using System.Diagnostics;
     

@@ -2,9 +2,8 @@
     "name": "Verve.Core",
     "rootNamespace": "Verve",
     "references": [
-        "Unity.Addressables",
-        "Unity.InputSystem",
-        "Unity.ResourceManager"
+        "ProtoBuf",
+        "VContainer"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

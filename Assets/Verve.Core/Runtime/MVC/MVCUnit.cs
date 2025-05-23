@@ -1,6 +1,5 @@
 namespace Verve.MVC
 {
-    
     using Unit;
     using System;
     using System.Collections.Generic;
@@ -11,5 +10,4 @@ namespace Verve.MVC
     {
         private Dictionary<Type, IActivity> m_Activities = new Dictionary<Type, IActivity>();
     }
-    
 }

@@ -9,10 +9,16 @@ namespace Verve.Unit
         /// 单元名
         /// </summary>
         string UnitName { get; }
+        
         /// <summary>
         /// 优先级
         /// </summary>
         int Priority { get; }
+        
+        /// <summary>
+        /// 允许每帧运行，默认关闭每帧运行
+        /// </summary>
+        bool CanEverTick { get; }
 
         /// <summary>
         /// 单元启用，由 UnitRules 管理生命周期

@@ -1,7 +1,7 @@
+#if UNITY_5_3_OR_NEWER && ENABLE_LEGACY_INPUT_MANAGER
+    
 namespace VerveUniEx.Input
 {
-    
-#if UNITY_5_3_OR_NEWER && ENABLE_LEGACY_INPUT_MANAGER
     using System;
     using UnityEngine;
     using Verve.Input;
@@ -202,7 +202,7 @@ namespace VerveUniEx.Input
     }
 
     
-    public class InputManagerRunner : ComponentInstanceBase<InputManagerRunner>
+    internal class InputManagerRunner : ComponentInstanceBase<InputManagerRunner>
     {
         protected override void OnInitialized()
         {
@@ -210,6 +210,6 @@ namespace VerveUniEx.Input
             Instance.gameObject.hideFlags = HideFlags.HideAndDontSave;
         }
     }
-#endif
-    
 }
+    
+#endif

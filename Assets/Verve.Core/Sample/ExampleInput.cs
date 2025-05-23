@@ -1,5 +1,7 @@
+using System;
 using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
+using VerveUniEx;
 using VerveUniEx.Input;
 using VerveUniEx.Loader;
 
@@ -10,7 +12,7 @@ namespace Verve.Sample
     using UnityEngine;
     using UnityEngine.InputSystem;
     using LoaderUnit = VerveUniEx.Loader.LoaderUnit;
-    
+
 
     public class ExampleInput : MonoBehaviour
     {
@@ -18,12 +20,11 @@ namespace Verve.Sample
         
         private InputUnit m_Input;
         private LoaderUnit m_LoaderUnit;
-        
+
         protected void Start()
         {
-            VerveExample.Instance.Initialize();
-            Launcher.Instance.TryGetUnit(out m_Input);
-            Launcher.Instance.TryGetUnit(out m_LoaderUnit);
+            Launcher.TryGetUnit(out m_Input);
+            Launcher.TryGetUnit(out m_LoaderUnit);
             
             
             m_Input.AddListener<InputSystemService, float>("Move/Right", OnMoveRightAction);
@@ -31,15 +32,6 @@ namespace Verve.Sample
 
             m_Input.AddListener<InputSystemService, bool>("Interaction/Key", OnInteractionAction);
             m_Input.Enable<InputSystemService>();
-
-
-            // GameLauncher.Instance.Debugger.Assert(false, "Debug.Assert");
-            // Debug.LogAssertion("LOG DEBUG");
-
-            
-            // GameLauncher.Instance.Debugger.Log("[LOG] NEW Debugger! ".ToString());
-            // GameLauncher.Instance.Debugger.LogWarning("[WARN] NEW Debugger! ");
-            // GameLauncher.Instance.Debugger.LogError("[ERROR] NEW Debugger!");
         }
 
         private void OnInteractionAction(InputServiceContext<bool> obj)

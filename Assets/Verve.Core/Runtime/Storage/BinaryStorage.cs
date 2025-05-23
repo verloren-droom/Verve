@@ -2,14 +2,13 @@ namespace Verve.Storage
 {
     
     using System;
+    using ProtoBuf;
     using Serializable;
     using System.Collections.Concurrent;
     
     
-    public sealed partial class BinaryStorage : IStorage
+    public sealed partial class BinaryStorage : StorageBase
     {
-        public readonly ConcurrentDictionary<string, byte[]> m_MemoryCache = new ConcurrentDictionary<string, byte[]>();
-        
         private SerializableUnit m_Unit;
 
         internal BinaryStorage(SerializableUnit unit)
@@ -17,36 +16,24 @@ namespace Verve.Storage
             m_Unit = unit;
         }
 
-        public bool TryRead<T>(string key, out T outValue, T defaultValue = default) =>
-            TryRead(null, key, out outValue, defaultValue);
-        
-        public bool TryRead<TData>(string fileName, string key, out TData outValue, TData defaultValue = default)
+        public override bool TryRead<TData>(string fileName, string key, out TData outValue, TData defaultValue = default)
         {
             throw new NotImplementedException();
         }
 
-        public void Write<T>(string key, T value) => Write(null, key, value);
-
-        public void Write<T>(string fileName, string key, T value)
+        public override void Write<TData>(string fileName, string key, TData value)
         {
             throw new NotImplementedException();
         }
 
-        public void Delete(string key) => Delete(null, key);
-        
-        public void Delete(string fileName, string key)
-        {
-            throw new NotImplementedException();
-        }
-        
-        public void DeleteAll()
+        public override void Delete(string fileName, string key)
         {
             throw new NotImplementedException();
         }
 
-        public void Dispose()
+        public override void DeleteAll()
         {
-            m_MemoryCache.Clear();
+            throw new NotImplementedException();
         }
     }
     

@@ -1,7 +1,7 @@
+#if UNITY_5_3_OR_NEWER
+    
 namespace VerveUniEx.Loader
 {
-    
-#if UNITY_5_3_OR_NEWER
     using UnityEngine;
     using UnityEngine.SceneManagement;
     using UnityEngine.ResourceManagement.ResourceProviders;
@@ -45,6 +45,6 @@ namespace VerveUniEx.Loader
             // TODO: 
         }
     }
-#endif
-    
 }
+    
+#endif

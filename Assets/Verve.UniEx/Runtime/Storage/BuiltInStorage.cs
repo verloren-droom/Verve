@@ -1,16 +1,14 @@
+#if UNITY_5_3_OR_NEWER
+    
 namespace VerveUniEx.Storage
 {
-    
-#if UNITY_5_3_OR_NEWER
-    using System;
     using UnityEngine;
-    using Verve.Storage;
     using Verve.Serializable;
     using System.Collections.Generic;
     using System.Collections.Concurrent;
     
     
-    public sealed partial class BuiltInStorage : StorageBase
+    public sealed partial class BuiltInStorage : VerveUniEx.Storage.StorageBase
     {
         private readonly ConcurrentDictionary<string, object> m_MemoryCache = new ConcurrentDictionary<string, object>();
         
@@ -61,6 +59,6 @@ namespace VerveUniEx.Storage
             PlayerPrefs.DeleteAll();
         }
     }
-#endif
-    
 }
+    
+#endif

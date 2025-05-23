@@ -14,11 +14,8 @@ namespace Verve.Event
     [Serializable]
     public partial class PropertyProxy<T> : INotifyPropertyChanged
     {
-#if UNITY_5_3_OR_NEWER
-        [UnityEngine.SerializeField]
-#endif
-        private T m_Value;
-        private Func<T, T, bool> m_Comparer;
+        protected T m_Value;
+        protected Func<T, T, bool> m_Comparer;
         private event PropertyChangedEventHandler m_PropertyChanged;
 
         public event PropertyChangedEventHandler PropertyChanged

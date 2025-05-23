@@ -1,7 +1,7 @@
+#if UNITY_5_3_OR_NEWER
+    
 namespace VerveUniEx.Loader
 {
-    
-#if UNITY_5_3_OR_NEWER
     using System;
     using Verve.Loader;
     using System.Collections;
@@ -58,6 +58,6 @@ namespace VerveUniEx.Loader
         /// <returns></returns>
         IEnumerator UnloadSceneAsync(string sceneName, Action<SceneLoaderCallbackContext> onComplete, bool allowSceneActivation = true, UnloadSceneOptions options = UnloadSceneOptions.None, Action<float> onProgress = null);
     }
-#endif
-    
 }
+    
+#endif

@@ -1,6 +1,5 @@
 namespace Verve
 {
-
     /// <summary>
     /// 单例
     /// </summary>
@@ -30,5 +29,4 @@ namespace Verve
         /// </summary>
         protected virtual void OnInitialized() { }
     }
-    
 }

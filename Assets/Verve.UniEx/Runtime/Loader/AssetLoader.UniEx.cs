@@ -1,7 +1,7 @@
+#if UNITY_5_3_OR_NEWER
+    
 namespace VerveUniEx.Loader
 {
-    
-#if UNITY_5_3_OR_NEWER
     using System;
     using Verve.Loader;
     using System.Collections;
@@ -96,6 +96,6 @@ namespace VerveUniEx.Loader
             onComplete?.Invoke(task.Result);
         }
     }
-#endif
-    
 }
+    
+#endif

@@ -1,7 +1,7 @@
+#if UNITY_5_3_OR_NEWER
+    
 namespace VerveUniEx
 {
-    
-#if UNITY_5_3_OR_NEWER
     using UnityEngine;
     
     
@@ -36,6 +36,6 @@ namespace VerveUniEx
         /// </summary>
         protected virtual void OnInitialized() { }
     }
-#endif
-    
 }
+    
+#endif

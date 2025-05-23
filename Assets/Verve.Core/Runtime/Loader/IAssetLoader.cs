@@ -1,14 +1,10 @@
 namespace Verve.Loader
 {
-    
     using System;
     using System.Collections;
     using System.Threading.Tasks;
-#if UNITY_5_3_OR_NEWER
-    using UnityEngine.SceneManagement;
-#endif
-    
-    
+
+
     public interface IAssetLoader : IDisposable, Unit.IUnitService
     {
         /// <summary>
@@ -36,5 +32,4 @@ namespace Verve.Loader
         /// </summary>
         void UnloadAllAsset();
     }
-    
 }

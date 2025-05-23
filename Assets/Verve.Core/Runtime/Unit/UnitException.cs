@@ -2,6 +2,7 @@ namespace Verve.Unit
 {
     using System;
     
+    
     public class UnitRulesNotInitializeException : Exception
     {
         public UnitRulesNotInitializeException(string name) 

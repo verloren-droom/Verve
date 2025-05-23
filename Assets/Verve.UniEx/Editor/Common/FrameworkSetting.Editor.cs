@@ -1,7 +1,7 @@
+#if UNITY_EDITOR
+    
 namespace VerveEditor.UniEx
 {
-    
-#if UNITY_EDITOR
     using System.IO;
     using UnityEngine;
     using UnityEditor;
@@ -95,6 +95,6 @@ namespace VerveEditor.UniEx
             }
         }
     }
-#endif
-    
 }
+    
+#endif

@@ -1,10 +1,10 @@
-using System;
-
 namespace Verve.Debugger
 {
+    using System;
     using System.Diagnostics;
     
     
+    [SkipInStackTrace("Debugger")]
     public abstract class DebuggerBase : IDebugger
     {
         public bool IsEnable { get; set; } = true;
@@ -31,5 +31,4 @@ namespace Verve.Debugger
         
         // internal DebuggerBase() {}
     }
-    
 }

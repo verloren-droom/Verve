@@ -1,12 +1,13 @@
+#if UNITY_5_3_OR_NEWER
+
 namespace VerveUniEx.Debugger
 {
-    
-#if UNITY_5_3_OR_NEWER
-    using Verve.Debugger;
     using UnityEngine;
+    using Verve.Debugger;
     
     
-    internal sealed partial class UnityDebugger : DebuggerBase
+    [SkipInStackTrace]
+    public sealed partial class UnityDebugger : DebuggerBase
     {
         [System.Diagnostics.DebuggerHidden, System.Diagnostics.DebuggerStepThrough]
         protected override void Log_Implement(string msg, LogLevel level)
@@ -34,6 +35,6 @@ namespace VerveUniEx.Debugger
             Debug.Assert(condition, msg?.ToString());
         }
     }
-#endif
-    
 }
+    
+#endif

@@ -1,26 +1,28 @@
+#if UNITY_EDITOR
+    
 namespace VerveEditor.UniEx.Debugger
 {
-    
-#if UNITY_EDITOR
+    using System;
     using System.IO;
-    using Verve.Debugger;
     using System.Linq;
     using UnityEditor;
     using UnityEngine;
+    using Verve.Debugger;
+    using System.Reflection;
+    using System.Collections.Generic;
     using System.Text.RegularExpressions;
     
     
-    internal sealed partial class UnityDebugger
+    internal sealed partial class DebuggerEditor
     {
         /// <summary>
         /// 跳过的调试器类文件列表
         /// </summary>
-        private static readonly string[] DEBUGGER_CLASS_NAMES = 
-        {
-            nameof(DebuggerBase) + ".cs",
-            nameof(UnityDebugger) + ".cs",
-            nameof(DebuggerUnit) + ".cs",
-        };
+        private static readonly HashSet<string> DEBUGGER_CLASS_NAMES = new HashSet<string>(AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => a.GetTypes())
+                .Where(t => t.GetCustomAttribute<SkipInStackTraceAttribute>() != null)
+                .Select(t => t.GetCustomAttribute<SkipInStackTraceAttribute>()?.ClassName ?? t.Name),
+            StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// 调用栈正则
@@ -54,17 +56,15 @@ namespace VerveEditor.UniEx.Debugger
         {
             filePath = null;
             lineNumber = 0;
-    
+
             foreach (Match match in STACK_TRACE_REGEX.Matches(stackTrace))
             {
                 var relativePath = match.Groups[1].Value;
                 var absolutePath = ConvertToAbsolutePath(relativePath);
                 var lineStr = match.Groups[2].Value;
 
-                if (!int.TryParse(lineStr, out var currentLine)) 
-                    continue;
-
-                if (IsDebuggerClass(absolutePath))
+                if (!int.TryParse(lineStr, out var currentLine)
+                    || DEBUGGER_CLASS_NAMES.Contains(Path.GetFileNameWithoutExtension(absolutePath))) 
                     continue;
 
                 filePath = absolutePath;
@@ -77,17 +77,18 @@ namespace VerveEditor.UniEx.Debugger
     
         private static string ConvertToAbsolutePath(string relativePath)
         {
-            var projectPath = Application.dataPath[..Application.dataPath.LastIndexOf("Assets", System.StringComparison.Ordinal)];
-            return System.IO.Path.Combine(projectPath, relativePath.Replace('/', System.IO.Path.DirectorySeparatorChar));
+            if (Path.IsPathRooted(relativePath))
+                return relativePath;
+        
+            if (relativePath.StartsWith("Assets/", System.StringComparison.OrdinalIgnoreCase))
+            {
+                var projectPath = Application.dataPath[..Application.dataPath.LastIndexOf("Assets", System.StringComparison.Ordinal)];
+                return Path.Combine(projectPath, relativePath.Replace('/', Path.DirectorySeparatorChar));
+            }
+        
+            return Path.GetFullPath(relativePath);
         }
-    
-        private static bool IsDebuggerClass(string absolutePath)
-        {
-            var fileName = Path.GetFileName(absolutePath);
-            return DEBUGGER_CLASS_NAMES.Any(className => 
-                fileName.Equals(className, System.StringComparison.OrdinalIgnoreCase));
-        }
-    
+
         private static bool IsConsoleWindowFocused()
         {
             var consoleWindowType = typeof(EditorWindow).Assembly.GetType("UnityEditor.ConsoleWindow");
@@ -103,6 +104,6 @@ namespace VerveEditor.UniEx.Debugger
             return consoleWindow != null ? fieldInfo?.GetValue(consoleWindow)?.ToString() : null;
         }
     }
-#endif
-    
 }
+    
+#endif
