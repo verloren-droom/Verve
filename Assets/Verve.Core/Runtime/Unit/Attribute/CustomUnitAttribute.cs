@@ -1,6 +1,5 @@
 namespace Verve.Unit
 {
-    
     using System;
     using System.Linq;
  
@@ -26,5 +25,4 @@ namespace Verve.Unit
             DependencyUnits = (dependencyUnits ?? new Type[] {}).Distinct().ToArray();
         }
     }
-    
 }

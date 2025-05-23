@@ -6,7 +6,8 @@ namespace Verve.Debugger
     
     public interface IDebugger : Unit.IUnitService
     {
-        public bool IsEnable { get; set; }
+        bool IsEnable { get; set; }
+        LastLogData LastLog { get; }
         [DebuggerHidden, DebuggerStepThrough]
         void Log(object msg);
         [DebuggerHidden, DebuggerStepThrough]

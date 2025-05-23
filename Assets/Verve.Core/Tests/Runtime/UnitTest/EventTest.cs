@@ -12,18 +12,6 @@ namespace Verve.Tests
         private UnitRules m_UnitRules = new UnitRules();
         private EventUnit m_EventUnit;
 
-        public enum TestEnum
-        {
-            Event1,
-            Event2
-        }
-
-        public class TestEventArgs : EventArgsBase
-        {
-            
-        }
-        
-
         [SetUp]
         public void SetUp()
         {
@@ -32,7 +20,13 @@ namespace Verve.Tests
             m_UnitRules.Initialize();
             m_UnitRules.TryGetDependency(out m_EventUnit);
         }
-
+        
+        [TearDown]
+        public void Teardown()
+        {
+            m_EventUnit = null;
+        }
+        
         /// <summary>
         /// 测试枚举事件的添加和触发
         /// </summary>
@@ -149,6 +143,18 @@ namespace Verve.Tests
             
             Assert.IsFalse(enumEventTriggered);
             Assert.IsFalse(stringEventTriggered);
+        }
+
+
+        private enum TestEnum
+        {
+            Event1,
+            Event2
+        }
+
+        private class TestEventArgs : EventArgsBase
+        {
+            
         }
     }
 }

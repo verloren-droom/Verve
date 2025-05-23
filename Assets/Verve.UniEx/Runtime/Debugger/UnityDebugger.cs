@@ -10,10 +10,8 @@ namespace VerveUniEx.Debugger
     public sealed partial class UnityDebugger : DebuggerBase
     {
         [System.Diagnostics.DebuggerHidden, System.Diagnostics.DebuggerStepThrough]
-        protected override void Log_Implement(string msg, LogLevel level)
+        protected override void InternalLog_Implement(string msg, LogLevel level)
         {
-            if (!IsEnable || string.IsNullOrEmpty(msg)) return;
-            
             switch (level)
             {
                 case LogLevel.Error:

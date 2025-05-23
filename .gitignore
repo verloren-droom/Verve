@@ -77,3 +77,4 @@ crashlytics-build.properties
 !Documentation~
 !Samples~
 /[Aa]ssets/.[Cc]ache/
+/[Aa]ssets/.[Tt]emp/

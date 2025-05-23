@@ -22,6 +22,12 @@ namespace Verve.Tests
             m_UnitRules.TryGetDependency(out m_TimerUnit);
         }
         
+        [TearDown]
+        public void Teardown()
+        {
+            m_TimerUnit = null;
+        }
+        
         [Test]
         public void AddTimer_ShouldWorkCorrectly()
         {

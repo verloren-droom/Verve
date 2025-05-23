@@ -8,6 +8,9 @@ namespace Verve.Debugger
     public abstract class DebuggerBase : IDebugger
     {
         public bool IsEnable { get; set; } = true;
+        
+        public LastLogData LastLog { get; protected set; }
+        
         [DebuggerHidden, DebuggerStepThrough]
         public virtual void Log(object msg) => Log_Implement(msg?.ToString(), LogLevel.Log);
         [DebuggerHidden, DebuggerStepThrough]
@@ -27,8 +30,28 @@ namespace Verve.Debugger
 
 
         [DebuggerHidden, DebuggerStepThrough]
-        protected abstract void Log_Implement(string msg, LogLevel level);
+        protected virtual void Log_Implement(string msg, LogLevel level)
+        {
+            if (!IsEnable || string.IsNullOrEmpty(msg)) return;
+
+            LastLog = new LastLogData()
+            {
+                Message = msg,
+                Level = level
+            };
+            
+            InternalLog_Implement(msg, level);
+        }
+        
+        [DebuggerHidden, DebuggerStepThrough]
+        protected abstract void InternalLog_Implement(string msg, LogLevel level);
         
         // internal DebuggerBase() {}
+    }
+
+    public struct LastLogData
+    {
+        public string Message;
+        public LogLevel Level;
     }
 }

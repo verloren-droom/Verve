@@ -24,6 +24,11 @@ namespace Verve.Tests
             m_UnitRules.TryGetDependency(out m_FileUnit);
         }
 
+        [TearDown]
+        public void Teardown()
+        {
+            m_FileUnit = null;
+        }
 
         [Test]
         public void TryReadFile_ShouldWorkCorrectly()

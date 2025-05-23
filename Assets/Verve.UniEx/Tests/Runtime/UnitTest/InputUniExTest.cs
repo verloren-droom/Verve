@@ -3,7 +3,9 @@ namespace VerveUniEx.Tests
     using Input;
     using Verve.Unit;
     using NUnit.Framework;
-    
+#if UNITY_2019_4_OR_NEWER && ENABLE_INPUT_SYSTEM
+    using UnityEngine.InputSystem;
+#endif
     
     [TestFixture]
     public class InputUniExTest

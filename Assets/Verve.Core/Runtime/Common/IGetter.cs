@@ -1,6 +1,5 @@
 namespace Verve
 {
-    
     public interface IGetter<T>
     {
         T Get();
@@ -12,5 +11,4 @@ namespace Verve
         T Get<T>();
         bool TryGet<T>(out T outValue);
     }
-    
 }

@@ -8,7 +8,7 @@ namespace Verve.MVC
         /// <typeparam name="TModel"></typeparam>
         void RegisterModel<TModel>() where TModel : class, IModel, new();
 
-        void RegisterCommand<TCommand>() where TCommand : class, ICommand, new();
+        TCommand RegisterCommand<TCommand>() where TCommand : class, ICommand, new();
         /// <summary>
         /// 获取已经注册的Model
         /// </summary>
@@ -51,16 +51,18 @@ namespace Verve.MVC
             return m_Container.TryResolve<TModel>(out TModel model) ? model : null;
         }
         
-        public void RegisterCommand<TCommand>() where TCommand : class, ICommand, new()
+        public TCommand RegisterCommand<TCommand>() where TCommand : class, ICommand, new()
         {
-            if (!m_Container.TryResolve<TCommand>(out _))
+            if (!m_Container.TryResolve<TCommand>(out var outCommand))
             {
                 var command = new TCommand
                 {
                     Activity = this
                 };
                 m_Container.Register(command);
+                return command;
             }
+            return outCommand;
         }
         
         public virtual void ExecuteCommand<TCommand>() where TCommand : class, ICommand, new()

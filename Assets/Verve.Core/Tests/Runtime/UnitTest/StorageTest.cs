@@ -22,6 +22,12 @@ namespace Verve.Tests
             m_UnitRules.Initialize();
             m_UnitRules.TryGetDependency(out m_StorageUnit);
         }
+        
+        [TearDown]
+        public void Teardown()
+        {
+            m_StorageUnit = null;
+        }
 
         /// <summary>
         /// 测试同步写入和读取数据

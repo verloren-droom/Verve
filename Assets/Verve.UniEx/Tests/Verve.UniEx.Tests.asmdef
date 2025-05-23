@@ -3,7 +3,8 @@
     "rootNamespace": "VerveUniEx.Tests",
     "references": [
         "Verve.Core",
-        "Verve.UniEx"
+        "Verve.UniEx",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

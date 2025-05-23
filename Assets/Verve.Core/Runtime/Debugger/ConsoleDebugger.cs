@@ -7,10 +7,8 @@ namespace Verve.Debugger
     public sealed partial class ConsoleDebugger : DebuggerBase
     {
         [System.Diagnostics.DebuggerHidden, System.Diagnostics.DebuggerStepThrough]
-        protected override void Log_Implement(string msg, LogLevel level)
+        protected override void InternalLog_Implement(string msg, LogLevel level)
         {
-            if (!IsEnable || string.IsNullOrEmpty(msg)) return;
-            
             var color = GetConsoleColor(level);
             var originalColor = Console.ForegroundColor;
         

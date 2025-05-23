@@ -3,40 +3,7 @@ namespace Verve.Tests
     using Pool;
     using NUnit.Framework;
     
-    
-    class PoolTest
-    {
-        public string State { get; private set; }
 
-        private readonly string m_DefaultState, m_UseState, m_UnuseState, m_DestroyState;
-
-        public PoolTest(string defaultState, string useState, string unuseState, string destroyState)
-        {
-            m_DefaultState = defaultState;
-            m_UseState = useState;
-            m_UnuseState = unuseState;
-            m_DestroyState = destroyState;
-            State = m_DefaultState;
-        }
-        
-        
-        public void Use()
-        {
-            State = m_UseState;
-        }
-
-        public void Unuse()
-        {
-            State = m_UnuseState;
-        }
-
-        public void Destroy()
-        {
-            State = m_DestroyState;
-        }
-    }
-    
-    
     [TestFixture]
     public class ObjectPoolTest
     {
@@ -56,6 +23,37 @@ namespace Verve.Tests
             Assert.AreEqual(UNUSE_TIP, obj.State);
             pool.Clear(true);
             Assert.AreEqual(DESTROY_TIP, obj.State);
+        }
+        
+        private class PoolTest
+        {
+            public string State { get; private set; }
+
+            private readonly string m_DefaultState, m_UseState, m_UnuseState, m_DestroyState;
+
+            public PoolTest(string defaultState, string useState, string unuseState, string destroyState)
+            {
+                m_DefaultState = defaultState;
+                m_UseState = useState;
+                m_UnuseState = unuseState;
+                m_DestroyState = destroyState;
+                State = m_DefaultState;
+            }
+
+            public void Use()
+            {
+                State = m_UseState;
+            }
+
+            public void Unuse()
+            {
+                State = m_UnuseState;
+            }
+
+            public void Destroy()
+            {
+                State = m_DestroyState;
+            }
         }
     }
 }

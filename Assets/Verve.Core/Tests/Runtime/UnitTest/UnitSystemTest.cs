@@ -7,29 +7,6 @@ namespace Verve.Tests
     [TestFixture]
     public class UnitSystemTest
     {
-        [CustomUnit("TestUnitInterface")]
-        public class TestUnitInterface : ICustomUnit
-        {
-            public string UnitName => "TestUnit";
-            public int Priority => 0;
-            public bool CanEverTick => false;
-        
-            public void Startup(UnitRules parent, params object[] args) { }
-            public void Tick(float deltaTime, float unscaledTime) { }
-            public void Shutdown() { }
-            public void Dispose() { }
-        }
-
-        
-        [CustomUnit("TestUnitBase")]
-        public class TestUnitBase : UnitBase
-        {
-            public override string UnitName => "TestUnitBase";
-            public override int Priority => 0;
-            protected override void OnStartup(params object[] args) { }
-        }
-
-
         /// <summary>
         /// 测试单元初始化
         /// </summary>
@@ -61,7 +38,6 @@ namespace Verve.Tests
         
             Assert.Throws<UnitRulesNotInitializeException>(() => unitRules.TryGetDependency<TestUnitInterface>(out var testUnit));
         }
-
         
         /// <summary>
         /// 测试单元未找到异常
@@ -74,6 +50,29 @@ namespace Verve.Tests
             unitRules.Initialize();
             
             Assert.Throws<UnitNotFoundException>(() => unitRules.AddDependency("NonExistentUnit"));
+        }
+        
+        
+        [CustomUnit("TestUnitInterface")]
+        private class TestUnitInterface : ICustomUnit
+        {
+            public string UnitName => "TestUnit";
+            public int Priority => 0;
+            public bool CanEverTick => false;
+        
+            public void Startup(UnitRules parent, params object[] args) { }
+            public void Tick(float deltaTime, float unscaledTime) { }
+            public void Shutdown() { }
+            public void Dispose() { }
+        }
+
+        
+        [CustomUnit("TestUnitBase")]
+        private class TestUnitBase : UnitBase
+        {
+            public override string UnitName => "TestUnitBase";
+            public override int Priority => 0;
+            protected override void OnStartup(params object[] args) { }
         }
     }
 }
