@@ -2,8 +2,7 @@
     "name": "Verve.Core",
     "rootNamespace": "Verve",
     "references": [
-        "ProtoBuf",
-        "VContainer"
+        "ProtoBuf"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
