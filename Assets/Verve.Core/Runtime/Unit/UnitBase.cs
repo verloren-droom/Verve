@@ -79,7 +79,7 @@ namespace Verve.Unit
         protected readonly Dictionary<Type, TUnitService> m_UnitServices = new Dictionary<Type, TUnitService>();
 
         
-        public TUnitService GetService(Type type)
+        protected TUnitService GetService(Type type)
         {
             if (!typeof(TUnitService).IsAssignableFrom(type))
             {
@@ -88,12 +88,12 @@ namespace Verve.Unit
             return m_UnitServices.TryGetValue(type, out var factory) ? factory : default;
         }
         
-        public T GetService<T>() where T : class, IUnitService
+        protected T GetService<T>() where T : class, IUnitService
         {
             return m_UnitServices.TryGetValue(typeof(T), out var factory) ? factory as T : null;
         }
         
-        public void AddService<T>() where T : class, IUnitService
+        protected void AddService<T>() where T : class, IUnitService
         {
             if (!m_UnitServices.ContainsKey(typeof(T)))
             {
@@ -101,7 +101,7 @@ namespace Verve.Unit
             }
         }
 
-        public void AddService(TUnitService factory)
+        protected void AddService(TUnitService factory)
         {
             if (factory != null || !m_UnitServices.ContainsKey(factory.GetType()))
             {
@@ -109,7 +109,7 @@ namespace Verve.Unit
             }
         }
         
-        public void RemoveService<T>() where T : class, IUnitService
+        protected void RemoveService<T>() where T : class, IUnitService
         {
             if (m_UnitServices.ContainsKey(typeof(T)))
             {
@@ -117,7 +117,7 @@ namespace Verve.Unit
             }
         }
         
-        public void RemoveService(TUnitService factory)
+        protected void RemoveService(TUnitService factory)
         {
             if (factory != null && m_UnitServices.ContainsKey(factory.GetType()))
             {

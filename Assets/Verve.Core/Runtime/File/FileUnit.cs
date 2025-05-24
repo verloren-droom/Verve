@@ -1,6 +1,5 @@
 namespace Verve.File
 {
-    
     using Unit;
     using System;
     using System.IO;
@@ -12,10 +11,18 @@ namespace Verve.File
     /// 文件单元
     /// </summary>
     [CustomUnit("File", dependencyUnits: typeof(SerializableUnit)), System.Serializable]
-    public partial class FileUnit : UnitBase
+    public partial class FileUnit : UnitBase<IFileService>
     {
         private SerializableUnit m_Serializable;
+
+        protected virtual IFileService FileService => GetService<DefaultFileService>();
         
+
+        protected override void OnStartup(params object[] args)
+        {
+            base.OnStartup(args);
+            AddService(new DefaultFileService());
+        }
 
         protected override void OnPostStartup(UnitRules parent)
         {
@@ -27,7 +34,7 @@ namespace Verve.File
         {
             if (string.IsNullOrEmpty(relativePath))
                 return false;
-            string fullPath = FileDefine.GetPersistentFilePath(relativePath);
+            string fullPath = GetFullFilePath(relativePath);
             if (!Directory.Exists(fullPath))
             {
                 Directory.CreateDirectory(fullPath);
@@ -37,15 +44,15 @@ namespace Verve.File
         }
         
         public bool TryReadFile<TSerializable, TData>(string relativePath, out TData data)
-            where TSerializable : class, ISerializableConverter
+            where TSerializable : class, ISerializableService
         {
-            string fullPath = FileDefine.GetPersistentFilePath(relativePath);
+            string fullPath = GetFullFilePath(relativePath);
             if (!File.Exists(fullPath))
             {
                 data = default;
                 return false;
             }
-            using (FileStream fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
+            using (var fs = FileService.OpenRead(fullPath))
             {
                 data = m_Serializable.DeserializeFromStream<TSerializable, TData>(fs);
             }
@@ -53,12 +60,12 @@ namespace Verve.File
         }
 
         public bool WriteFile<TSerializable, TData>(string relativePath, TData data, bool isOverwrite = true)
-            where TSerializable : class, ISerializableConverter
+            where TSerializable : class, ISerializableService
         {
             if (string.IsNullOrEmpty(relativePath) || data == null)
                 return false;
 
-            string fullPath = FileDefine.GetPersistentFilePath(relativePath);
+            string fullPath = GetFullFilePath(relativePath);
             CreateDirectory(Path.GetDirectoryName(fullPath));
 
             try
@@ -74,10 +81,8 @@ namespace Verve.File
                 }
                 else
                 {
-                    string tempPath = FileDefine.TempFilePath;
-                    if (!Directory.Exists(Path.GetDirectoryName(tempPath)))
-                        Directory.CreateDirectory(Path.GetDirectoryName(tempPath));
-                    using (FileStream fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write))
+                    string tempPath;
+                    using (FileStream fs = CreateTemporaryFile(out tempPath))
                     {
                         m_Serializable.Serialize<TSerializable>(fs, data);
                     }
@@ -104,7 +109,7 @@ namespace Verve.File
         {
             if (string.IsNullOrEmpty(relativePath))
                 return false;
-            string fullPath = FileDefine.GetPersistentFilePath(relativePath);
+            string fullPath = GetFullFilePath(relativePath);
             if (!File.Exists(fullPath)) return false;
             File.Delete(fullPath);
             return true;
@@ -114,7 +119,7 @@ namespace Verve.File
         {
             if (string.IsNullOrEmpty(relativePath))
                 return false;
-            string fullPath = FileDefine.GetPersistentFilePath(relativePath);
+            string fullPath = GetFullFilePath(relativePath);
             if (Directory.Exists(fullPath))
             {
                 Directory.Delete(fullPath, recursive);
@@ -122,5 +127,19 @@ namespace Verve.File
             }
             return false;
         }
+        
+        public FileStream CreateTemporaryFile(out string tempPath)
+        {
+            tempPath = GetTempFilePath();
+            if (!Directory.Exists(Path.GetDirectoryName(tempPath)))
+                Directory.CreateDirectory(Path.GetDirectoryName(tempPath));
+            return File.Create(tempPath);
+        }
+
+        public string GetFullFilePath(string relativePath) => Path.Combine(PersistentDataPath, relativePath);
+        public string GetTempFilePath() => Path.Combine(TemporaryPath, Guid.NewGuid().ToString());
+
+        public string PersistentDataPath => FileService.PersistentDataPath;
+        public string TemporaryPath => FileService.TemporaryPath;
     }
 }

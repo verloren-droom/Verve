@@ -1,9 +1,9 @@
-namespace Verve.Tests
+namespace VerveUniEx.Tests
 {
     using File;
-    using Unit;
     using System.IO;
-    using Serializable;
+    using Verve.Unit;
+    using Verve.Serializable;
     using NUnit.Framework;
     
     
@@ -33,7 +33,7 @@ namespace Verve.Tests
         [Test]
         public void TryReadFile_ShouldWorkCorrectly()
         {
-            string relativePath = "testFile.txt";
+            string relativePath = "testFileUniEx.txt";
             string testData = "Hello, World!";
         
             m_FileUnit.WriteFile<JsonSerializableService, string>(relativePath, testData);
@@ -41,24 +41,30 @@ namespace Verve.Tests
         
             Assert.IsTrue(result);
             Assert.AreEqual(testData, data);
+
+            var del = m_FileUnit.DeleteFile(m_FileUnit.GetFullFilePath(relativePath));
+            Assert.IsTrue(del);
         }
         
         [Test]
         public void WriteFile_ShouldWorkCorrectly()
         {
-            string relativePath = "testFile.txt";
+            string relativePath = "testFileUniEx.txt";
             string testData = "Hello, World!";
         
             bool result = m_FileUnit.WriteFile<JsonSerializableService, string>(relativePath, testData);
         
             Assert.IsTrue(result);
             Assert.IsTrue(File.Exists(m_FileUnit.GetFullFilePath(relativePath)));
+            
+            var del = m_FileUnit.DeleteFile(m_FileUnit.GetFullFilePath(relativePath));
+            Assert.IsTrue(del);
         }
         
         [Test]
         public void WriteFileWithOverwrite_ShouldWorkCorrectly()
         {
-            string relativePath = "testFile.txt";
+            string relativePath = "testFileUniEx.txt";
             string initialData = "Initial Data";
             string newData = "New Data";
         
@@ -70,6 +76,9 @@ namespace Verve.Tests
         
             m_FileUnit.TryReadFile<JsonSerializableService, string>(relativePath, out string data);
             Assert.AreEqual(newData, data);
+            
+            var del = m_FileUnit.DeleteFile(m_FileUnit.GetFullFilePath(relativePath));
+            Assert.IsTrue(del);
         }
     }
 }

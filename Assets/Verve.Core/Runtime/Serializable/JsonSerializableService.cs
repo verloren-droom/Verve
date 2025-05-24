@@ -5,7 +5,7 @@ namespace Verve.Serializable
     using Newtonsoft.Json;
 
 
-    public sealed partial class JsonSerializableConverter : SerializableConverterBase
+    public sealed partial class JsonSerializableService : SerializableServiceBase
     {
         public override T Deserialize<T>(byte[] value)
         {

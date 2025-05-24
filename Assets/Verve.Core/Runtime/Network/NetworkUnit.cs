@@ -1,4 +1,4 @@
-namespace Verve.Network
+namespace Verve.Net
 {
     
     using Unit;

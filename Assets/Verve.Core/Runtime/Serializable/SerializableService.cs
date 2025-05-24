@@ -1,11 +1,13 @@
-using System.IO;
-
 namespace Verve.Serializable
 {
-    public abstract class SerializableConverterBase : ISerializableConverter
+    using System.IO;
+    
+    
+    public abstract class SerializableServiceBase : ISerializableService
     {
         public abstract T Deserialize<T>(byte[] value);
         public abstract byte[] Serialize(object obj);
+        
         public virtual void Serialize(Stream stream, object obj)
         {
             throw new System.NotImplementedException();

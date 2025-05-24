@@ -1,11 +1,15 @@
+#if UNITY_5_3_OR_NEWER
+
 namespace VerveUniEx.Tests
 {
     using Input;
     using Verve.Unit;
+    using UnityEngine;
     using NUnit.Framework;
 #if UNITY_2019_4_OR_NEWER && ENABLE_INPUT_SYSTEM
     using UnityEngine.InputSystem;
 #endif
+    
     
     [TestFixture]
     public class InputUniExTest
@@ -18,21 +22,52 @@ namespace VerveUniEx.Tests
         public void SetUp()
         {
             m_UnitRules = new UnitRules();
-            m_UnitRules.AddDependency<InputUnit>();
-            m_UnitRules.Initialize();
-            m_UnitRules.TryGetDependency(out m_InputUnit);
+        }
+        
+        [TearDown]
+        public void Teardown()
+        {
+            m_InputUnit = null;
         }
         
         [Test]
-        public void InputServiceInitialization_ShouldWorkCorrectly()
+        public void SimulateInputSystem_ShouldWorkCorrectly()
         {
-#if ENABLE_LEGACY_INPUT_MANAGER
-            Assert.IsNotNull(m_InputUnit.GetService<InputManagerService>());
-#endif
-#if UNITY_2019_4_OR_NEWER && ENABLE_INPUT_SYSTEM
-            Assert.IsNotNull(m_InputUnit.GetService<InputSystemService>());
-#endif
-        }
+            bool isTriggered = false;
+            const string mapName = "TestMap";
+            const string actionName = "Fire";
+    
+            var asset = ScriptableObject.CreateInstance<InputActionAsset>();
+            var map = asset.AddActionMap(mapName);
+            var action = map.AddAction(actionName, InputActionType.Button);
+            
+            var obj = new GameObject("input");
+            var playerInput = obj.AddComponent<PlayerInput>();
+            playerInput.actions = asset;
+            
+            m_UnitRules.AddDependency<InputUnit>(playerInput);
+            m_UnitRules.Initialize();
+            m_UnitRules.TryGetDependency(out m_InputUnit);
+            
+            m_InputUnit.Enable<InputSystemService>();
+            
+            m_InputUnit.AddListener<InputSystemService, bool>($"{mapName}/{actionName}", ctx => {
+                isTriggered = true;
+            });
 
+            var keyboard = InputSystem.AddDevice<Keyboard>();
+            action.ApplyBindingOverride("<Keyboard>/space");
+            
+            
+            InputSystem.Update();
+            
+            Assert.IsTrue(isTriggered);
+            
+            InputSystem.RemoveDevice(keyboard);
+            Object.DestroyImmediate(playerInput.gameObject);
+        }
     }
+
 }
+
+#endif

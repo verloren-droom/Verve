@@ -24,13 +24,13 @@ namespace Verve.Loader
         }
 
 
-        public void UnloadAsset<TLoaderType>(Type loaderType, string assetPath) where TLoaderType : IAssetLoader => UnloadAsset(typeof(TLoaderType), assetPath);
+        public void UnloadAsset<TLoaderType>(string assetPath) where TLoaderType : IAssetLoader => UnloadAsset(typeof(TLoaderType), assetPath);
         public void UnloadAsset(Type loaderType, string assetPath)
         {
             GetService(loaderType)?.UnloadAsset(assetPath);
         }
 
-        public void UnloadAllAsset<TLoaderType>(Type loaderType) where TLoaderType : IAssetLoader => UnloadAllAsset(typeof(TLoaderType));
+        public void UnloadAllAsset<TLoaderType>() where TLoaderType : IAssetLoader => UnloadAllAsset(typeof(TLoaderType));
         public void UnloadAllAsset(Type loaderType)
         {
             GetService(loaderType)?.UnloadAllAsset();

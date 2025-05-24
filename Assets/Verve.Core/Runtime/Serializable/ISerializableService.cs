@@ -3,7 +3,7 @@ namespace Verve.Serializable
     using System.IO;
 
     
-    public interface ISerializableConverter : Unit.IUnitService
+    public interface ISerializableService : Unit.IUnitService
     {
         /// <summary>
         /// 反序列化

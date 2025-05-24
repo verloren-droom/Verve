@@ -16,7 +16,7 @@ namespace VerveUniEx
     using Verve.Unit;
     using Verve.Event;
     using UnityEngine;
-    using Verve.Network;
+    using Verve.Net;
     using Verve.Serializable;
     using System.Collections;
     using ViewUnit = VerveUniEx.MVC.ViewUnit;

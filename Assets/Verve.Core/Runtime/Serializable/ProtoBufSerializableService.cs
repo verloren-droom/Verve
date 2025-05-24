@@ -5,7 +5,7 @@ namespace Verve.Serializable
     using Google.Protobuf;
 
 
-    public sealed partial class ProtoBufSerializableConverter : SerializableConverterBase
+    public sealed partial class ProtoBufSerializableService : SerializableServiceBase
     {
         public override byte[] Serialize(object obj)
         {

@@ -33,7 +33,7 @@ namespace VerveUniEx.Storage
                 outValue = (T)m_MemoryCache[key];
                 return true;
             }
-            outValue = m_Unit.Deserialize<JsonSerializableConverter, T>(PlayerPrefs.GetString(key, m_Unit.Serialize<JsonSerializableConverter>(defaultValue)));
+            outValue = m_Unit.Deserialize<JsonSerializableService, T>(PlayerPrefs.GetString(key, m_Unit.Serialize<JsonSerializableService>(defaultValue)));
             return outValue != null;
         }
 
@@ -42,7 +42,7 @@ namespace VerveUniEx.Storage
         {
             if (string.IsNullOrEmpty(key)) return;
             m_MemoryCache.AddOrUpdate(key, value, (s, _) => value);
-            PlayerPrefs.SetString(key, m_Unit.Serialize<JsonSerializableConverter>(value));
+            PlayerPrefs.SetString(key, m_Unit.Serialize<JsonSerializableService>(value));
         }
 
         public void Delete(string key) => Delete(null, key);

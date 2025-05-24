@@ -1,7 +1,7 @@
 namespace Verve.Storage
 {
-    
     using Unit;
+    using File;
     using System;
     using Serializable;
     using System.Threading.Tasks;
@@ -15,13 +15,15 @@ namespace Verve.Storage
     public partial class StorageUnit : UnitBase<IStorage>
     {
         protected SerializableUnit m_Serializable;
-        
+        protected FileUnit m_FileUnit;
 
+        
         protected override void OnPostStartup(UnitRules parent)
         {
             base.OnPostStartup(parent);
             parent.TryGetDependency(out m_Serializable);
-            AddService(new JsonStorage(m_Serializable));
+            parent.TryGetDependency(out m_FileUnit);
+            AddService(new JsonStorage(m_Serializable, m_FileUnit));
             AddService(new BinaryStorage(m_Serializable));
         }
 
