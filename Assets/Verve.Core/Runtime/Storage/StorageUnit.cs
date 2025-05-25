@@ -11,7 +11,7 @@ namespace Verve.Storage
     /// <summary>
     /// 存储单元
     /// </summary>
-    [CustomUnit("Storage", dependencyUnits: typeof(SerializableUnit)), System.Serializable]
+    [CustomUnit("Storage", 0, typeof(SerializableUnit), typeof(FileUnit)), System.Serializable]
     public partial class StorageUnit : UnitBase<IStorage>
     {
         protected SerializableUnit m_Serializable;

@@ -1,6 +1,7 @@
 namespace Verve.Tests
 {
     using Unit;
+    using File;
     using Storage;
     using Serializable;
     using NUnit.Framework;
@@ -18,6 +19,7 @@ namespace Verve.Tests
         {
             m_UnitRules = new UnitRules();
             m_UnitRules.AddDependency<SerializableUnit>();
+            m_UnitRules.AddDependency<FileUnit>();
             m_UnitRules.AddDependency<StorageUnit>();
             m_UnitRules.Initialize();
             m_UnitRules.TryGetDependency(out m_StorageUnit);
@@ -35,12 +37,13 @@ namespace Verve.Tests
         [Test]
         public void WriteAndReadData_ShouldWorkCorrectly()
         {
+            string fileName = "testFile";
             string key = "testKey";
             string value = "testValue";
         
-            m_StorageUnit.Write<JsonStorage, string>(key, value);
+            m_StorageUnit.Write<JsonStorage, string>(fileName, key, value);
         
-            bool result = m_StorageUnit.TryRead<JsonStorage, string>(key, out string outValue);
+            bool result = m_StorageUnit.TryRead<JsonStorage, string>(fileName, key, out string outValue);
         
             Assert.IsTrue(result);
             Assert.AreEqual(value, outValue);
@@ -52,13 +55,14 @@ namespace Verve.Tests
         [Test]
         public void DeleteData_ShouldWorkCorrectly()
         {
+            string fileName = "testFile";
             string key = "testKey";
             string value = "testValue";
         
-            m_StorageUnit.Write<JsonStorage, string>(key, value);
+            m_StorageUnit.Write<JsonStorage, string>(fileName, key, value);
             m_StorageUnit.Delete<JsonStorage>(key);
         
-            bool result = m_StorageUnit.TryRead<JsonStorage, string>(key, out string outValue);
+            bool result = m_StorageUnit.TryRead<JsonStorage, string>(fileName, key, out string outValue);
         
             Assert.IsFalse(result);
             Assert.IsNull(outValue);

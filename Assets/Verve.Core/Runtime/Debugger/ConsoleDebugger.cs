@@ -1,6 +1,5 @@
 namespace Verve.Debugger
 {
-    
     using System;
     
     
@@ -31,5 +30,4 @@ namespace Verve.Debugger
             };
         }
     }
-    
 }

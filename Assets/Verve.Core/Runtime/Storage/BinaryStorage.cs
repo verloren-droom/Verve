@@ -11,7 +11,7 @@ namespace Verve.Storage
     {
         private SerializableUnit m_Unit;
 
-        internal BinaryStorage(SerializableUnit unit)
+        public BinaryStorage(SerializableUnit unit)
         {
             m_Unit = unit;
         }

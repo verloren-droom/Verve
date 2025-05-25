@@ -3,6 +3,7 @@
 namespace VerveUniEx.Storage
 {
     using System;
+    using File;
     using Verve.Unit;
     using System.Collections;
     using Verve.Serializable;
@@ -11,12 +12,17 @@ namespace VerveUniEx.Storage
     /// <summary>
     /// 存储单元
     /// </summary>
-    [CustomUnit("Storage", dependencyUnits: typeof(SerializableUnit)), System.Serializable]
+    [CustomUnit("Storage", 0, typeof(SerializableUnit), typeof(FileUnit)), System.Serializable]
     public partial class StorageUnit : Verve.Storage.StorageUnit
     {
+        protected FileUnit m_FileUnit;
+
         protected override void OnPostStartup(UnitRules parent)
         {
-            base.OnPostStartup(parent);
+            parent.TryGetDependency(out m_Serializable);
+            parent.TryGetDependency(out m_FileUnit);
+            AddService(new JsonStorage(m_Serializable, m_FileUnit));
+            AddService(new Verve.Storage.BinaryStorage(m_Serializable));
             AddService(new BuiltInStorage(m_Serializable));
         }
 

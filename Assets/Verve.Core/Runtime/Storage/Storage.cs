@@ -6,6 +6,8 @@ namespace Verve.Storage
     
     public abstract class StorageBase : IStorage
     {
+        public virtual string DefaultFileExtension { get; set; } = "";
+
         public abstract bool TryRead<TData>(string fileName, string key, out TData outValue,
             TData defaultValue = default);
         public abstract void Write<TData>(string fileName, string key, TData value);

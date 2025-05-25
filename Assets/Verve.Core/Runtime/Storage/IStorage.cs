@@ -6,6 +6,8 @@ namespace Verve.Storage
     
     public interface IStorage : System.IDisposable, Unit.IUnitService
     {
+        public string DefaultFileExtension { get; set; }
+
         /// <summary>
         /// 尝试读取数据
         /// </summary>

@@ -5,187 +5,172 @@ namespace Verve.Storage
     using System.IO;
     using Serializable;
     using System.Collections.Generic;
+    using System.Collections.Concurrent;
 
     
-    public sealed partial class JsonStorage : StorageBase
+    public partial class JsonStorage : StorageBase
     {
-        private SerializableUnit m_SerializableUnit;
-        private FileUnit m_FileUnit;
+        private readonly SerializableUnit m_SerializableUnit;
+        private readonly FileUnit m_FileUnit;
         
-        private readonly Dictionary<string, byte[]> m_MemoryCache = new Dictionary<string, byte[]>();
+        private readonly ConcurrentDictionary<string, object> m_MemoryCache = new ConcurrentDictionary<string, object>();
         
-        public string DefaultFileExtension { get; set; } = ".json";
+        public override string DefaultFileExtension { get; set; } = ".json";
 
-        
-        internal JsonStorage(SerializableUnit serializableUnit, FileUnit fileUnit)
+
+        protected internal JsonStorage(SerializableUnit serializableUnit, FileUnit fileUnit)
         {
-            m_SerializableUnit = serializableUnit;
-            m_FileUnit = fileUnit;
+            m_FileUnit = fileUnit ?? throw new ArgumentNullException(nameof(fileUnit));
+            m_SerializableUnit = serializableUnit ?? throw new ArgumentNullException(nameof(serializableUnit));
         }
 
-        private string BuildSafePath(string fileName)
+        public override void Write<T>(string fileName, string key, T value)
         {
-            var safeFileName = Path.GetFileName(fileName) ?? "default";
-            return Path.Combine(m_FileUnit.PersistentDataPath, $"{safeFileName}{DefaultFileExtension}");
-        }
-        
-        #region 核心API
-
-        /// <summary>
-        /// 写入数据
-        /// </summary>
-        public override void Write<T>(string fileName, string key, T data)
-        {
-            ValidateKey(key);
-            var fullPath = BuildSafePath(fileName);
-            if (!Directory.Exists(Path.GetDirectoryName(fullPath)))
-                Directory.CreateDirectory(Path.GetDirectoryName(fullPath));
-            m_FileUnit.CreateTemporaryFile(out string tempPath);
-
-            try
-            {
-                Dictionary<string, object> dataDict = new Dictionary<string, object>();
-
-                if (File.Exists(fullPath))
-                {
-                    try
-                    {
-                        dataDict = m_SerializableUnit.Deserialize<JsonSerializableService, Dictionary<string, object>>(File.ReadAllBytes(fullPath));
-                    }
-                    catch { }
-                }
-
-                dataDict[key] = data;
-
-                var bytes = m_SerializableUnit.SerializeToBytes<JsonSerializableService>(dataDict);
-                
-                m_MemoryCache[fullPath] = bytes;
-                
-                File.WriteAllBytes(File.Exists(fullPath) ? fullPath : tempPath, bytes);
-                if (!File.Exists(fullPath))
-                {
-                    File.Move(tempPath, fullPath);
-                }
-            }
-            finally
-            {
-                if (File.Exists(tempPath)) File.Delete(tempPath);
-            }
-        }
-
-        /// <summary>
-        /// 读取数据
-        /// </summary>
-        public override bool TryRead<T>(string fileName, string key, out T outValue, T defaultValue = default)
-        {
-            ValidateKey(key);
-            var fullPath = BuildSafePath(fileName);
-
-            try
-            {
-                if (!File.Exists(fullPath))
-                {
-                    outValue = defaultValue;
-                    return false;
-                }
-
-                if (m_MemoryCache.TryGetValue(fullPath, out var bytes))
-                {
-                    outValue = GetValueFromCache(bytes, key, defaultValue);
-                    return true;
-                }
-
-                bytes = File.ReadAllBytes(fullPath);
-                m_MemoryCache[fullPath] = bytes;
-                outValue = GetValueFromCache(bytes, key, defaultValue);
-                return true;
-            }
-            catch
-            {
-                outValue = defaultValue;
-                return false;
-            }
-        }
-
-        #endregion
-
-        #region 数据合并逻辑
-
-        private T GetValueFromCache<T>(byte[] bytes, string key, T defaultValue)
-        {
-            try
-            {
-                var dataDict = m_SerializableUnit.Deserialize<JsonSerializableService, Dictionary<string, object>>(bytes);
-                if (dataDict.TryGetValue(key, out object value))
-                {
-                    return value is T typedValue ? typedValue : defaultValue;
-                }
-                return defaultValue;
-            }
-            catch
-            {
-                return defaultValue;
-            }
-        }
-
-        #endregion
-
-        #region 辅助方法
-
-        private static void ValidateKey(string key)
-        {
-            if (string.IsNullOrWhiteSpace(key))
-                throw new ArgumentException("Key cannot be empty");
-
-            if (key.Length > 256)
-                throw new ArgumentException("Key exceeds maximum length (256)");
-        }
-
-        #endregion
-
-        public void Delete(string key)
-        {
+            ValidateParameters(fileName, key);
             
+            var fullPath = BuildFullPath(fileName);
+            var dataDict = GetOrCreateFileData(fullPath);
+            dataDict[key] = value;
+            
+            SaveFileData(fullPath, dataDict);
+            CacheData(fullPath, key, value);
         }
-        
-        /// <summary>
-        /// 删除指定文件
-        /// </summary>
+
+        public override bool TryRead<T>(string fileName, string key, out T value, T defaultValue = default)
+        {
+            value = defaultValue;
+            if (!ValidateParameters(fileName, key)) return false;
+            
+            var fullPath = BuildFullPath(fileName);
+            if (TryGetFromCache(fullPath, key, out value)) return true;
+            
+            var dataDict = LoadFileData(fullPath);
+            if (dataDict == null || !dataDict.TryGetValue(key, out object rawValue))
+                return false;
+                
+            value = rawValue is T typedValue ? typedValue : defaultValue;
+            CacheData(fullPath, key, value);
+            return true;
+        }
+
         public override void Delete(string fileName, string key)
         {
-            var fullPath = BuildSafePath(fileName);
-            m_MemoryCache.Remove(fullPath);
-            try
+            if (!ValidateParameters(fileName, key)) return;
+            
+            var fullPath = BuildFullPath(fileName);
+            var dataDict = LoadFileData(fullPath);
+            if (dataDict?.Remove(key) ?? false)
             {
-                if (File.Exists(fullPath)) File.Delete(fullPath);
+                SaveFileData(fullPath, dataDict);
+                RemoveCache(fullPath, key);
             }
-            catch { }
         }
 
-        /// <summary>
-        /// 清空所有缓存（内存+磁盘）
-        /// </summary>
+        public void Write<T>(string key, T value) => Write(null, key, value);
+        public bool TryRead<T>(string key, out T value, T defaultValue = default) => 
+            TryRead(null, key, out value, defaultValue);
+        public void Delete(string key) => Delete(null, key);
+
+        public void DeleteFile(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName)) return;
+            var fullPath = BuildFullPath(fileName);
+            m_FileUnit.DeleteFile(fullPath);
+            ClearFileCache(fullPath);
+        }
+
         public override void DeleteAll()
         {
-            m_MemoryCache.Clear();
-
-            if (Directory.Exists(m_FileUnit.PersistentDataPath))
+            var dir = m_FileUnit.PersistentDataPath;
+            if (Directory.Exists(dir))
             {
-                foreach (var file in Directory.GetFiles(m_FileUnit.PersistentDataPath))
+                foreach (var file in Directory.GetFiles(dir, $"*{DefaultFileExtension}"))
                 {
                     try { File.Delete(file); }
                     catch { }
                 }
             }
-        }
-
-        public bool TryRead<T>(string key, out T outValue, T defaultValue = default) => TryRead<T>(null, key, out outValue, defaultValue);
-
-        public void Write<T>(string key, T value) => Write(null, key, value);
-        
-        public override void Dispose()
-        {
             m_MemoryCache.Clear();
         }
+
+        private string BuildFullPath(string fileName)
+        {
+            var safeFileName = Path.GetFileName(fileName) ?? "default";
+            return Path.Combine(m_FileUnit.PersistentDataPath, $"{safeFileName}{DefaultFileExtension}");
+        }
+
+        private Dictionary<string, object> GetOrCreateFileData(string fullPath)
+        {
+            return LoadFileData(fullPath) ?? new Dictionary<string, object>();
+        }
+
+        private Dictionary<string, object> LoadFileData(string fullPath)
+        {
+            if (!File.Exists(fullPath)) return null;
+            
+            try
+            {
+                using var fs = File.OpenRead(fullPath);
+                return m_SerializableUnit.DeserializeFromStream<JsonSerializableService, Dictionary<string, object>>(fs);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void SaveFileData(string fullPath, Dictionary<string, object> dataDict)
+        {
+            var relativePath = Path.GetRelativePath(m_FileUnit.PersistentDataPath, fullPath);
+            m_FileUnit.WriteFile<JsonSerializableService, Dictionary<string, object>>(relativePath, dataDict);
+        }
+
+        private bool TryGetFromCache<T>(string fullPath, string key, out T value)
+        {
+            var cacheKey = $"{fullPath}:{key}";
+            if (m_MemoryCache.TryGetValue(cacheKey, out object cached) && cached is T typedValue)
+            {
+                value = typedValue;
+                return true;
+            }
+            value = default;
+            return false;
+        }
+
+        private void CacheData<T>(string fullPath, string key, T value)
+        {
+            var cacheKey = $"{fullPath}:{key}";
+            m_MemoryCache.AddOrUpdate(cacheKey, value, (_, __) => value);
+        }
+
+        private void RemoveCache(string fullPath, string key)
+        {
+            var cacheKey = $"{fullPath}:{key}";
+            m_MemoryCache.TryRemove(cacheKey, out _);
+        }
+
+        private void ClearFileCache(string fullPath)
+        {
+            foreach (var key in m_MemoryCache.Keys)
+            {
+                if (key.StartsWith(fullPath))
+                {
+                    m_MemoryCache.TryRemove(key, out _);
+                }
+            }
+        }
+
+        private static bool ValidateParameters(string fileName, string key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return false;
+
+            if (key.Length > 256)
+                throw new ArgumentException("Key exceeds maximum length (256)");
+
+            return true;
+        }
+
+        public void Dispose() => DeleteAll();
     }
 }
