@@ -1,6 +1,5 @@
 namespace Verve.Unit
 {
-    
     using System;
     using System.Reflection;
     using System.Threading.Tasks;
@@ -137,5 +136,4 @@ namespace Verve.Unit
     {
         
     }
-    
 }

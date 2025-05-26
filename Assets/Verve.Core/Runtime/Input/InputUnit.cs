@@ -62,5 +62,10 @@ namespace Verve.Input
         {
             return GetService<TInputService>()?.SaveBindingsAsJson();
         }
+        
+        public void SimulateInputAction<TInputService, TValue>(string actionName, TValue value) where TInputService : class, IInputService where TValue : struct
+        {
+            GetService<TInputService>()?.SimulateInputAction(actionName, value);
+        }
     }
 }

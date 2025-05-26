@@ -20,14 +20,18 @@ namespace VerveUniEx
     using Verve.Serializable;
     using System.Collections;
     using ViewUnit = VerveUniEx.MVC.ViewUnit;
-    
-    
+
+
     /// <summary>
     /// 游戏启动器
     /// </summary>
     [AddComponentMenu("Verve/GameLauncher"), DisallowMultipleComponent, DefaultExecutionOrder(-100)]
     public partial class GameLauncher : ComponentInstanceBase<GameLauncher>
     {
+        [Header("View")]
+        [SerializeField] private Transform m_Parent;
+
+        
         public ICustomUnit this[Type unitType] => Launcher.GetUnit(unitType);
         
         public DebuggerUnit Debugger => Launcher.GetUnit<DebuggerUnit>();
@@ -59,7 +63,7 @@ namespace VerveUniEx
             Launcher.AddUnit<EventUnit>();
             Launcher.AddUnit<InputUnit>();
             Launcher.AddUnit<LoaderUnit>();
-            Launcher.AddUnit<ViewUnit>();
+            Launcher.AddUnit<ViewUnit>(m_Parent);
             Launcher.AddUnit<MVCUnit>();
             Launcher.AddUnit<NetworkUnit>();
             Launcher.AddUnit<AIUnit>();

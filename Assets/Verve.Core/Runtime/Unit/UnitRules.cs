@@ -90,7 +90,7 @@ namespace Verve.Unit
             {
                 Priority = priority,
                 StartupArgs = startupArgs,
-                Instance = (ICustomUnit)Activator.CreateInstance(unitType)
+                Instance = (ICustomUnit)Activator.CreateInstance(unitType),
             });
 
             return this;

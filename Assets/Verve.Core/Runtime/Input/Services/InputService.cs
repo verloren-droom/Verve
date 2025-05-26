@@ -27,15 +27,46 @@ namespace Verve.Input
         protected virtual void OnEnable() {}
         protected virtual void OnDisable() {}
 
-
-        public abstract void AddListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed)
+        public void AddListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Started) where T : struct
+        {
+            if (!enabled || !IsValid || string.IsNullOrEmpty(actionName)) return;
+            OnAddListener(actionName, onAction, phase);
+        }
+        protected abstract void OnAddListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed)
             where T : struct;
-        public virtual void RemoveListener(string actionName, InputServicePhase phase = InputServicePhase.Performed) {}
-        public virtual void RemoveListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed) where T : struct {}
-        public virtual void  RemoveAllListener() {}
+        
+        public void RemoveListener(string actionName, InputServicePhase phase = InputServicePhase.Started)
+        {
+            if (!enabled || !IsValid || string.IsNullOrEmpty(actionName)) return;
+            OnRemoveListener(actionName, phase);
+        }
+        protected abstract void OnRemoveListener(string actionName, InputServicePhase phase = InputServicePhase.Performed);
+        
+        public void RemoveListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Started) where T : struct
+        {
+            if (!enabled || !IsValid || string.IsNullOrEmpty(actionName)) return;
+            OnRemoveListener(actionName, phase);
+        }
+        protected virtual void OnRemoveListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed) where T : struct {}
+        
+        public void RemoveAllListener()
+        {
+            if (!enabled || !IsValid) return;
+            OnRemoveAllListener();
+        }
+        protected virtual void OnRemoveAllListener() {}
+        
         public virtual void RebindingAction(string actionName, InputServiceRebinding rebind, Action<bool> onCompleted = null) {}
         public virtual void LoadBindingsFromJson(string json) { if (string.IsNullOrEmpty(json)) return; }
         public virtual string SaveBindingsAsJson() => "NULL";
+        
+        public void SimulateInputAction<T>(string actionName, T value) where T : struct
+        {
+            if (!enabled || !IsValid || string.IsNullOrEmpty(actionName) || !typeof(T).IsValueType) return;
+            OnSimulateInputAction(actionName, value);
+        }
+        
+        protected virtual void OnSimulateInputAction<T>(string actionName, T value) where T : struct {}
 
         public virtual void Dispose()
         {

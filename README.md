@@ -1,4 +1,4 @@
-<div style="text-align:center; background-color:transparent;">
+<div align="center" style="text-align:center; background-color:transparent;">
 <pre style="background-color:transparent;">
 ██╗   ██╗███████╗██████╗ ██╗   ██╗███████╗
 ██║   ██║██╔════╝██╔══██╗██║   ██║██╔════╝

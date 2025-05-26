@@ -34,12 +34,13 @@ namespace VerveUniEx.Tests
         public void SimulateInputSystem_ShouldWorkCorrectly()
         {
             bool isTriggered = false;
+            float triggeredResult = 1.0f;
             const string mapName = "TestMap";
-            const string actionName = "Fire";
+            const string actionName = "TestValue";
     
             var asset = ScriptableObject.CreateInstance<InputActionAsset>();
             var map = asset.AddActionMap(mapName);
-            var action = map.AddAction(actionName, InputActionType.Button);
+            var action = map.AddAction(actionName, InputActionType.Value);
             
             var obj = new GameObject("input");
             var playerInput = obj.AddComponent<PlayerInput>();
@@ -51,23 +52,43 @@ namespace VerveUniEx.Tests
             
             m_InputUnit.Enable<InputSystemService>();
             
-            m_InputUnit.AddListener<InputSystemService, bool>($"{mapName}/{actionName}", ctx => {
+            m_InputUnit.AddListener<InputSystemService, float>($"{mapName}/{actionName}", ctx => {
                 isTriggered = true;
+                triggeredResult = ctx.value;
             });
 
-            var keyboard = InputSystem.AddDevice<Keyboard>();
-            action.ApplyBindingOverride("<Keyboard>/space");
-            
-            
-            InputSystem.Update();
-            
+            m_InputUnit.SimulateInputAction<InputManagerService, float>($"{mapName}/{actionName}", -1.0f);
+
             Assert.IsTrue(isTriggered);
+            Assert.AreEqual(-1.0f, triggeredResult);
             
-            InputSystem.RemoveDevice(keyboard);
             Object.DestroyImmediate(playerInput.gameObject);
         }
-    }
+        
+        [Test]
+        public void SimulateInputManager_ShouldWorkCorrectly()
+        {
+            bool isTriggered = false;
+            float triggeredResult = 1.0f;
+            const string mapName = "TestMap";
+            const string actionName = "TestValue";
 
+            m_UnitRules.AddDependency<InputUnit>();
+            m_UnitRules.Initialize();
+            m_UnitRules.TryGetDependency(out m_InputUnit);
+            m_InputUnit.Enable<InputManagerService>();
+            m_InputUnit.AddListener<InputManagerService, float>($"{mapName}/{actionName}", ctx =>
+            {
+                isTriggered = true;
+                triggeredResult = ctx.value;
+            });
+            
+            m_InputUnit.SimulateInputAction<InputManagerService, float>($"{mapName}/{actionName}", -1.0f);
+
+            Assert.IsTrue(isTriggered);
+            Assert.AreEqual(-1.0f, triggeredResult);
+        }
+    }
 }
 
 #endif

@@ -53,10 +53,8 @@ namespace VerveUniEx.Input
             m_PlayerInput?.actions?.Disable();
         }
 
-        public override void AddListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed)
+        protected override void OnAddListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed)
         {
-            if (!IsValid || string.IsNullOrEmpty(actionName)) return;
-
             var act = GetInputAction(actionName);
             if (act == null) return;
             if (!act.enabled) act.Enable();
@@ -123,11 +121,8 @@ namespace VerveUniEx.Input
                 });
         }
 
-        public override void RemoveListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed)
+        protected override void OnRemoveListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed)
         {
-            base.RemoveListener(actionName, onAction, phase);
-            if (!IsValid || string.IsNullOrEmpty(actionName)) return;
-
             if (m_ActionCallbacks.TryGetValue(actionName, out var callbacks))
             {
                 var targets = callbacks
@@ -161,11 +156,8 @@ namespace VerveUniEx.Input
             }
         }
 
-        public override void RemoveListener(string actionName, InputServicePhase phase = InputServicePhase.Performed)
+        protected override void OnRemoveListener(string actionName, InputServicePhase phase = InputServicePhase.Performed)
         {
-            base.RemoveListener(actionName, phase);
-            if (!IsValid || string.IsNullOrEmpty(actionName)) return;
-
             if (m_ActionCallbacks.TryGetValue(actionName, out var callbacks))
             {
                 var targets = callbacks.Where(c => c.Phase == phase).ToList();
@@ -191,9 +183,8 @@ namespace VerveUniEx.Input
             }
         }
 
-        public override void RemoveAllListener()
+        protected override void OnRemoveAllListener()
         {
-            base.RemoveAllListener();
             // for (var i = 0; i < m_ActionCallbacks.Count; i++)
             // {
             //     
@@ -233,7 +224,16 @@ namespace VerveUniEx.Input
             //         act.Enable();
             //     }).Start();
         }
-        
+
+        protected override void OnSimulateInputAction<T>(string actionName, T value)
+        {
+            var action = GetInputAction(actionName);
+            if (action == null) return;
+            
+            // TODu
+        }
+
+
         private (string mapName, string actionName) ParseActionName(string fullName)
         {
             var splitIndex = fullName.IndexOf('/');

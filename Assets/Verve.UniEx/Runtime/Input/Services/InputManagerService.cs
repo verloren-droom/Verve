@@ -66,10 +66,8 @@ namespace VerveUniEx.Input
             }
         }
 
-        public override void AddListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed) where T : struct
+        protected override void OnAddListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed) where T : struct
         {
-            if (!IsValid || string.IsNullOrEmpty(actionName)) return;
-
             if (!m_ActionCallbacks.ContainsKey(actionName))
             {
                 m_ActionCallbacks[actionName] = new List<Delegate>();
@@ -77,11 +75,8 @@ namespace VerveUniEx.Input
             m_ActionCallbacks[actionName].Add(onAction);
         }
 
-        public override void RemoveListener(string actionName, InputServicePhase servicePhase = InputServicePhase.Performed)
+        protected override void OnRemoveListener(string actionName, InputServicePhase servicePhase = InputServicePhase.Performed)
         {
-            base.RemoveListener(actionName, servicePhase);
-            if (!IsValid || string.IsNullOrEmpty(actionName)) return;
-
             if (m_ActionCallbacks.TryGetValue(actionName, out var delegates))
             {
                 delegates.Clear();
@@ -89,22 +84,40 @@ namespace VerveUniEx.Input
             }
         }
 
-        public override void RemoveListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed) where T : struct
+        protected override void OnRemoveListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed) where T : struct
         {
-            base.RemoveListener(actionName, onAction, phase);
-            if (!IsValid || string.IsNullOrEmpty(actionName)) return;
-
             if (m_ActionCallbacks.TryGetValue(actionName, out var delegates))
             {
                 delegates.RemoveAll(d => d.Equals(onAction));
             }
         }
 
-        public override void RemoveAllListener()
+        protected override void OnRemoveAllListener()
         {
-            base.RemoveAllListener();
             m_ActionCallbacks.Clear();
             m_ActionStates.Clear();
+        }
+        
+        protected override void OnSimulateInputAction<T>(string actionName, T value) where T : struct
+        {
+            if (m_ActionCallbacks.TryGetValue(actionName, out var delegates))
+            {
+                var context = new InputServiceContext<T>
+                {
+                    value = value,
+                    actionName = actionName,
+                    phase = InputServicePhase.Performed,
+                    deviceType = InputServiceDeviceType.Unknown
+                };
+
+                foreach (var del in delegates)
+                {
+                    if (del is Action<InputServiceContext<T>> action)
+                    {
+                        action(context);
+                    }
+                }
+            }
         }
 
         private void HandleButtonAction(string actionName)

@@ -3,7 +3,7 @@
 
 ![version](https://img.shields.io/badge/version-0.0.1-blue)
 [![Unity Version](https://img.shields.io/badge/unity-2018.3-blue)](https://unity.com)
-![Platform](https://img.shields.io/badge/platform-Win%20%7C%20Android%20%7C%20iOS%20%7C%20Mac%20%7C%20Linux%20%7C%20WebGL-orange)
+![Platform](https://img.shields.io/badge/platform-Win%20%7C%20Android%20%7C%20iOS%20%7C%20Mac%20%7C%20Linux-orange)
 
 ## Quick Start
 

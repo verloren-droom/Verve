@@ -54,5 +54,10 @@ namespace Verve.Input
         /// </summary>
         /// <returns></returns>
         string SaveBindingsAsJson();
+
+        /// <summary>
+        /// 模拟输入
+        /// </summary>
+        void SimulateInputAction<T>(string actionName, T value) where T : struct;
     }
 }

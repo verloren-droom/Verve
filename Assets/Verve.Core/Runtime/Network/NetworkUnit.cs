@@ -1,6 +1,5 @@
 namespace Verve.Net
 {
-    
     using Unit;
     
     
@@ -12,5 +11,4 @@ namespace Verve.Net
     {
         // TODO: 
     }
-    
 }
