@@ -38,7 +38,7 @@ namespace Verve.Storage
         /// <summary>
         /// 删除所有数据
         /// </summary>
-        void DeleteAll();
+        void DeleteAll(string fileName);
 
         /// <summary>
         /// 异步读取数据

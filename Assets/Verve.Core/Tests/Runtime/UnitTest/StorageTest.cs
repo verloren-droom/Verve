@@ -61,6 +61,7 @@ namespace Verve.Tests
         
             m_StorageUnit.Write<JsonStorage, string>(fileName, key, value);
             m_StorageUnit.Delete<JsonStorage>(key);
+            m_StorageUnit.DeleteAll<JsonStorage>(fileName);
         
             bool result = m_StorageUnit.TryRead<JsonStorage, string>(fileName, key, out string outValue);
         

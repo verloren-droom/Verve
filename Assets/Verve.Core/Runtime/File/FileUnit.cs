@@ -109,7 +109,7 @@ namespace Verve.File
         {
             if (string.IsNullOrEmpty(relativePath))
                 return false;
-            string fullPath = GetFullFilePath(relativePath);
+            string fullPath = Path.IsPathRooted(relativePath) ? relativePath : GetFullFilePath(relativePath);
             if (!File.Exists(fullPath)) return false;
             File.Delete(fullPath);
             return true;
@@ -136,7 +136,7 @@ namespace Verve.File
             return File.Create(tempPath);
         }
 
-        public string GetFullFilePath(string relativePath) => Path.Combine(PersistentDataPath, relativePath);
+        public string GetFullFilePath(string relativePath) => Path.IsPathRooted(relativePath) ? relativePath : Path.Combine(PersistentDataPath, relativePath);
         public string GetTempFilePath() => Path.Combine(TemporaryPath, Guid.NewGuid().ToString());
 
         public string PersistentDataPath => FileService.PersistentDataPath;

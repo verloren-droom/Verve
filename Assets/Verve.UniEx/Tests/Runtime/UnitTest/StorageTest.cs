@@ -44,7 +44,7 @@ namespace VerveUniEx.Tests
         
             m_StorageUnit.Write<JsonStorage, string>(key, value);
         
-            bool result = m_StorageUnit.TryRead<JsonStorage, string>(key, out string outValue);
+            bool result = m_StorageUnit.TryRead<JsonStorage, string>(key, out var outValue);
         
             Assert.IsTrue(result);
             Assert.AreEqual(value, outValue);
@@ -61,11 +61,13 @@ namespace VerveUniEx.Tests
         
             m_StorageUnit.Write<JsonStorage, string>(key, value);
             m_StorageUnit.Delete<JsonStorage>(key);
+            m_StorageUnit.DeleteAll<JsonStorage>();
         
-            bool result = m_StorageUnit.TryRead<JsonStorage, string>(key, out string outValue);
+            bool result = m_StorageUnit.TryRead<JsonStorage, string>(key, out var outValue);
         
             Assert.IsFalse(result);
             Assert.IsNull(outValue);
+            Assert.AreNotEqual(value, outValue);
         }
         
         /// <summary>
@@ -97,11 +99,11 @@ namespace VerveUniEx.Tests
             m_StorageUnit.Write<JsonStorage, float>(key4, value4);
             m_StorageUnit.Write<JsonStorage, CustomTestData>(key5, value5);
         
-            bool result1 = m_StorageUnit.TryRead<JsonStorage, string>(key1, out string outValue1);
-            bool result2 = m_StorageUnit.TryRead<JsonStorage, bool>(key2, out bool outValue2);
-            bool result3 = m_StorageUnit.TryRead<JsonStorage, int>(key3, out int outValue3);
-            bool result4 = m_StorageUnit.TryRead<JsonStorage, float>(key4, out float outValue4);
-            bool result5 = m_StorageUnit.TryRead<JsonStorage, CustomTestData>(key5, out CustomTestData outValue5);
+            bool result1 = m_StorageUnit.TryRead<JsonStorage, string>(key1, out var outValue1);
+            bool result2 = m_StorageUnit.TryRead<JsonStorage, bool>(key2, out var outValue2);
+            bool result3 = m_StorageUnit.TryRead<JsonStorage, int>(key3, out var outValue3);
+            bool result4 = m_StorageUnit.TryRead<JsonStorage, float>(key4, out var outValue4);
+            bool result5 = m_StorageUnit.TryRead<JsonStorage, CustomTestData>(key5, out var outValue5);
 
             Assert.IsTrue(result1);
             Assert.AreEqual(value1, outValue1);
@@ -124,11 +126,11 @@ namespace VerveUniEx.Tests
         {
             string key = "testKey";
             string value = "testValue";
-            string fileName = "customFile";
+            string fileName = "customFile.txt";
             
             m_StorageUnit.Write<JsonStorage, string>(fileName, key, value);
-            bool result = m_StorageUnit.TryRead<JsonStorage, string>(fileName, key, out string outValue);
-            
+            bool result = m_StorageUnit.TryRead<JsonStorage, string>(fileName, key, out var outValue);
+
             Assert.IsTrue(result);
             Assert.AreEqual(value, outValue);
         }
@@ -141,16 +143,19 @@ namespace VerveUniEx.Tests
         {
             string key = "testKey";
             string value = "testValue";
-            string fileName = "customFile";
+            string fileName = "customFile.txt";
 
             m_StorageUnit.Write<JsonStorage, string>(fileName, key, value);
             m_StorageUnit.Delete<JsonStorage>(fileName, key);
+            m_StorageUnit.DeleteAll<JsonStorage>(fileName);
         
-            bool result = m_StorageUnit.TryRead<JsonStorage, string>(fileName, key, out string outValue);
+            bool result = m_StorageUnit.TryRead<JsonStorage, string>(fileName, key, out var outValue);
         
             Assert.IsFalse(result);
             Assert.IsNull(outValue);
+            Assert.AreNotEqual(value, outValue);
         }
+        
         
         [System.Serializable]
         private struct CustomTestData

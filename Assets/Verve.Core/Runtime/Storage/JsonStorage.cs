@@ -17,7 +17,6 @@ namespace Verve.Storage
         
         public override string DefaultFileExtension { get; set; } = ".json";
 
-
         protected internal JsonStorage(SerializableUnit serializableUnit, FileUnit fileUnit)
         {
             m_FileUnit = fileUnit ?? throw new ArgumentNullException(nameof(fileUnit));
@@ -66,37 +65,17 @@ namespace Verve.Storage
             }
         }
 
-        public void Write<T>(string key, T value) => Write(null, key, value);
-        public bool TryRead<T>(string key, out T value, T defaultValue = default) => 
-            TryRead(null, key, out value, defaultValue);
-        public void Delete(string key) => Delete(null, key);
-
-        public void DeleteFile(string fileName)
+        public override void DeleteAll(string fileName)
         {
-            if (string.IsNullOrWhiteSpace(fileName)) return;
             var fullPath = BuildFullPath(fileName);
             m_FileUnit.DeleteFile(fullPath);
             ClearFileCache(fullPath);
         }
 
-        public override void DeleteAll()
-        {
-            var dir = m_FileUnit.PersistentDataPath;
-            if (Directory.Exists(dir))
-            {
-                foreach (var file in Directory.GetFiles(dir, $"*{DefaultFileExtension}"))
-                {
-                    try { File.Delete(file); }
-                    catch { }
-                }
-            }
-            m_MemoryCache.Clear();
-        }
-
         private string BuildFullPath(string fileName)
         {
-            var safeFileName = Path.GetFileName(fileName) ?? "default";
-            return Path.Combine(m_FileUnit.PersistentDataPath, $"{safeFileName}{DefaultFileExtension}");
+            var safeFileName = fileName ?? "default";
+            return m_FileUnit.GetFullFilePath(Path.HasExtension(safeFileName) ? safeFileName : $"{safeFileName}{DefaultFileExtension}");
         }
 
         private Dictionary<string, object> GetOrCreateFileData(string fullPath)
@@ -171,6 +150,6 @@ namespace Verve.Storage
             return true;
         }
 
-        public void Dispose() => DeleteAll();
+        public void Dispose() => m_MemoryCache.Clear();
     }
 }

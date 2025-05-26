@@ -53,7 +53,7 @@ namespace VerveUniEx.Storage
             PlayerPrefs.DeleteKey(key);
         }
 
-        public override void DeleteAll()
+        public override void DeleteAll(string fileName)
         {
             m_MemoryCache.Clear();
             PlayerPrefs.DeleteAll();

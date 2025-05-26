@@ -12,7 +12,7 @@ namespace Verve.Storage
             TData defaultValue = default);
         public abstract void Write<TData>(string fileName, string key, TData value);
         public abstract void Delete(string fileName, string key);
-        public abstract void DeleteAll();
+        public abstract void DeleteAll(string fileName);
         
         public virtual async Task<TData> ReadAsync<TData>(string fileName, string key, TData defaultValue = default, CancellationToken cancellationToken = default)
         {

@@ -71,20 +71,19 @@ namespace VerveUniEx.Tests
         {
             bool isTriggered = false;
             float triggeredResult = 1.0f;
-            const string mapName = "TestMap";
-            const string actionName = "TestValue";
+            const string actionName = "Horizontal";
 
             m_UnitRules.AddDependency<InputUnit>();
             m_UnitRules.Initialize();
             m_UnitRules.TryGetDependency(out m_InputUnit);
             m_InputUnit.Enable<InputManagerService>();
-            m_InputUnit.AddListener<InputManagerService, float>($"{mapName}/{actionName}", ctx =>
+            m_InputUnit.AddListener<InputManagerService, float>($"{actionName}", ctx =>
             {
                 isTriggered = true;
                 triggeredResult = ctx.value;
             });
             
-            m_InputUnit.SimulateInputAction<InputManagerService, float>($"{mapName}/{actionName}", -1.0f);
+            m_InputUnit.SimulateInputAction<InputManagerService, float>($"{actionName}", -1.0f);
 
             Assert.IsTrue(isTriggered);
             Assert.AreEqual(-1.0f, triggeredResult);

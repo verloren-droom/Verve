@@ -47,11 +47,12 @@ namespace Verve.Storage
             GetService<TStorage>()?.Delete(fileName, key);
         }
 
-        public void DeleteAll<TStorage>() where TStorage : class, IStorage
+        public void DeleteAll<TStorage>() where TStorage : class, IStorage => DeleteAll<TStorage>(null);
+        public void DeleteAll<TStorage>(string fileName) where TStorage : class, IStorage
         {
-            GetService<TStorage>()?.DeleteAll();
+            GetService<TStorage>()?.DeleteAll(fileName);
         }
-        
+
         public async Task WriteAsync<TStorage, TData>(string key, TData data) where TStorage : class, IStorage =>
             await WriteAsync<TStorage, TData>(null, key, data);
         public async Task WriteAsync<TStorage, TData>(string fileName, string key, TData data) where TStorage : class, IStorage

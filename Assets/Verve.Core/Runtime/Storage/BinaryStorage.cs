@@ -30,7 +30,7 @@ namespace Verve.Storage
             throw new NotImplementedException();
         }
 
-        public override void DeleteAll()
+        public override void DeleteAll(string fileName)
         {
             throw new NotImplementedException();
         }
