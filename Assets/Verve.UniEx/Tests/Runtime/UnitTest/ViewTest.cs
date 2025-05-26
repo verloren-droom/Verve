@@ -1,5 +1,3 @@
-using Verve.MVC;
-
 #if UNITY_5_3_OR_NEWER
 
 namespace VerveUniEx.Tests
@@ -30,12 +28,6 @@ namespace VerveUniEx.Tests
         public void Teardown()
         {
             m_ViewUnit = null;
-        }
-        
-        [Test]
-        public void OpenView_ShouldWorkCorrectly()
-        {
-            
         }
     }
 }

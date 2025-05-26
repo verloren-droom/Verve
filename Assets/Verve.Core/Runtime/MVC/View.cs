@@ -1,6 +1,5 @@
 namespace Verve.MVC
 {
-    
     using System;
 
 
@@ -28,5 +27,4 @@ namespace Verve.MVC
         public event Action<IView> OnOpened;
         public event Action<IView> OnClosed;
     }
-
 }

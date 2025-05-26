@@ -34,6 +34,5 @@ namespace Verve.Serializable
                 return JsonConvert.DeserializeObject<T>(jsonString);
             }
         }
-        
     }
 }

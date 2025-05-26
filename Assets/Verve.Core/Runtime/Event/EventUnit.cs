@@ -1,6 +1,5 @@
 namespace Verve.Event
 {
-    
     using Unit;
     using System;
     using System.Collections.Concurrent;
@@ -117,7 +116,7 @@ namespace Verve.Event
         #endregion
     }
 
+    
     [System.Serializable]
     public abstract partial class EventArgsBase : EventArgs { }
-    
 }

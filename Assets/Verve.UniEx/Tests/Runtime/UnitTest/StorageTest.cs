@@ -1,3 +1,5 @@
+#if UNITY_5_3_OR_NEWER
+
 namespace VerveUniEx.Tests
 {
     using File;
@@ -160,3 +162,5 @@ namespace VerveUniEx.Tests
         }
     }
 }
+
+#endif

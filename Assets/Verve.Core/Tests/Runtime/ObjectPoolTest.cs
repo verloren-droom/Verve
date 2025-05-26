@@ -25,6 +25,7 @@ namespace Verve.Tests
             Assert.AreEqual(DESTROY_TIP, obj.State);
         }
         
+        
         private class PoolTest
         {
             public string State { get; private set; }

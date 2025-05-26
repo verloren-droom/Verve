@@ -49,5 +49,4 @@ namespace Verve.Storage
         /// </summary>
         Task WriteAsync<TData>(string fileName, string key, TData value, CancellationToken cancellationToken = default);
     }
-    
 }

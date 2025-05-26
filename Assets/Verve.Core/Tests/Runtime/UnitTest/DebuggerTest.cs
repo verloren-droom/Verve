@@ -11,6 +11,7 @@ namespace Verve.Tests
         private UnitRules m_UnitRules = new UnitRules();
         private DebuggerUnit m_DebuggerUnit;
 
+        
         [SetUp]
         public void SetUp()
         {

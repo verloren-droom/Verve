@@ -1,10 +1,12 @@
+#if UNITY_5_3_OR_NEWER
+
 namespace VerveUniEx.Tests
 {
     using File;
     using System.IO;
     using Verve.Unit;
-    using Verve.Serializable;
     using NUnit.Framework;
+    using Verve.Serializable;
     
     
     [TestFixture]
@@ -82,3 +84,5 @@ namespace VerveUniEx.Tests
         }
     }
 }
+
+#endif

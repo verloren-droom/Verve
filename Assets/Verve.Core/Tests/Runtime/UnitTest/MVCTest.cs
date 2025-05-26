@@ -110,6 +110,7 @@ namespace Verve.Tests
             }
         }
 
+        
         private class TestCommand : CommandBase
         {
             public bool IsExecuted { get; private set; }
@@ -118,6 +119,7 @@ namespace Verve.Tests
             protected override void OnUndo() => IsExecuted = false;
         }
 
+        
         private class TestController : IController
         {
             public IActivity Activity { get; set; }

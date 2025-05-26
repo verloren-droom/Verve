@@ -57,7 +57,8 @@ namespace VerveUniEx.Tests
                 triggeredResult = ctx.value;
             });
 
-            m_InputUnit.SimulateInputAction<InputManagerService, float>($"{mapName}/{actionName}", -1.0f);
+            // TODO: Need to implement InputSystem Input simulation
+            m_InputUnit.SimulateInputAction<InputSystemService, float>($"{mapName}/{actionName}", -1.0f);
 
             Assert.IsTrue(isTriggered);
             Assert.AreEqual(-1.0f, triggeredResult);

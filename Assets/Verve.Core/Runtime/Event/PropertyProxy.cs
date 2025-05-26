@@ -1,6 +1,5 @@
 namespace Verve.Event
 {
-    
     using System;
     using System.Threading;
     using System.ComponentModel;

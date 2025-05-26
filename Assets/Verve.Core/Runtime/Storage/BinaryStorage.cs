@@ -1,6 +1,5 @@
 namespace Verve.Storage
 {
-    
     using System;
     using ProtoBuf;
     using Serializable;
@@ -36,5 +35,4 @@ namespace Verve.Storage
             throw new NotImplementedException();
         }
     }
-    
 }

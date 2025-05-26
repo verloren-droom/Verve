@@ -8,7 +8,7 @@ namespace VerveUniEx.Input
 #endif
     
     
-    [CustomUnit("Input")]
+    [CustomUnit("Input"), System.Serializable]
     public partial class InputUnit : Verve.Input.InputUnit
     {
         protected override void OnStartup(params object[] args)

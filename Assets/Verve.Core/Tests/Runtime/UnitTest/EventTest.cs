@@ -12,6 +12,7 @@ namespace Verve.Tests
         private UnitRules m_UnitRules = new UnitRules();
         private EventUnit m_EventUnit;
 
+        
         [SetUp]
         public void SetUp()
         {

@@ -17,9 +17,11 @@ namespace VerveUniEx.Input
     public sealed partial class InputManagerService : InputServiceBase
     {
         public override bool IsValid => true;
-
         private Coroutine m_UpdateCoroutine;
         
+        private readonly Dictionary<string, ActionState> m_ActionStates = new Dictionary<string, ActionState>();
+        private readonly ConcurrentDictionary<string, List<Delegate>> m_ActionCallbacks = new ConcurrentDictionary<string, List<Delegate>>();
+
         [Serializable]
         private struct ActionState
         {
@@ -30,9 +32,6 @@ namespace VerveUniEx.Input
             public InputServiceDeviceType LastDeviceType;
         }
         
-        private readonly Dictionary<string, ActionState> m_ActionStates = new Dictionary<string, ActionState>();
-        private readonly ConcurrentDictionary<string, List<Delegate>> m_ActionCallbacks = new ConcurrentDictionary<string, List<Delegate>>();
-
         public InputManagerService() { }
 
         protected override void OnEnable()
