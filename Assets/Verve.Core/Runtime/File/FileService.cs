@@ -41,10 +41,36 @@ namespace Verve.File
                 FileShare.None);
         }
 
-        public virtual IObservable<FileSystemEventArgs> Watch(string path)
+        public virtual IDisposable Watch(string path, Action<FileSystemEventArgs> onChanged)
         {
+            if (string.IsNullOrWhiteSpace(path))
+                throw new ArgumentNullException(nameof(path));
+
+            var watcher = new FileSystemWatcher
+            {
+                Path = Path.GetDirectoryName(path),
+                Filter = Path.GetFileName(path),
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
+                EnableRaisingEvents = true
+            };
+
+            FileSystemEventHandler handler = (sender, e) => onChanged?.Invoke(e);
+            watcher.Changed += handler;
+            watcher.Created += handler;
+            watcher.Deleted += handler;
+            watcher.Renamed += (sender, e) => onChanged?.Invoke(e);
+
+            // return Disposable.Create(() =>
+            // {
+            //     watcher.Changed -= handler;
+            //     watcher.Created -= handler;
+            //     watcher.Deleted -= handler;
+            //     watcher.Dispose();
+            // });
             throw new NotImplementedException();
+
         }
+
 
         public virtual async Task<Stream> OpenReadAsync(string path)
         {
@@ -89,6 +115,55 @@ namespace Verve.File
             if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
             {
                 Directory.CreateDirectory(directoryPath);
+            }
+        }
+        
+        public virtual IObservable<FileSystemEventArgs> Watch(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                throw new ArgumentNullException(nameof(path));
+
+            return new ObservableFileWatcher(path);
+        }
+
+        private class ObservableFileWatcher : IObservable<FileSystemEventArgs>
+        {
+            private readonly string m_Path;
+
+            public ObservableFileWatcher(string path)
+            {
+                m_Path = path;
+            }
+
+            public IDisposable Subscribe(IObserver<FileSystemEventArgs> observer)
+            {
+                var watcher = new FileSystemWatcher
+                {
+                    Path = Path.GetDirectoryName(m_Path),
+                    Filter = Path.GetFileName(m_Path),
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
+                    EnableRaisingEvents = true
+                };
+
+                FileSystemEventHandler handler = (sender, e) => observer.OnNext(e);
+                RenamedEventHandler renamedHandler = (sender, e) => observer.OnNext(e);
+                ErrorEventHandler errorHandler = (sender, e) => observer.OnError(e.GetException());
+
+                watcher.Changed += handler;
+                watcher.Created += handler;
+                watcher.Deleted += handler;
+                watcher.Renamed += renamedHandler;
+                watcher.Error += errorHandler;
+
+                return new ActionDisposable(() =>
+                {
+                    watcher.Changed -= handler;
+                    watcher.Created -= handler;
+                    watcher.Deleted -= handler;
+                    watcher.Renamed -= renamedHandler;
+                    watcher.Error -= errorHandler;
+                    watcher.Dispose();
+                });
             }
         }
     }

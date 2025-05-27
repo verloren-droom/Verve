@@ -150,6 +150,6 @@ namespace Verve.Storage
             return true;
         }
 
-        public void Dispose() => m_MemoryCache.Clear();
+        public override void Dispose() => m_MemoryCache.Clear();
     }
 }

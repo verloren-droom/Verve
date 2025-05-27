@@ -136,6 +136,11 @@ namespace Verve.File
             return File.Create(tempPath);
         }
 
+        public IObservable<FileSystemEventArgs> Watch(string path)
+        {
+            return FileService.Watch(path);
+        }
+
         public string GetFullFilePath(string relativePath) => Path.IsPathRooted(relativePath) ? relativePath : Path.Combine(PersistentDataPath, relativePath);
         public string GetTempFilePath() => Path.Combine(TemporaryPath, Guid.NewGuid().ToString());
 

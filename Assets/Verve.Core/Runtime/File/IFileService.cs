@@ -15,7 +15,11 @@ namespace Verve.File
         /// 临时资源路径
         /// </summary>
         string TemporaryPath { get; }
-        
+        /// <summary>
+        /// 文件监视
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
         IObservable<FileSystemEventArgs> Watch(string path);
     }
 }

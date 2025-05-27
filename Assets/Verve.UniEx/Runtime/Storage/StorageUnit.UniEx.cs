@@ -2,8 +2,8 @@
     
 namespace VerveUniEx.Storage
 {
-    using System;
     using File;
+    using System;
     using Verve.Unit;
     using System.Collections;
     using Verve.Serializable;
@@ -15,7 +15,7 @@ namespace VerveUniEx.Storage
     [CustomUnit("Storage", 0, typeof(SerializableUnit), typeof(FileUnit)), System.Serializable]
     public partial class StorageUnit : Verve.Storage.StorageUnit
     {
-        protected FileUnit m_FileUnit;
+        protected new FileUnit m_FileUnit;
 
         protected override void OnPostStartup(UnitRules parent)
         {

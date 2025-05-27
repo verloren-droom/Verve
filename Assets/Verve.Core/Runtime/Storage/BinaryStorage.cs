@@ -8,6 +8,8 @@ namespace Verve.Storage
     
     public sealed partial class BinaryStorage : StorageBase
     {
+        public override string DefaultFileExtension { get; set; } = ".bin";
+
         private SerializableUnit m_Unit;
 
         public BinaryStorage(SerializableUnit unit)

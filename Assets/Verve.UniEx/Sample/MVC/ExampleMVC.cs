@@ -51,18 +51,6 @@ namespace VerveUniEx.Example
             m_SubBtn?.onClick.AddListener(OnClickSub);
             
             GameLauncher.Instance.Debugger.Log("TEST");
-            StartCoroutine(GameLauncher.Instance.Storage.WriteAsync<BuiltInStorage, TestData>("Test1",
-                new TestData() { v1 = -100, v2 = "TEST1" }, () =>
-                {
-                    GameLauncher.Instance.Debugger.Log("Write");
-                    StartCoroutine(GameLauncher.Instance.Storage.ReadAsync<BuiltInStorage, TestData>("Test1", (value) =>
-                    {
-                        GameLauncher.Instance.Debugger.Log($"{value.v1} {value.v2}");
-                    }));
-                }));
-            
-            
-            GameLauncher.Instance.Timer.AddTimer<SimpleTimerService>(2 * 1000, () => { Debug.Log("2 TIMEOUT"); });
         }
 
         [ProtoContract]

@@ -10,6 +10,8 @@ namespace VerveUniEx.Storage
     
     public sealed partial class BuiltInStorage : VerveUniEx.Storage.StorageBase
     {
+        public override string DefaultFileExtension { get; set; } = ".json";
+
         private readonly ConcurrentDictionary<string, object> m_MemoryCache = new ConcurrentDictionary<string, object>();
         
         private SerializableUnit m_Unit;

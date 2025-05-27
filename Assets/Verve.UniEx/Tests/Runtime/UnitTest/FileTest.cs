@@ -35,7 +35,7 @@ namespace VerveUniEx.Tests
         [Test]
         public void TryReadFile_ShouldWorkCorrectly()
         {
-            string relativePath = "testFileUniEx.txt";
+            string relativePath = "testReadFileUniEx.txt";
             string testData = "Hello, World!";
         
             m_FileUnit.WriteFile<JsonSerializableService, string>(relativePath, testData);
@@ -66,10 +66,10 @@ namespace VerveUniEx.Tests
         [Test]
         public void WriteFileWithOverwrite_ShouldWorkCorrectly()
         {
-            string relativePath = "testFileUniEx.txt";
+            string relativePath = "testWriteFileUniEx.txt";
             string initialData = "Initial Data";
             string newData = "New Data";
-        
+
             m_FileUnit.WriteFile<JsonSerializableService, string>(relativePath, initialData);
         
             bool result = m_FileUnit.WriteFile<JsonSerializableService, string>(relativePath, newData, true);
