@@ -1,6 +1,7 @@
-namespace VerveUniEx.Example
+#if VERVE_UNIEX_0_0_1_OR_NEWER
+
+namespace VerveUniEx.Sample
 {
-    
     using Verve.MVC;
     using Verve.Event;
     using UnityEngine;
@@ -20,6 +21,8 @@ namespace VerveUniEx.Example
         [SerializeField, Tooltip("虚拟摇杆背景")] private Image m_BK;
         [SerializeField, Tooltip("虚拟摇杆控制杆")] private Image m_Control;
         
+        
+        [System.Serializable]
         public enum VirtualJoystickType
         {
             /// <summary>
@@ -45,6 +48,7 @@ namespace VerveUniEx.Example
 
         private Vector2 m_OrigPos = Vector2.zero;
 
+        
         private void Awake()
         {
             m_JoystickModel = this.GetModel<VirtualJoystickModel>();
@@ -131,9 +135,10 @@ namespace VerveUniEx.Example
             m_JoystickModel.Direction.Value = m_Control.transform.localPosition.normalized;
         }
     
-        public override IActivity Activity { get; set; } = ExampleActivity.Instance;
+        public override IActivity Activity { get; set; } = VirtualJoystickActivity.Instance;
     }
 
+    
     public class VirtualJoystickModel : ModelBase
     {
         /// <summary>
@@ -149,4 +154,17 @@ namespace VerveUniEx.Example
         /// </summary>
         public readonly PropertyProxy<float> MaxDirection = new PropertyProxy<float>(100);
     }
+    
+    
+    public class VirtualJoystickActivity : ActivityBase<VirtualJoystickActivity>
+    {
+        protected override void OnInitialized()
+        {
+            base.OnInitialized();
+
+            RegisterModel<VirtualJoystickModel>();
+        }
+    }
 }
+
+#endif

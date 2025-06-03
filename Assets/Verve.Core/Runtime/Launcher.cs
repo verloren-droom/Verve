@@ -1,5 +1,8 @@
+using System.Linq;
+
 namespace Verve
 {
+    using AI;
     using Unit;
     using System;
 

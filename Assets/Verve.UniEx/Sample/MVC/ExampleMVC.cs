@@ -1,18 +1,11 @@
-using Verve.Timer;
-using VerveUniEx.Storage;
-
-namespace VerveUniEx.Example
+namespace VerveUniEx.Sample
 {
-    
-    using Verve.File;
-    using Verve.Serializable;
     using Verve.MVC;
     using Verve.Event;
     using UnityEngine;
     using UnityEngine.UI;
     using ViewBase = MVC.ViewBase;
     using ProtoBuf;
-    using System.IO;
 
 
     public class ExampleActivity : ActivityBase<ExampleActivity>

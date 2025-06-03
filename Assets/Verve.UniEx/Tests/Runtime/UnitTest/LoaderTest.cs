@@ -2,12 +2,14 @@
 
 namespace VerveUniEx.Tests
 {
+    using System;
     using Loader;
+    using System.IO;
     using Verve.Unit;
     using UnityEngine;
     using NUnit.Framework;
-    
-    
+
+
     [TestFixture]
     public class LoaderTest
     {
@@ -34,7 +36,7 @@ namespace VerveUniEx.Tests
         public void AddressablesAssetLoad_ShouldWorkCorrectly()
         {
             var testAssetPath = "Assets/Verve.UniEx/Tests/Art/test.txt";
-            
+
             var obj = m_LoaderUnit.LoadAsset<AddressablesLoader, TextAsset>(testAssetPath);
             
             Assert.IsNotNull(obj);

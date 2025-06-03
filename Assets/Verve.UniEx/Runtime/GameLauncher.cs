@@ -43,10 +43,10 @@ namespace VerveUniEx
         public LoaderUnit Loader => Launcher.GetUnit<LoaderUnit>();
         public MVCUnit MVC => Launcher.GetUnit<MVCUnit>();
         public NetworkUnit Network => Launcher.GetUnit<NetworkUnit>();
-        public AIUnit AI => Launcher.GetUnit<AIUnit>();
         public StorageUnit Storage => Launcher.GetUnit<StorageUnit>();
         public ViewUnit View => Launcher.GetUnit<ViewUnit>();
         public TimerUnit Timer => Launcher.GetUnit<TimerUnit>();
+        public AIUnit AI => Launcher.GetUnit<AIUnit>();
 
         
         IEnumerator Start()
@@ -66,9 +66,9 @@ namespace VerveUniEx
             Launcher.AddUnit<ViewUnit>(m_Parent);
             Launcher.AddUnit<MVCUnit>();
             Launcher.AddUnit<NetworkUnit>();
-            Launcher.AddUnit<AIUnit>();
             Launcher.AddUnit<StorageUnit>();
             Launcher.AddUnit<TimerUnit>();
+            Launcher.AddUnit<AIUnit>();
             
             
             Launcher.Initialize();

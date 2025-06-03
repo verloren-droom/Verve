@@ -1,13 +1,13 @@
-namespace Verve.Net
+namespace VerveUniEx.Net
 {
-    using Unit;
+    using Verve.Unit;
     
     
     /// <summary>
     /// 网络单元
     /// </summary>
     [CustomUnit("Network"), System.Serializable]
-    public partial class NetworkUnit : UnitBase
+    public partial class NetworkUnit : Verve.Net.NetworkUnit
     {
         // TODO: 
     }
