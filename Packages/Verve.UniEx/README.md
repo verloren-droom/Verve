@@ -1,4 +1,4 @@
-# Verve.UniEx ![Experimental](https://img.shields.io/badge/status-experimental-orange.svg)
+# `Verve.UniEx` ![Experimental](https://img.shields.io/badge/status-experimental-orange.svg)
 
 ![version](https://img.shields.io/badge/version-0.0.1-blue)
 [![Unity Version](https://img.shields.io/badge/unity-2018.3-blue)](https://unity.com)
@@ -8,7 +8,7 @@
 
 1. `Unity` Add package from git URL: `https://github.com/verloren-droom/Verve.git?path=Packages/Verve.UniEx`
 
-> [!WARNING] <br>
+> [!WARNING]\
 > Requires a version of unity that supports path query parameter for git packages (`Unity >= 2019.3.4f1`, `Unity >= 2020.1a21`).
 
 ## Dependencies
