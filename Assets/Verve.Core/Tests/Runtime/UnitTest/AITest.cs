@@ -33,7 +33,7 @@ namespace Verve.Tests
         public void BehaviorTree_ShouldExecuteNodesCorrectly()
         {
             var bb = new Blackboard();
-            var tree = m_AIUnit.CreateTree<BehaviorTree>(bb: bb);
+            var tree = m_AIUnit.CreateBT<BehaviorTree>(bb: bb);
     
             bool action1Executed = false;
 
@@ -72,7 +72,7 @@ namespace Verve.Tests
             };
             
             var bb = new Blackboard();
-            var status = (actionNode as IAINode).Execute(ref bb, 0.1f);
+            var status = (actionNode as IBTNode).Run(ref bb, 0.1f);
             
             Assert.IsTrue(executed);
             Assert.AreEqual(NodeStatus.Success, status);
@@ -82,7 +82,7 @@ namespace Verve.Tests
         public void SequenceNode_ShouldStopOnFailure()
         {
             var sequence = new SequenceNode {
-                Children = new IAINode[] {
+                Children = new IBTNode[] {
                     new ActionNode { Callback = _ => NodeStatus.Success },
                     new ConditionNode { Condition = _ => false },
                     new ActionNode { Callback = _ => { Assert.Fail("Should not reach here");  return NodeStatus.Success; } }
@@ -90,7 +90,7 @@ namespace Verve.Tests
             };
             
             var bb = new Blackboard();
-            var status = (sequence as IAINode).Execute(ref bb, 0.1f);
+            var status = (sequence as IBTNode).Run(ref bb, 0.1f);
             
             Assert.AreEqual(NodeStatus.Failure, status);
         }
@@ -99,25 +99,45 @@ namespace Verve.Tests
         public void SequenceNode_ShouldRememberRunningState()
         {
             var callCount = 0;
-            var sequence = new SequenceNode {
-                Children = new IAINode[] {
-                    new WaitNode { Duration = 0.5f },
-                    new ActionNode { Callback = _ => {
-                        callCount++;
-                        return NodeStatus.Success;
-                    }}
+            // var sequence = new SequenceNode {
+            //     Children = new IBTNode[] {
+            //         new WaitNode { Duration = 0.5f },
+            //         new ActionNode { Callback = _ => {
+            //             callCount++;
+            //             return NodeStatus.Success;
+            //         }}
+            //     }
+            // };
+            var sequence = new BTNode<SequenceData, SequenceProcessor>() {
+                Data = new SequenceData()
+                {
+                    Children = new IBTNode[] {
+                        new WaitNode { Duration = 0.5f },
+                        new ActionNode { Callback = _ => {
+                            callCount++;
+                            return NodeStatus.Success;
+                        }}
+                    }
+                }
+            };
+
+            new BTNode<ConditionData, ConditionProcessor>()
+            {
+                Data = new ConditionData()
+                {
+                    
                 }
             };
         
             var bb = new Blackboard();
 
-            (sequence as IAINode).Execute(ref bb, 0.1f);
+            (sequence as IBTNode).Run(ref bb, 0.1f);
             Assert.AreEqual(0, callCount);
             
-            (sequence as IAINode).Execute(ref bb, 0.1f);
+            (sequence as IBTNode).Run(ref bb, 0.1f);
             Assert.AreEqual(0, callCount);
             
-            (sequence as IAINode).Execute(ref bb, 0.5f);
+            (sequence as IBTNode).Run(ref bb, 0.5f);
             Assert.AreEqual(1, callCount);
         }
         
@@ -125,7 +145,7 @@ namespace Verve.Tests
         public void ParallelNode_ShouldRequireAllSuccessWhenConfigured()
         {
             var parallel = new ParallelNode {
-                Children = new IAINode[] {
+                Children = new IBTNode[] {
                     new ActionNode { Callback = _ => NodeStatus.Success },
                     new ActionNode { Callback = _ => NodeStatus.Running }
                 },
@@ -133,7 +153,7 @@ namespace Verve.Tests
             };
         
             var bb = new Blackboard();
-            var status = (parallel as IAINode).Execute(ref bb, 0.1f);
+            var status = (parallel as IBTNode).Run(ref bb, 0.1f);
             
             Assert.AreEqual(NodeStatus.Running, status);
         }
@@ -142,7 +162,7 @@ namespace Verve.Tests
         public void ParallelNode_ShouldRememberChildStates()
         {
             var parallel = new ParallelNode {
-                Children = new IAINode[] {
+                Children = new IBTNode[] {
                     new WaitNode { Duration = 0.3f },
                     new WaitNode { Duration = 0.6f }
                 }
@@ -150,13 +170,13 @@ namespace Verve.Tests
         
             var bb = new Blackboard();
             
-            var status = (parallel as IAINode).Execute(ref bb, 0.1f);
+            var status = (parallel as IBTNode).Run(ref bb, 0.1f);
             Assert.AreEqual(NodeStatus.Running, status);
             
-            status = (parallel as IAINode).Execute(ref bb, 0.3f);
+            status = (parallel as IBTNode).Run(ref bb, 0.3f);
             Assert.AreEqual(NodeStatus.Running, status);
             
-            status = (parallel as IAINode).Execute(ref bb, 0.3f);
+            status = (parallel as IBTNode).Run(ref bb, 0.3f);
             Assert.AreEqual(NodeStatus.Success, status);
         }
         
@@ -165,7 +185,7 @@ namespace Verve.Tests
         {
             var node = new ConditionNode { Condition = null };
             var bb = new Blackboard();
-            var status = (node as IAINode).Execute(ref bb, 0.1f);
+            var status = (node as IBTNode).Run(ref bb, 0.1f);
             
             Assert.AreEqual(NodeStatus.Failure, status);
         }
@@ -173,16 +193,16 @@ namespace Verve.Tests
         [Test]
         public void WaitNode_ShouldCompleteAfterDuration()
         {
-            IAINode node = new WaitNode { Duration = 0.5f };
+            IBTNode node = new WaitNode { Duration = 0.5f };
             var bb = new Blackboard();
             
-            var status = node.Execute(ref bb, 0.1f);
+            var status = node.Run(ref bb, 0.1f);
             var wait = (WaitNode)node;
             Assert.AreEqual(NodeStatus.Running, status);
             Assert.AreEqual(0.1f, wait.ElapsedTime, 0.0001f);
         
             node = wait;
-            status = node.Execute(ref bb, 0.4f);
+            status = node.Run(ref bb, 0.4f);
             wait = (WaitNode)node;
             Assert.AreEqual(NodeStatus.Success, status);
             Assert.AreEqual(0.5f, wait.ElapsedTime, 0.0001f);
@@ -191,17 +211,17 @@ namespace Verve.Tests
         [Test]
         public void WaitNode_ShouldResetProperly()
         {
-            IAINode node = new WaitNode { Duration = 0.3f };
+            IBTNode node = new WaitNode { Duration = 0.3f };
             var bb = new Blackboard();
             
-            var status = node.Execute(ref bb, 0.1f);
+            var status = node.Run(ref bb, 0.1f);
             
             (node as IResetableNode).Reset();
             
-            status = node.Execute(ref bb, 0.2f);
+            status = node.Run(ref bb, 0.2f);
             Assert.AreEqual(NodeStatus.Running, status);
             
-            status = node.Execute(ref bb, 0.1f);
+            status = node.Run(ref bb, 0.1f);
             Assert.AreEqual(NodeStatus.Success, status);
         }
 
@@ -213,20 +233,20 @@ namespace Verve.Tests
             var executionLog = new List<string>();
 
             // 构建完整行为树
-            var behaviorTree = m_AIUnit.CreateTree<BehaviorTree>(bb: bb);
+            var behaviorTree = m_AIUnit.CreateBT<BehaviorTree>(bb: bb);
 
             // 创建深度嵌套的节点结构
-            IAINode rootNode = new RepeaterNode()
+            IBTNode rootNode = new RepeaterNode()
             {
                 RepeatCount = 2,
                 Child = new SequenceNode()
                 {
-                    Children = new IAINode[]
+                    Children = new IBTNode[]
                     {
                         new ParallelNode()
                         {
                             RequireAllSuccess = true,
-                            Children = new IAINode[]
+                            Children = new IBTNode[]
                             {
                                 new ConditionNode()
                                 {
@@ -251,7 +271,7 @@ namespace Verve.Tests
                             RepeatCount = 1,
                             Child = new SequenceNode()
                             {
-                                Children = new IAINode[]
+                                Children = new IBTNode[]
                                 {
                                     new ActionNode()
                                     {

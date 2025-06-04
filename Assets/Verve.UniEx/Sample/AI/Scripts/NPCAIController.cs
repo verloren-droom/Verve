@@ -8,8 +8,15 @@ namespace VerveUniEx.Sample
     using UnityEngine.AI;
     
     
-    public class NPCAIController : AIControllerBase
+    public class NPCAIController : MonoBehaviour
     {
+        protected BehaviorTree AI { get; private set; }
+        protected Blackboard BB { get; private set; }
+        
+        [Header("AI Settings")]
+        [SerializeField] private int m_InitialBlackboardSize = 32;
+        [SerializeField] private int m_InitialTreeCapacity = 64;
+        
         [Header("Movement")]
         [SerializeField] private float m_MoveSpeed = 3f;
         [SerializeField] private Transform[] m_PatrolPoints;
@@ -35,46 +42,71 @@ namespace VerveUniEx.Sample
         
         public enum AIState { Patrol, Pause, Chase, Search }
 
-        protected override void Awake()
+        private void Awake()
         {
             m_Player = GameObject.FindWithTag("Player")?.transform;
-            base.Awake();
+            BB = new Blackboard(m_InitialBlackboardSize);
+            AI = GameLauncher.Instance.AI.CreateBT<BehaviorTree>(m_InitialTreeCapacity, BB);
             BB.SetValue("Controller", this);
+            
+            BuildBehaviorTree();
         }
 
-        protected override void BuildBehaviorTree()
+        private void BuildBehaviorTree()
         {
             var stateSelector = new SelectorNode() 
             {
-                Children = new IAINode[]
+                Children = new IBTNode[]
                 {
-                    // 1. 最高优先级：追击状态
-                    NewSequence(
-                        new ConditionNode { Condition = _ => m_CurrentState == AIState.Chase },
-                        BuildChaseBehavior()
-                    ),
-            
-                    // 2. 第二优先级：搜索状态
-                    NewSequence(
-                        new ConditionNode { Condition = _ => m_CurrentState == AIState.Search },
-                        BuildSearchBehavior()
-                    ),
-            
-                    // 3. 巡逻与暂停循环
-                    NewSequence(
-                        new ConditionNode { Condition = _ => m_CurrentState == AIState.Patrol },
-                        BuildPatrolBehavior(),
-                        new ConditionNode { Condition = _ => m_CurrentState == AIState.Pause },
-                        BuildPauseBehavior()
-                    )
+                    // 1. 追击状态（最高优先级）
+                    new SequenceNode()
+                    {
+                        Children = new IBTNode[]
+                        {
+                            new ConditionNode { Condition = _ => m_CurrentState == AIState.Chase },
+                            BuildChaseBehavior()
+                        }
+                    },
+                    
+                    // 2. 搜索状态（第二优先级）
+                    new SequenceNode()
+                    {
+                        Children = new IBTNode[]
+                        {
+                            new ConditionNode { Condition = _ => m_CurrentState == AIState.Search },
+                            BuildSearchBehavior()
+                        }
+                    },
+                    
+                    // 3. 暂停状态
+                    new SequenceNode()
+                    {
+                        Children = new IBTNode[]
+                        {
+                            new ConditionNode { Condition = _ => m_CurrentState == AIState.Pause },
+                            BuildPauseBehavior()
+                        }
+                    },
+                    
+                    // 4. 默认巡逻状态（最低优先级）
+                    new SequenceNode()
+                    {
+                        Children = new IBTNode[]
+                        {
+                            new ConditionNode { Condition = _ => m_CurrentState == AIState.Patrol },
+                            BuildPatrolBehavior()
+                        }
+                    }
                 }
             };
 
+
             var detectionSystem = new ActionNode { Callback = _ => UpdateDetectionState() };
 
-            // 构建最终行为树
-            AddNode(new ParallelNode {
-                Children = new IAINode[] {
+            AI.AddNode(new ParallelNode
+            {
+                Children = new IBTNode[]
+                {
                     stateSelector,
                     detectionSystem
                 }
@@ -82,74 +114,93 @@ namespace VerveUniEx.Sample
         }
     
         #region 行为构建方法
-        private IAINode BuildPatrolBehavior()
+        private IBTNode BuildPatrolBehavior()
         {
-            return NewSequence(
-                new TransformMoveNode {
-                    Owner = transform,
-                    Targets = m_PatrolPoints,
-                    MoveSpeed = m_MoveSpeed,
-                    MinValidDistance = 0.5f,
-                    FaceMovementDirection = true,
-                    RotationSpeed = 180f,
-                    ArrivalMode = m_ArrivalMode,
-                    Loop = m_LoopMode,
-                    IgnoreAxes = m_IgnoreAxes,
+            return new SequenceNode()
+            {
+                Children = new IBTNode[]
+                {
+                    new TransformMoveNode
+                    {
+                        Owner = transform,
+                        Targets = m_PatrolPoints,
+                        MoveSpeed = m_MoveSpeed,
+                        MinValidDistance = 0.5f,
+                        FaceMovementDirection = true,
+                        RotationSpeed = 180f,
+                        ArrivalMode = m_ArrivalMode,
+                        Loop = m_LoopMode,
+                        IgnoreAxes = m_IgnoreAxes,
+                    },
+                    new ChangeStateNode() { TargetState = AIState.Pause }
+                    // new NavMeshMoveNode 
+                    // {
+                    //     Agent = m_Agent,
+                    //     Targets = m_PatrolPoints,
+                    //     AutoRotation = true,
+                    //     RotationSpeed = 120f,
+                    //     ArrivalMode = m_ArrivalMode,
+                    //     Loop = m_LoopMode,
+                    // }
                 }
-                // new NavMeshMoveNode 
-                // {
-                //     Agent = m_Agent,
-                //     Targets = m_PatrolPoints,
-                //     AutoRotation = true,
-                //     RotationSpeed = 120f,
-                //     ArrivalMode = m_ArrivalMode,
-                //     Loop = m_LoopMode,
-                // },
-            );
+            };
         }
     
-        private IAINode BuildPauseBehavior()
+        private IBTNode BuildPauseBehavior()
         {
-            return NewSequence(
-                new WaitNode { Duration = m_PauseDuration }
-            );
-        }
-    
-        private IAINode BuildChaseBehavior() 
-        {
-            return NewSequence(
-                new ActionNode() { Callback = _ => { Debug.Log("Chase"); return NodeStatus.Success; }},
-                new TransformMoveNode {
-                    Owner = transform,
-                    Targets = new[] { m_Player },
-                    MoveSpeed = m_MoveSpeed * 1.5f,
-                    MinValidDistance = 1f,
-                    FaceMovementDirection = true,
-                    RotationSpeed = 360f,
-                },
-                new ConditionNode { Condition = CheckPlayerLost }
-            );
-        }
-    
-        private IAINode BuildSearchBehavior()
-        {
-            return NewSequence(
-                new TransformMoveNode {
-                    Owner = transform,
-                    Targets = new[] { BB.GetValue<Transform>("LastKnownPosition") },
-                    MoveSpeed = m_MoveSpeed,
-                    MinValidDistance = 0.5f,
-                    FaceMovementDirection = true
+            return new SequenceNode()
+            {
+                Children = new IBTNode[]
+                {
+                    new WaitNode { Duration = m_PauseDuration },
+                    new ChangeStateNode() { TargetState = AIState.Patrol }
                 }
-            );
+            };
+        }
+    
+        private IBTNode BuildChaseBehavior()
+        {
+            return new SequenceNode()
+            {
+                Children = new IBTNode[]
+                {
+                    new TransformMoveNode
+                    {
+                        Owner = transform,
+                        Targets = new[] { m_Player },
+                        MoveSpeed = m_MoveSpeed * 1.5f,
+                        MinValidDistance = 1f,
+                        FaceMovementDirection = true,
+                        RotationSpeed = 360f,
+                    },
+                    new ConditionNode { Condition = CheckPlayerLost }
+                }
+            };
+        }
+    
+        private IBTNode BuildSearchBehavior()
+        {
+            return new SequenceNode()
+            {
+                Children = new IBTNode[]
+                {
+                    new TransformMoveNode {
+                        Owner = transform,
+                        Targets = new[] { BB.GetValue<Transform>("LastKnownPosition") },
+                        MoveSpeed = m_MoveSpeed,
+                        MinValidDistance = 0.5f,
+                        FaceMovementDirection = true
+                    }
+                }
+            };
         }
         #endregion
     
-        public struct ChangeStateNode : IAINode 
+        public struct ChangeStateNode : IBTNode 
         {
             public AIState TargetState;
             
-            NodeStatus IAINode.Execute(ref Blackboard bb, float deltaTime)
+            NodeStatus IBTNode.Run(ref Blackboard bb, float deltaTime)
             {
                 bb.GetValue<NPCAIController>("Controller").m_CurrentState = TargetState;
                 return NodeStatus.Success;

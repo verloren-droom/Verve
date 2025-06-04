@@ -54,7 +54,10 @@ namespace Verve.Unit
             
             foreach (var unitInfo in GetOrderedUnits())
             {
-                unitInfo.Instance.Tick(deltaTime, unscaledTime);
+                if (unitInfo.Instance.CanEverTick)
+                {
+                    unitInfo.Instance.Tick(deltaTime, unscaledTime);
+                }
             }
         }
 

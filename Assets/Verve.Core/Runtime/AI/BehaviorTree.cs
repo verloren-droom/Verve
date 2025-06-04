@@ -15,7 +15,7 @@ namespace Verve.AI
     {
         private struct NodeData
         {
-            public IAINode Node;
+            public IBTNode Node;
             public NodeStatus LastStatus;
         }
 
@@ -28,7 +28,7 @@ namespace Verve.AI
         private int m_ID;
         public int ID => m_ID;
 
-        public event Action<IAINode, NodeStatus> OnNodeStatusChanged;
+        public event Action<IBTNode, NodeStatus> OnNodeStatusChanged;
         
         public Blackboard BB
         {
@@ -53,7 +53,7 @@ namespace Verve.AI
             m_Blackboard = blackboard ?? new Blackboard();
         }
 
-        public void AddNode<T>(in T node) where T : struct, IAINode
+        public void AddNode<T>(in T node) where T : struct, IBTNode
         {
             if (m_NodeCount >= m_ActiveNodes.Length)
             {
@@ -96,8 +96,7 @@ namespace Verve.AI
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void IBehaviorTree.Update(in float deltaTime)
         {
-            if (m_IsDisposed) throw new ObjectDisposedException(nameof(BehaviorTree));
-            if (m_Blackboard == null || m_NodeCount == 0) return;
+            if (m_IsDisposed || m_Blackboard == null || m_NodeCount == 0) return;
 
             bool foundRunning = false;
             int startIndex = m_CurrentExecutingIndex >= 0 ? m_CurrentExecutingIndex : 0;
@@ -113,7 +112,7 @@ namespace Verve.AI
             {
                 ref var state = ref m_ActiveNodes[i];
 
-                var newStatus = state.Node.Execute(ref m_Blackboard, deltaTime);
+                var newStatus = state.Node.Run(ref m_Blackboard, deltaTime);
 
                 if (newStatus != state.LastStatus)
                 {
@@ -136,7 +135,7 @@ namespace Verve.AI
             }
         }
 
-        public IEnumerable<IAINode> FindNodes(Func<IAINode, bool> predicate)
+        public IEnumerable<IBTNode> FindNodes(Func<IBTNode, bool> predicate)
         {
             return m_ActiveNodes.Select(x => x.Node).Where(predicate);
         }

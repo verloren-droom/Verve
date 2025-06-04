@@ -10,14 +10,14 @@ namespace Verve.AI
     public interface IBehaviorTree : IDisposable
     {
         int ID { get; }
-        void AddNode<T>(in T node) where T : struct, IAINode;
+        void AddNode<T>(in T node) where T : struct, IBTNode;
         Blackboard BB { get; set; }
         void Update(in float deltaTime);
         void ResetNode(int nodeIndex);
         void ResetAllNodes();
         NodeStatus GetNodeStatus(int nodeIndex);
-        IEnumerable<IAINode> FindNodes(Func<IAINode, bool> predicate);
+        IEnumerable<IBTNode> FindNodes(Func<IBTNode, bool> predicate);
         
-        event Action<IAINode, NodeStatus> OnNodeStatusChanged;
+        event Action<IBTNode, NodeStatus> OnNodeStatusChanged;
     }
 }

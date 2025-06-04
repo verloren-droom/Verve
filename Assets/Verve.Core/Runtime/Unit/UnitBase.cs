@@ -25,7 +25,7 @@ namespace Verve.Unit
         }
         void ICustomUnit.Tick(float deltaTime, float unscaledTime)
         {
-            if (!CanEverTick) return;
+            // if (!CanEverTick) return;
             OnTick(deltaTime, unscaledTime);
         }
         void ICustomUnit.Shutdown()
