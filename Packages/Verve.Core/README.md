@@ -6,8 +6,8 @@
 
 1. `Unity` Add package from git URL: `https://github.com/verloren-droom/Verve.git?path=Packages/Verve.Core`
 
-   > [!WARNING] <br>
-   > Requires a version of unity that supports path query parameter for git packages (Unity >= 2019.3.4f1, Unity >= 2020.1a21).
+> [!WARNING] <br>
+> Requires a version of unity that supports path query parameter for git packages (`Unity >= 2019.3.4f1`, `Unity >= 2020.1a21`).
 
 ## Dependencies
 - [ProtoBuf](https://github.com/protobuf-net/protobuf-net)
