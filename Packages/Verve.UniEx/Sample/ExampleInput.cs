@@ -1,17 +1,17 @@
-using System;
-using System.Threading.Tasks;
-using UnityEngine.SceneManagement;
-using VerveUniEx;
-using VerveUniEx.Input;
-using VerveUniEx.Loader;
+#if VERVE_UNIEX_0_0_1_OR_NEWER
 
-namespace Verve.Sample
+namespace VerveUniEx.Sample
 {
+    using Verve;
     using Input;
     using Loader;
+    using Verve.Input;
     using UnityEngine;
+    using System.Threading.Tasks;
     using UnityEngine.InputSystem;
+    using UnityEngine.SceneManagement;
     using LoaderUnit = VerveUniEx.Loader.LoaderUnit;
+    using InputUnit = VerveUniEx.Input.InputUnit;
 
 
     public class ExampleInput : MonoBehaviour
@@ -87,3 +87,5 @@ namespace Verve.Sample
         }
     }
 }
+
+#endif

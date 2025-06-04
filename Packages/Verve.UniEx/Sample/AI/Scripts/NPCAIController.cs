@@ -100,7 +100,6 @@ namespace VerveUniEx.Sample
                 }
             };
 
-
             var detectionSystem = new ActionNode { Callback = _ => UpdateDetectionState() };
 
             AI.AddNode(new ParallelNode

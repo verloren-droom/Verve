@@ -1,17 +1,16 @@
 {
-    "name": "Verve.UniEx",
-    "rootNamespace": "VerveUniEx",
+    "name": "Verve.Core.Sample",
+    "rootNamespace": "Verve.Sample",
     "references": [
-        "Unity.Addressables",
-        "Unity.InputSystem",
-        "Unity.ResourceManager",
         "Verve.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],

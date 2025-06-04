@@ -187,6 +187,22 @@
       "dependencies": {},
       "hash": "f679bc79455f2b9697b6a70deee7550ae44426e2"
     },
+    "com.verloren-droom.verve-core": {
+      "version": "file:Verve.Core",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
+    "com.verloren-droom.verve-unity-extension": {
+      "version": "file:Verve.UniEx",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.verloren-droom.verve-core": "0.0.1-prerelease",
+        "com.unity.addressables": "1.19.19",
+        "com.unity.modules.assetbundle": "1.0.0"
+      }
+    },
     "jp.hadashikick.vcontainer": {
       "version": "https://github.com/hadashiA/VContainer.git?path=VContainer/Assets/VContainer#1.16.8",
       "depth": 0,

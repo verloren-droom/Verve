@@ -1,9 +1,9 @@
-namespace Verve.Sample
+#if VERVE_UNIEX_0_0_1_OR_NEWER
+
+namespace VerveUniEx.Sample
 {
-    using ECS;
+    using Verve.ECS;
     using UnityEngine;
-    using System.Collections;
-    using System.Collections.Generic;
 
 
     public class ECSSample : MonoBehaviour
@@ -42,3 +42,5 @@ namespace Verve.Sample
         }
     }
 }
+
+#endif

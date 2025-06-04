@@ -1,3 +1,5 @@
+#if VERVE_UNIEX_0_0_1_OR_NEWER
+
 namespace VerveUniEx.Sample
 {
     using Verve.MVC;
@@ -79,5 +81,6 @@ namespace VerveUniEx.Sample
             m_Model.Value.Value--;
         }
     }
-    
 }
+
+#endif

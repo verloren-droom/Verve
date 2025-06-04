@@ -1,0 +1,21 @@
+{
+    "name": "Verve.UniEx.Sample",
+    "rootNamespace": "VerveUniEx.Sample",
+    "references": [
+        "Unity.Addressables",
+        "Unity.InputSystem",
+        "Unity.ResourceManager",
+        "Verve.Core",
+        "Verve.UniEx",
+        "ProtoBuf"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
