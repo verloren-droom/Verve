@@ -1,4 +1,4 @@
-<div align="center" style="text-align:center; background-color:transparent;">
+<div align="center" background-color="transparent" style="text-align:center; background-color:transparent;">
 <pre style="background-color:transparent;">
 ██╗   ██╗███████╗██████╗ ██╗   ██╗███████╗
 ██║   ██║██╔════╝██╔══██╗██║   ██║██╔════╝
@@ -14,6 +14,5 @@
 > A development framework.
 
 ## Packages
-
-- [Verve.Core](./Assets/Verve.Core): Foundational systems and architecture.
-- [Verve.UniEx](./Assets/Verve.UniEx): Unity editor extensions and runtime tools.
+- [Verve.Core](./Packages/Verve.Core): Foundational systems and architecture.
+- [Verve.UniEx](./Packages/Verve.UniEx): Unity editor extensions and runtime tools.
