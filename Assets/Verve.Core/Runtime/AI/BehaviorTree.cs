@@ -13,13 +13,14 @@ namespace Verve.AI
     [Serializable]
     public sealed class BehaviorTree : IBehaviorTree
     {
+        [Serializable]
         private struct NodeData
         {
             public IBTNode Node;
             public NodeStatus LastStatus;
         }
 
-        
+
         private NodeData[] m_ActiveNodes = new NodeData[64];
         private int m_NodeCount;
         private Blackboard m_Blackboard;
@@ -43,8 +44,7 @@ namespace Verve.AI
         
         private static int s_NextTreeId = 1; 
         public static int GenerateTreeId() => Interlocked.Increment(ref s_NextTreeId);
-
-
+        
         
         internal BehaviorTree(int initialCapacity = 64, Blackboard blackboard = null)
         {

@@ -73,7 +73,7 @@ namespace Verve.AI
     /// <summary>
     /// 通用行为树节点结构体
     /// </summary>
-    /// <remarks> 使用通用行为树节点可使数据和逻辑解藕 </remarks>
+    /// <remarks> 使用通用行为树节点可使数据（INodeData）和逻辑（INodeProcessor）解藕 </remarks>
     /// <typeparam name="TData"> 节点数据类型 </typeparam>
     /// <typeparam name="TProcessor"> 节点逻辑处理器类型 </typeparam>
     [Serializable]

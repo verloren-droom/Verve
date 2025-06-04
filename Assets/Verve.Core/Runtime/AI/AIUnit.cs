@@ -88,6 +88,5 @@ namespace Verve.AI
             }
             return null;
         }
-
     }
 }

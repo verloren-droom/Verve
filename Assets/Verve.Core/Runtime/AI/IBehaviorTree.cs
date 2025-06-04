@@ -5,7 +5,7 @@ namespace Verve.AI
     
     
     /// <summary>
-    /// 扩展行为树接口
+    /// 行为树接口
     /// </summary>
     public interface IBehaviorTree : IDisposable
     {

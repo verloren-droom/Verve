@@ -68,6 +68,8 @@ namespace VerveUniEx.AI
         private Vector3 m_CurrentTargetPos;
         private int m_CurrentDirection;
 
+        public int CurrentIndex => m_CurrentIndex;
+
 
         NodeStatus IBTNode.Run(ref Blackboard bb, float deltaTime)
         {
