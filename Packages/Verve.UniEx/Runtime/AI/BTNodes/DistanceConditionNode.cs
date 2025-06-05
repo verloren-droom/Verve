@@ -25,9 +25,9 @@ namespace VerveUniEx.AI
         private float SquaredCheckDistance => CheckDistance * CheckDistance;
 
         
-        NodeStatus IBTNode.Run(ref Blackboard bb, float deltaTime)
+        NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
-            var sqrDistance =(TargetPoint - OwnerPoint).sqrMagnitude;
+            var sqrDistance = (TargetPoint - OwnerPoint).sqrMagnitude;
             
             return CompareMode switch
             {

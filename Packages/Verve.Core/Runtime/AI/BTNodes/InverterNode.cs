@@ -13,9 +13,9 @@ namespace Verve.AI
         public IBTNode Child;
         
         
-        NodeStatus IBTNode.Run(ref Blackboard bb, float deltaTime)
+        NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
-            var status = Child.Run(ref bb, deltaTime);
+            var status = Child.Run(ref ctx);
             return status switch {
                 NodeStatus.Success => NodeStatus.Failure,
                 NodeStatus.Failure => NodeStatus.Success,

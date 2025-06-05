@@ -12,9 +12,9 @@ namespace Verve.AI
     [CustomUnit("AI"), Serializable]
     public partial class AIUnit : UnitBase
     { 
-        private readonly Dictionary<int, WeakReference<IBehaviorTree>> m_Trees = new Dictionary<int, WeakReference<IBehaviorTree>>();
-        private readonly Dictionary<int, WeakReference<Blackboard>> m_Blackboards = new Dictionary<int, WeakReference<Blackboard>>();
-
+        private readonly Dictionary<int, IBehaviorTree> m_Trees = new Dictionary<int, IBehaviorTree>();
+        private readonly Dictionary<int, Blackboard> m_Blackboards = new Dictionary<int, Blackboard>();
+        
         
         protected override void OnStartup(params object[] args)
         {
@@ -25,43 +25,42 @@ namespace Verve.AI
         protected override void OnTick(float deltaTime, float unscaledTime)
         {
             base.OnTick(deltaTime, unscaledTime);
-            foreach (var tree in m_Trees.Values)
+            for (int i = 0; i < m_Trees.Values.Count; i++)
             {
-                tree.TryGetTarget(out var behaviorTree);
-                behaviorTree?.Update(deltaTime);
+                m_Trees.Values.ElementAt(i)?.Update(deltaTime);
             }
         }
-        
-        public BTType CreateBT<BTType>(int initialCapacity = 64, Blackboard bb = null) where BTType : class, IBehaviorTree
+
+        public BTType CreateBT<BTType>(bool isActive = true, int initialCapacity = 128, Blackboard bb = null)
+            where BTType : class, IBehaviorTree
         {
             var tree = new BehaviorTree(initialCapacity, bb);
-            m_Trees.Add(tree.ID, new WeakReference<IBehaviorTree>(tree));
-            m_Blackboards.Add(tree.ID, new WeakReference<Blackboard>(tree.BB));
+            tree.IsActive = isActive;
+            m_Trees.Add(tree.ID, tree);
+            m_Blackboards.Add(tree.ID, tree.BB);
             return tree as BTType;
         }
 
-        public BTType CreateOrGetBT<BTType>(int id, int initialCapacity = 64, Blackboard bb = null)
+        public BTType CreateOrGetBT<BTType>(int id, bool isActive = true, int initialCapacity = 64, Blackboard bb = null)
             where BTType : class, IBehaviorTree
         {
             if (m_Trees.TryGetValue(id, out var tree))
             {
-                tree.TryGetTarget(out var behaviorTree);
-                return behaviorTree as BTType;
+                return tree as BTType;
             }
-            return CreateBT<BTType>(initialCapacity, bb);
+            return CreateBT<BTType>(isActive, initialCapacity, bb);
         }
         
         public void DestroyBT(int id, bool isDestroyBB = true)
         {
             if (m_Trees.TryGetValue(id, out var tree))
             {
-                if (isDestroyBB && tree.TryGetTarget(out var behaviorTree))
+                tree?.Dispose();
+                if (isDestroyBB)
                 {
-                    behaviorTree.Dispose();
                     if (m_Blackboards.TryGetValue(id, out var bb))
                     {
-                        bb.TryGetTarget(out var blackboard);
-                        blackboard?.Dispose();
+                        bb?.Dispose();
                     }
                     m_Blackboards.Remove(id);
                 }
@@ -69,22 +68,21 @@ namespace Verve.AI
             }
         }
 
-        public IBehaviorTree GetBT(int id)
+        public BTType GetBT<BTType>(int id)
+            where BTType : class, IBehaviorTree
         {
             if (m_Trees.TryGetValue(id, out var tree))
             {
-                tree.TryGetTarget(out var behaviorTree);
-                return behaviorTree;
+                return tree as BTType;
             }
             return null;
         }
-        
+
         public Blackboard GetBlackboard(int id)
         {
             if (m_Blackboards.TryGetValue(id, out var bb))
             {
-                bb.TryGetTarget(out var blackboard);
-                return blackboard;
+                return bb;
             }
             return null;
         }

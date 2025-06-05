@@ -15,7 +15,7 @@ namespace Verve.Unit
         public virtual string UnitName => Regex.Replace(GetType().GetCustomAttribute<CustomUnitAttribute>()?.UnitName ?? GetType().Name, "Unit", string.Empty);
         public virtual int Priority => GetType().GetCustomAttribute<CustomUnitAttribute>()?.Priority ?? 0;
 
-        public virtual bool CanEverTick { get; protected set; }
+        public virtual bool CanEverTick { get; set; }
         
         void ICustomUnit.Startup(UnitRules parent, params object[] args)
         {

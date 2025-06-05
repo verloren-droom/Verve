@@ -21,7 +21,11 @@ namespace VerveUniEx.MVC
         protected override void OnStartup(params object[] args)
         {
             base.OnStartup(args);
-            m_ViewRootParent = args.Length > 0 && args[0] is Transform ? args[0] as Transform : (GameObject.FindObjectOfType<Canvas>().transform ?? new GameObject("ViewRoot").AddComponent<Canvas>().transform);
+            try
+            {
+                m_ViewRootParent = args.Length > 0 && args[0] is Transform ? args[0] as Transform : (GameObject.FindObjectOfType<Canvas>().transform ?? new GameObject("ViewRoot").AddComponent<Canvas>().transform);
+            }
+            catch { }
         }
         
         public bool TryOpen<TView>(bool isCloseAllOther = false, Transform parent = null, Action<TView> onOpened = null) where TView : Verve.MVC.ViewBase, IView

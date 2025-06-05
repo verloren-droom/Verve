@@ -44,12 +44,17 @@ namespace VerveUniEx.Tests
                 CheckDistance = 5f,
                 CompareMode = DistanceConditionNode.Comparison.LessThanOrEqual
             };
-        
-            var status = (node as IBTNode).Run(ref bb, 0);
+            
+            var ctx = new NodeRunContext()
+            {
+                BB = bb,
+                DeltaTime = 0f
+            };
+            var status = (node as IBTNode).Run(ref ctx);
             Assert.AreEqual(NodeStatus.Success, status);
         
             node.TargetPoint = Vector3.forward * 6;
-            status = (node as IBTNode).Run(ref bb, 0);
+            status = (node as IBTNode).Run(ref ctx);
             Assert.AreEqual(NodeStatus.Failure, status);
         }
     }

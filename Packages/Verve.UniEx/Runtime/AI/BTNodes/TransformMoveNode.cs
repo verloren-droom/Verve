@@ -4,9 +4,26 @@ namespace VerveUniEx.AI
 {
     using System;
     using Verve.AI;
+    using Unity.Jobs;
     using UnityEngine;
+    using Unity.Collections;
     
     
+    public struct TransformMoveJob : IJobParallelFor
+    {
+        public NativeArray<Vector3> Positions;
+        public NativeArray<Quaternion> Rotations;
+        [ReadOnly] public NativeArray<Vector3> TargetPositions;
+        public float DeltaTime;
+        public float MoveSpeed;
+
+        public void Execute(int index)
+        {
+            // 在此进行线程安全计算
+            Vector3 direction = (TargetPositions[index] - Positions[index]).normalized;
+            Positions[index] += direction * (MoveSpeed * DeltaTime);
+        }
+    }
     /// <summary>
     /// 变换移动节点（基于Transform的位移控制）
     /// </summary>
@@ -37,6 +54,7 @@ namespace VerveUniEx.AI
             PingPong,
         }
 
+        
         [Flags, Serializable]
         public enum AxisFlags : byte
         {
@@ -48,6 +66,7 @@ namespace VerveUniEx.AI
             Z = 4,
         }
 
+        
         [Header("基本设置")]
         [Tooltip("当前对象")] public Transform Owner;
         [Tooltip("移动速度（单位/秒）"), Min(0.1f)] public float MoveSpeed;
@@ -69,9 +88,10 @@ namespace VerveUniEx.AI
         private int m_CurrentDirection;
 
         public int CurrentIndex => m_CurrentIndex;
+        public bool IsMoving => m_IsMoving;
 
 
-        NodeStatus IBTNode.Run(ref Blackboard bb, float deltaTime)
+        NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
             if (Targets == null || Targets.Length == 0 || Owner == null)
                 return NodeStatus.Failure;
@@ -86,9 +106,9 @@ namespace VerveUniEx.AI
             
             Vector3 moveDirection = ApplyAxisFilter((ApplyAxisFilter(m_CurrentTargetPos, Owner.position) - Owner.position).normalized, Vector3.zero);
             
-            Owner.position += moveDirection * (MoveSpeed * deltaTime);
+            Owner.position += moveDirection * (MoveSpeed * ctx.DeltaTime);
             
-            HandleRotation(moveDirection, deltaTime);
+            HandleRotation(moveDirection, ctx.DeltaTime);
         
             if ((Owner.position - m_CurrentTargetPos).sqrMagnitude <= MinValidDistance * MinValidDistance)
             {
@@ -184,7 +204,7 @@ namespace VerveUniEx.AI
             return result;
         }
 
-        void IResetableNode.Reset()
+        void IResetableNode.Reset(ref NodeResetContext ctx)
         {
             m_IsMoving = false;
         }

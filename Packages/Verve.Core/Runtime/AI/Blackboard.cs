@@ -10,8 +10,9 @@ namespace Verve.AI
     /// AI共享数据存储
     /// </summary>
     [Serializable]
-    public sealed class Blackboard : IDisposable
+    public sealed class Blackboard : IBlackboard
     {
+        [Serializable]
         private struct BBEntry
         {
             public int KeyHash;
@@ -35,7 +36,7 @@ namespace Verve.AI
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetValue<T>(string key, in T value)
         {
-            int hash = key.GetHashCode();
+            int hash = GetStableHash(key);
             
             if (m_KeyIndexMap.TryGetValue(hash, out var index))
             {
@@ -64,6 +65,13 @@ namespace Verve.AI
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetValue<T>(string key, out T value, T defaultValue = default)
+        {
+            value = GetValue(key, defaultValue);
+            return !Equals(value, defaultValue);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetValue<T>(in T value)
         {
             SetValue(nameof(value), value);
@@ -72,7 +80,7 @@ namespace Verve.AI
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T GetValue<T>(string key, T defaultValue = default)
         {
-            int hash = key.GetHashCode();
+            int hash = GetStableHash(key);
             if (m_KeyIndexMap.TryGetValue(hash, out var index))
             {
                 var entry = m_Data[index];
@@ -96,7 +104,17 @@ namespace Verve.AI
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(string key)
         {
-            return m_KeyIndexMap.ContainsKey(key.GetHashCode());
+            return m_KeyIndexMap.ContainsKey(GetStableHash(key));
+        }
+        
+        private int GetStableHash(string key)
+        {
+            unchecked {
+                int hash = 23;
+                foreach (char c in key)
+                 hash = hash * 31 + c;
+                return hash;
+            }
         }
 
         public void Dispose()

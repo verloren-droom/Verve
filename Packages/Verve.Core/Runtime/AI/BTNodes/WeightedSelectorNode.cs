@@ -22,9 +22,11 @@ namespace Verve.AI
         
         private int m_SelectedIndex;
         private bool m_IsSelected;
-    
+        
+        public int SelectedIndex => m_SelectedIndex;
 
-        NodeStatus IBTNode.Run(ref Blackboard bb, float deltaTime)
+
+        NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
             if (Nodes == null || Nodes.Length == 0) 
                 return NodeStatus.Failure;
@@ -47,7 +49,7 @@ namespace Verve.AI
                     
                     m_SelectedIndex = random.Next(validNodes.Length);
                     m_IsSelected = true;
-                    return validNodes[m_SelectedIndex].Node.Run(ref bb, deltaTime);
+                    return validNodes[m_SelectedIndex].Node.Run(ref ctx);
                 }
     
                 var randomValue = random.NextDouble() * totalWeight;
@@ -75,14 +77,14 @@ namespace Verve.AI
                 return NodeStatus.Failure;
             }
     
-            var status = Nodes[m_SelectedIndex].Node.Run(ref bb, deltaTime);
+            var status = Nodes[m_SelectedIndex].Node.Run(ref ctx);
             if (status != NodeStatus.Running)
                 m_IsSelected = false;
     
             return status;
         }
     
-        void IResetableNode.Reset()
+        void IResetableNode.Reset(ref NodeResetContext ctx)
         {
             m_SelectedIndex = -1;
             m_IsSelected = false;
@@ -90,10 +92,9 @@ namespace Verve.AI
             {
                 if (weightedNode.Node is IResetableNode resetable)
                 {
-                    resetable.Reset();
+                    resetable.Reset(ref ctx);
                 }
             }
         }
     }
-
 }

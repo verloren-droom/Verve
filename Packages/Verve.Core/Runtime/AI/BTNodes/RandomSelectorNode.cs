@@ -15,8 +15,10 @@ namespace Verve.AI
         private int m_SelectedIndex;
         private bool m_IsInitialized;
 
+        public int SelectedIndex => m_SelectedIndex;
+
         
-        NodeStatus IBTNode.Run(ref Blackboard bb, float deltaTime)
+        NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
             if (!m_IsInitialized || m_SelectedIndex >= Children.Length)
             {
@@ -24,19 +26,18 @@ namespace Verve.AI
                 m_IsInitialized = true;
             }
         
-            return Children[m_SelectedIndex].Run(ref bb, deltaTime);
+            return Children[m_SelectedIndex].Run(ref ctx);
         }
 
-        void IResetableNode.Reset()
+        void IResetableNode.Reset(ref NodeResetContext ctx)
         {
             m_SelectedIndex = 0;
             m_IsInitialized = false;
             foreach (var child in Children)
             {
                 if (child is IResetableNode resetable)
-                    resetable.Reset();
+                    resetable.Reset(ref ctx);
             }
         }
     }
-
 }

@@ -2,9 +2,9 @@
 
 namespace VerveUniEx.Sample
 {
-    using AI;
     using Verve.AI;
     using UnityEngine;
+    using VerveUniEx.AI;
     using UnityEngine.AI;
     
     
@@ -46,9 +46,9 @@ namespace VerveUniEx.Sample
         {
             m_Player = GameObject.FindWithTag("Player")?.transform;
             BB = new Blackboard(m_InitialBlackboardSize);
-            AI = GameLauncher.Instance.AI.CreateBT<BehaviorTree>(m_InitialTreeCapacity, BB);
+            AI = GameLauncher.Instance.AI.CreateBT<BehaviorTree>(true, m_InitialTreeCapacity, BB);
             BB.SetValue("Controller", this);
-            
+
             BuildBehaviorTree();
         }
 
@@ -67,7 +67,7 @@ namespace VerveUniEx.Sample
                             BuildChaseBehavior()
                         }
                     },
-                    
+
                     // 2. 搜索状态（第二优先级）
                     new SequenceNode()
                     {
@@ -199,9 +199,9 @@ namespace VerveUniEx.Sample
         {
             public AIState TargetState;
             
-            NodeStatus IBTNode.Run(ref Blackboard bb, float deltaTime)
+            NodeStatus IBTNode.Run(ref NodeRunContext ctx)
             {
-                bb.GetValue<NPCAIController>("Controller").m_CurrentState = TargetState;
+                ctx.BB.GetValue<NPCAIController>("Controller").m_CurrentState = TargetState;
                 return NodeStatus.Success;
             }
         }

@@ -9,7 +9,7 @@ namespace Verve.ECS
     /// <summary>
     /// ECS系统
     /// </summary>
-    [System.Serializable]
+    [Serializable]
     public abstract class SystemBase
     { 
         private int m_Order;

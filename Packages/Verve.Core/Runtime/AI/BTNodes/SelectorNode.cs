@@ -13,13 +13,15 @@ namespace Verve.AI
         public IBTNode[] Children;
         
         private int m_CurrentChildIndex;
+        
+        public int CurrentChildIndex => m_CurrentChildIndex;
     
         
-        NodeStatus IBTNode.Run(ref Blackboard bb, float deltaTime)
+        NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
             for (int i = m_CurrentChildIndex; i < Children.Length; i++)
             {
-                var status = Children[i].Run(ref bb, deltaTime);
+                var status = Children[i].Run(ref ctx);
                 if (status == NodeStatus.Running)
                 {
                     m_CurrentChildIndex = i;
@@ -33,14 +35,14 @@ namespace Verve.AI
             return NodeStatus.Failure;
         }
     
-        void IResetableNode.Reset()
+        void IResetableNode.Reset(ref NodeResetContext ctx)
         {
             m_CurrentChildIndex = 0;
             foreach (var child in Children)
             {
                 if (child is IResetableNode resetable)
                 {
-                    resetable.Reset();
+                    resetable.Reset(ref ctx);
                 }
             }
         }

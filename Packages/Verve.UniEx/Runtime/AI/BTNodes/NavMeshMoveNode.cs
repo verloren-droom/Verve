@@ -31,9 +31,12 @@ namespace VerveUniEx.AI
         private int m_CurrentIndex;
         private bool m_IsMoving;
         private int m_CurrentDirection;
-    
         
-        NodeStatus IBTNode.Run(ref Blackboard bb, float deltaTime)
+        public int CurrentIndex => m_CurrentIndex;
+        public bool IsMoving => m_IsMoving;
+        
+
+        NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
             if (Targets == null || Targets.Length == 0 || Agent == null)
                 return NodeStatus.Failure;
@@ -50,7 +53,7 @@ namespace VerveUniEx.AI
     
             if (!AutoRotation && Agent.velocity.sqrMagnitude > 0.1f)
             {
-                HandleRotation(Agent.velocity.normalized, deltaTime);
+                HandleRotation(Agent.velocity.normalized, ctx.DeltaTime);
             }
     
             if (!Agent.pathPending && Agent.remainingDistance <= Agent.stoppingDistance)
@@ -137,7 +140,7 @@ namespace VerveUniEx.AI
             return NodeStatus.Success;
         }
     
-        void IResetableNode.Reset()
+        void IResetableNode.Reset(ref NodeResetContext ctx)
         {
             m_IsMoving = false;
             if (Agent != null)

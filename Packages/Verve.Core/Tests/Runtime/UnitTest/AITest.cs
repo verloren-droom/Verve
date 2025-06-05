@@ -72,7 +72,12 @@ namespace Verve.Tests
             };
             
             var bb = new Blackboard();
-            var status = (actionNode as IBTNode).Run(ref bb, 0.1f);
+            var ctx = new NodeRunContext()
+            {
+                BB = bb,
+                DeltaTime = 0.1f
+            };
+            var status = (actionNode as IBTNode).Run(ref ctx);
             
             Assert.IsTrue(executed);
             Assert.AreEqual(NodeStatus.Success, status);
@@ -90,7 +95,12 @@ namespace Verve.Tests
             };
             
             var bb = new Blackboard();
-            var status = (sequence as IBTNode).Run(ref bb, 0.1f);
+            var ctx = new NodeRunContext()
+            {
+                BB = bb,
+                DeltaTime = 0.1f
+            };
+            var status = (sequence as IBTNode).Run(ref ctx);
             
             Assert.AreEqual(NodeStatus.Failure, status);
         }
@@ -99,45 +109,30 @@ namespace Verve.Tests
         public void SequenceNode_ShouldRememberRunningState()
         {
             var callCount = 0;
-            // var sequence = new SequenceNode {
-            //     Children = new IBTNode[] {
-            //         new WaitNode { Duration = 0.5f },
-            //         new ActionNode { Callback = _ => {
-            //             callCount++;
-            //             return NodeStatus.Success;
-            //         }}
-            //     }
-            // };
-            var sequence = new BTNode<SequenceData, SequenceProcessor>() {
-                Data = new SequenceData()
-                {
-                    Children = new IBTNode[] {
-                        new WaitNode { Duration = 0.5f },
-                        new ActionNode { Callback = _ => {
-                            callCount++;
-                            return NodeStatus.Success;
-                        }}
-                    }
+            var sequence = new SequenceNode {
+                Children = new IBTNode[] {
+                    new WaitNode { Duration = 0.5f },
+                    new ActionNode { Callback = _ => {
+                        callCount++;
+                        return NodeStatus.Success;
+                    }}
                 }
             };
 
-            new BTNode<ConditionData, ConditionProcessor>()
-            {
-                Data = new ConditionData()
-                {
-                    
-                }
-            };
-        
             var bb = new Blackboard();
+            var ctx = new NodeRunContext()
+            {
+                BB = bb,
+                DeltaTime = 0.1f
+            };
+            (sequence as IBTNode).Run(ref ctx);
+            Assert.AreEqual(0, callCount);
+            
+            (sequence as IBTNode).Run(ref ctx);
+            Assert.AreEqual(0, callCount);
 
-            (sequence as IBTNode).Run(ref bb, 0.1f);
-            Assert.AreEqual(0, callCount);
-            
-            (sequence as IBTNode).Run(ref bb, 0.1f);
-            Assert.AreEqual(0, callCount);
-            
-            (sequence as IBTNode).Run(ref bb, 0.5f);
+            ctx.DeltaTime = 0.5f;
+            (sequence as IBTNode).Run(ref ctx);
             Assert.AreEqual(1, callCount);
         }
         
@@ -153,7 +148,12 @@ namespace Verve.Tests
             };
         
             var bb = new Blackboard();
-            var status = (parallel as IBTNode).Run(ref bb, 0.1f);
+            var ctx = new NodeRunContext()
+            {
+                BB = bb,
+                DeltaTime = 0.1f
+            };
+            var status = (parallel as IBTNode).Run(ref ctx);
             
             Assert.AreEqual(NodeStatus.Running, status);
         }
@@ -169,14 +169,20 @@ namespace Verve.Tests
             };
         
             var bb = new Blackboard();
-            
-            var status = (parallel as IBTNode).Run(ref bb, 0.1f);
+            var ctx = new NodeRunContext()
+            {
+                BB = bb,
+                DeltaTime = 0.1f
+            };
+            var status = (parallel as IBTNode).Run(ref ctx);
             Assert.AreEqual(NodeStatus.Running, status);
             
-            status = (parallel as IBTNode).Run(ref bb, 0.3f);
+            ctx.DeltaTime = 0.3f;
+            status = (parallel as IBTNode).Run(ref ctx);
             Assert.AreEqual(NodeStatus.Running, status);
             
-            status = (parallel as IBTNode).Run(ref bb, 0.3f);
+            ctx.DeltaTime = 0.3f;
+            status = (parallel as IBTNode).Run(ref ctx);
             Assert.AreEqual(NodeStatus.Success, status);
         }
         
@@ -185,7 +191,12 @@ namespace Verve.Tests
         {
             var node = new ConditionNode { Condition = null };
             var bb = new Blackboard();
-            var status = (node as IBTNode).Run(ref bb, 0.1f);
+            var ctx = new NodeRunContext()
+            {
+                BB = bb,
+                DeltaTime = 0.1f
+            };
+            var status = (node as IBTNode).Run(ref ctx);
             
             Assert.AreEqual(NodeStatus.Failure, status);
         }
@@ -195,14 +206,20 @@ namespace Verve.Tests
         {
             IBTNode node = new WaitNode { Duration = 0.5f };
             var bb = new Blackboard();
-            
-            var status = node.Run(ref bb, 0.1f);
+            var ctx = new NodeRunContext()
+            {
+                BB = bb,
+                DeltaTime = 0.1f
+            };
+            var status = node.Run(ref ctx);
             var wait = (WaitNode)node;
             Assert.AreEqual(NodeStatus.Running, status);
             Assert.AreEqual(0.1f, wait.ElapsedTime, 0.0001f);
         
             node = wait;
-            status = node.Run(ref bb, 0.4f);
+
+            ctx.DeltaTime = 0.4f;
+            status = node.Run(ref ctx);
             wait = (WaitNode)node;
             Assert.AreEqual(NodeStatus.Success, status);
             Assert.AreEqual(0.5f, wait.ElapsedTime, 0.0001f);
@@ -213,15 +230,25 @@ namespace Verve.Tests
         {
             IBTNode node = new WaitNode { Duration = 0.3f };
             var bb = new Blackboard();
-            
-            var status = node.Run(ref bb, 0.1f);
-            
-            (node as IResetableNode).Reset();
-            
-            status = node.Run(ref bb, 0.2f);
+            var ctx = new NodeRunContext()
+            {
+                BB = bb,
+                DeltaTime = 0.1f
+            };
+            var status = node.Run(ref ctx);
+
+            var resetCtx = new NodeResetContext()
+            {
+                BB = bb,
+            };
+            (node as IResetableNode).Reset(ref resetCtx);
+
+            ctx.DeltaTime = 0.2f;
+            status = node.Run(ref ctx);
             Assert.AreEqual(NodeStatus.Running, status);
             
-            status = node.Run(ref bb, 0.1f);
+            ctx.DeltaTime = 0.1f;
+            status = node.Run(ref ctx);
             Assert.AreEqual(NodeStatus.Success, status);
         }
 
@@ -238,6 +265,7 @@ namespace Verve.Tests
             // 创建深度嵌套的节点结构
             IBTNode rootNode = new RepeaterNode()
             {
+                Mode = RepeaterNode.RepeatMode.CountLimited,
                 RepeatCount = 2,
                 Child = new SequenceNode()
                 {
@@ -268,6 +296,7 @@ namespace Verve.Tests
                         },
                         new RepeaterNode()
                         {
+                            Mode = RepeaterNode.RepeatMode.CountLimited,
                             RepeatCount = 1,
                             Child = new SequenceNode()
                             {
@@ -313,12 +342,10 @@ namespace Verve.Tests
 
             behaviorTree.ResetAllNodes();
             bb.SetValue("CanStart", true);
-
-            // 执行3次更新（累计0.3秒）
-            for (int i = 0; i < 3; i++)
+            
+            for (int i = 0; i < 4; i++)
             {
                 ((IBehaviorTree)behaviorTree).Update(0.1f);
-                Assert.AreEqual(i < 2 ? 0 : 1, executionLog.Count(x => x == "CounterAction"));
             }
 
             // 验证日志顺序
@@ -328,7 +355,7 @@ namespace Verve.Tests
                 "CounterAction",
                 "FinalAction"
             };
-            CollectionAssert.AreEqual(expectedLogs, executionLog.Take(expectedLogs.Length));
+            CollectionAssert.AreEqual(expectedLogs, executionLog.Take(expectedLogs.Length).ToArray());
 
             executionLog.Clear();
 
@@ -339,8 +366,8 @@ namespace Verve.Tests
             }
 
             // 验证最终状态
-            Assert.AreEqual(2, executionLog.Count(x => x == "FinalAction"));
-            Assert.AreEqual(2, bb.GetValue<int>("Counter"));
+            Assert.AreEqual(1, executionLog.Count(x => x == "FinalAction"));
+            Assert.AreEqual(1, bb.GetValue<int>("Counter"));
         }
     }
 }

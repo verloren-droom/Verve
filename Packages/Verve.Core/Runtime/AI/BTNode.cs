@@ -30,10 +30,22 @@ namespace Verve.AI
         /// <summary>
         /// 运行节点
         /// </summary>
-        /// <param name="bb">共享数据黑板</param>
-        /// <param name="deltaTime">时间增量</param>
+        /// <param name="ctx"> 节点运行上下文 </param>
         /// <returns></returns>
-        NodeStatus Run(ref Blackboard bb, float deltaTime);
+        NodeStatus Run(ref NodeRunContext ctx);
+    }
+
+    
+    /// <summary>
+    /// 节点运行上下文
+    /// </summary>
+    [Serializable]
+    public struct NodeRunContext
+    {
+        /// <summary> 关联黑板 </summary>
+        public Blackboard BB;
+        /// <summary> 时间增量 </summary>
+        public float DeltaTime;
     }
     
     
@@ -46,12 +58,38 @@ namespace Verve.AI
     /// </remarks>
     public interface IResetableNode
     {
-        /// <summary>
-        /// 重置节点内部状态
-        /// </summary>
-        void Reset();
+        /// <summary> 重置节点内部数据 </summary>
+        void Reset(ref NodeResetContext ctx);
+    }
+
+    
+    /// <summary>
+    /// 节点重置模式
+    /// </summary>
+    [Serializable]
+    public enum NodeResetMode
+    {
+        /// <summary> 全部重置 </summary>
+        Full,
+        /// <summary> 部分重置 </summary>
+        Partial,
+        /// <summary> 软重置 </summary>
+        Soft,
     }
     
+    
+    /// <summary>
+    /// 节点重置上下文
+    /// </summary>
+    [Serializable]
+    public struct NodeResetContext 
+    {
+        /// <summary> 关联黑板 </summary>
+        public Blackboard BB;
+        /// <summary> 重置模式 </summary>
+        public NodeResetMode Mode;
+    }
+
     
     /// <summary>
     /// 节点数据接口（使用结构体实现接口）
@@ -63,10 +101,11 @@ namespace Verve.AI
     /// 节点逻辑处理器接口（使用结构体实现接口）
     /// </summary>
     /// <typeparam name="TData"> 节点数据类型 </typeparam>
-    public interface INodeProcessor<TData> where TData : struct, INodeData
+    public interface INodeProcessor<TData>
+        where TData : struct, INodeData
     {
-        NodeStatus Run(ref TData data, ref Blackboard bb, float deltaTime);
-        void Reset(ref TData data);
+        NodeStatus Run(ref TData data, ref NodeRunContext ctx);
+        void Reset(ref TData data, ref NodeResetContext ctx);
     }
     
     
@@ -85,9 +124,8 @@ namespace Verve.AI
         private TProcessor m_Processor;
         
         
-        public NodeStatus Run(ref Blackboard bb, float deltaTime) 
-            => m_Processor.Run(ref Data, ref bb, deltaTime);
+        public NodeStatus Run(ref NodeRunContext ctx) => m_Processor.Run(ref Data, ref ctx);
     
-        public void Reset() => m_Processor.Reset(ref Data);
+        public void Reset(ref NodeResetContext ctx) => m_Processor.Reset(ref Data, ref ctx);
     }
 }

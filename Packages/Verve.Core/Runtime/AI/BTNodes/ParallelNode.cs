@@ -17,7 +17,7 @@ namespace Verve.AI
         private NodeStatus[] m_ChildStatus;
     
         
-        public NodeStatus Run(ref Blackboard bb, float deltaTime)
+        public NodeStatus Run(ref NodeRunContext ctx)
         {
             if (m_ChildStatus == null || m_ChildStatus.Length != Children.Length)
                 m_ChildStatus = new NodeStatus[Children.Length];
@@ -29,7 +29,7 @@ namespace Verve.AI
             {
                 if (m_ChildStatus[i] == NodeStatus.Running)
                 {
-                    m_ChildStatus[i] = Children[i].Run(ref bb, deltaTime);
+                    m_ChildStatus[i] = Children[i].Run(ref ctx);
                 }
                 
                 if (m_ChildStatus[i] == NodeStatus.Success) successCount++;
@@ -44,13 +44,13 @@ namespace Verve.AI
             return successCount > 0 ? NodeStatus.Success : NodeStatus.Failure;
         }
         
-        void IResetableNode.Reset()
+        void IResetableNode.Reset(ref NodeResetContext ctx)
         {
             m_ChildStatus = null;
             for (int i = 0; i < Children.Length; i++)
             {
                 if (Children[i] is IResetableNode resetable)
-                    resetable.Reset();
+                    resetable.Reset(ref ctx);
             }
         }
     }

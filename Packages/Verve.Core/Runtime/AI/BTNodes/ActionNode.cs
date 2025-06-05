@@ -13,9 +13,9 @@ namespace Verve.AI
         public Func<Blackboard, NodeStatus> Callback;
         
         
-        NodeStatus IBTNode.Run(ref Blackboard bb, float deltaTime)
+        NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
-            return Callback?.Invoke(bb) ?? NodeStatus.Failure;
+            return Callback?.Invoke(ctx.BB) ?? NodeStatus.Failure;
         }
     }
 }

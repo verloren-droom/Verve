@@ -25,7 +25,7 @@ namespace VerveUniEx.AI
         private float SquaredSightDistance => SightDistance * SightDistance;
         
 
-        NodeStatus IBTNode.Run(ref Blackboard bb, float deltaTime)
+        NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
             Vector3 eyePosition = Owner.position + Vector3.up * EyeHeight;
             Vector3 targetPosition = Target.position + Vector3.up * EyeHeight;

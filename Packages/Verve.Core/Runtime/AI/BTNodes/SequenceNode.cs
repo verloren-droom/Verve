@@ -15,13 +15,13 @@ namespace Verve.AI
         public int CurrentIndex => m_CurrentIndex;
         public void IncrementIndex() => m_CurrentIndex++;
         public void ResetIndex() => m_CurrentIndex = 0;
-        public void Reset()
+        public void Reset(ref NodeResetContext ctx)
         {
             ResetIndex();
             for (int i = 0; i < Children.Length; i++)
             {
                 if (Children[i] is IResetableNode resetable)
-                    resetable.Reset();
+                    resetable.Reset(ref ctx);
             }
         }
     }
@@ -32,11 +32,11 @@ namespace Verve.AI
     /// </summary>
     public struct SequenceProcessor : INodeProcessor<SequenceData>
     {
-        public NodeStatus Run(ref SequenceData data, ref Blackboard bb, float deltaTime)
+        public NodeStatus Run(ref SequenceData data, ref NodeRunContext ctx)
         {
             while (data.CurrentIndex < data.Children.Length)
             {
-                var status = data.Children[data.CurrentIndex].Run(ref bb, deltaTime);
+                var status = data.Children[data.CurrentIndex].Run(ref ctx);
                 if (status == NodeStatus.Running) return status;
                 if (status == NodeStatus.Failure)
                 {
@@ -49,7 +49,7 @@ namespace Verve.AI
             return NodeStatus.Success;
         }
     
-        public void Reset(ref SequenceData data) => data.Reset();
+        public void Reset(ref SequenceData data, ref NodeResetContext ctx) => data.Reset(ref ctx);
     }
 
 
@@ -66,12 +66,14 @@ namespace Verve.AI
         /// <summary> 当前节点索引值 </summary>
         private int m_CurrentIndex;
 
+        public int CurrentIndex => m_CurrentIndex;
         
-        NodeStatus IBTNode.Run(ref Blackboard bb, float deltaTime)
+        
+        NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
             while (m_CurrentIndex < Children.Length)
             {
-                var status = Children[m_CurrentIndex].Run(ref bb, deltaTime);
+                var status = Children[m_CurrentIndex].Run(ref ctx);
         
                 if (status == NodeStatus.Running) 
                     return NodeStatus.Running;
@@ -89,13 +91,13 @@ namespace Verve.AI
             return NodeStatus.Success;
         }
         
-        void IResetableNode.Reset()
+        void IResetableNode.Reset(ref NodeResetContext ctx)
         {
             m_CurrentIndex = 0;
             for (int i = 0; i < Children.Length; i++)
             {
                 if (Children[i] is IResetableNode resetable)
-                    resetable.Reset();
+                    resetable.Reset(ref ctx);
             }
         }
     }
