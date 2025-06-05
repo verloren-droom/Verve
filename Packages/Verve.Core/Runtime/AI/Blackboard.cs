@@ -4,6 +4,7 @@ namespace Verve.AI
     using System.Threading;
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
     
     
     /// <summary>
@@ -13,10 +14,15 @@ namespace Verve.AI
     public sealed class Blackboard : IBlackboard
     {
         [Serializable]
+        [StructLayout(LayoutKind.Explicit, Size = 32)]
         private struct BBEntry
         {
+            [FieldOffset(0)]
             public int KeyHash;
-            public Type ValueType;
+            [FieldOffset(4)]
+            public TypeCode ValueTypeCode;
+            [FieldOffset(8)] private long _padding;
+            [FieldOffset(16)]
             public object Value;
         }
 
@@ -42,7 +48,7 @@ namespace Verve.AI
             {
                 ref var entry = ref m_Data[index];
                 entry.Value = value;
-                entry.ValueType = typeof(T);
+                entry.ValueTypeCode = Type.GetTypeCode(typeof(T));
             }
             else
             {
@@ -54,7 +60,7 @@ namespace Verve.AI
                 m_Data[m_Count] = new BBEntry 
                 {
                     KeyHash = hash,
-                    ValueType = typeof(T),
+                    ValueTypeCode = Type.GetTypeCode(typeof(T)),
                     Value = value
                 };
                 m_KeyIndexMap[hash] = m_Count;

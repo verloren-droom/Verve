@@ -445,8 +445,16 @@ namespace VerveUniEx.Sample.AI
             }
             m_IsRunning = true;
             StopAllCoroutines();
-            m_TestTrees.Clear();
             GameLauncher.Instance.AI.CanEverTick = false;
+            m_TestTrees.Clear();
+            m_Metrics = new PerformanceMetrics()
+            {
+                MinFPS = float.MaxValue,
+                MaxFPS = 0,
+                AvgFPS = 0,
+                TotalAllocations = 0,
+                GCCollections = 0
+            };
             m_InitialMemory = System.GC.GetTotalMemory(false);
             m_InitialGCCount = System.GC.CollectionCount(0);
             Debug.LogWarning($"开始压力测试！！！");

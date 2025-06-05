@@ -267,9 +267,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 834ac737ca6246cb8ac8eb8758b20782, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ConcurrentTrees: 1000
+  ConcurrentTrees: 2000
   NodesPerTree: 5000
-  TestDuration: 120
+  TestDuration: 240
   m_Metrics:
     TotalFrames: 0
     MinFPS: 0

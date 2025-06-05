@@ -1,6 +1,7 @@
 namespace Verve.AI
 {
     using System;
+    using System.Text;
     using System.Linq;
     using System.Buffers;
     using System.Threading;
@@ -8,6 +9,7 @@ namespace Verve.AI
     using System.Collections.Generic;
     using System.Runtime.InteropServices;
     using System.Runtime.CompilerServices;
+    using System.Diagnostics.CodeAnalysis;
 
 
     /// <summary>
@@ -17,16 +19,18 @@ namespace Verve.AI
     public partial class BehaviorTree : IBehaviorTree
     {
         [Serializable]
-        // [StructLayout(LayoutKind.Sequential, Pack = 16)]
+        [StructLayout(LayoutKind.Explicit, Size = 16)]
         private struct NodeData
         {
+            [FieldOffset(0)]
             public IBTNode Node;
+            [FieldOffset(8)]
             public NodeStatus LastStatus;
-            // private fixed byte _padding[4]; // 显式填充剩余容量
+            [FieldOffset(12)] private int _padding;
         }
         
         private static int? s_MainThreadId;
-    
+        
         public static bool IsMainThread
         {
             get
@@ -48,6 +52,7 @@ namespace Verve.AI
         public bool IsActive { get; set; } = true;
         
         public event Action<IBTNode, NodeStatus> OnNodeStatusChanged;
+        
         
         public Blackboard BB
         {
@@ -77,7 +82,7 @@ namespace Verve.AI
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AddNode<T>(in T node) where T : struct, IBTNode
+        public void AddNode<T>([NotNull] in T node) where T : struct, IBTNode
         {
             if (m_NodeCount >= m_ActiveNodes.Length)
             {
@@ -93,8 +98,9 @@ namespace Verve.AI
                 LastStatus = NodeStatus.Running
             };
         }
-
-        public void ResetAllNodes(NodeResetMode resetMode = NodeResetMode.Full)
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ResetAllNodes([NotNull] NodeResetMode resetMode = NodeResetMode.Full)
         {
             for (int i = 0; i < m_NodeCount; i++)
             {
@@ -127,7 +133,7 @@ namespace Verve.AI
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void IBehaviorTree.Update(in float deltaTime)
+        void IBehaviorTree.Update([NotNull] in float deltaTime)
         {
             if (m_IsDisposed || m_Blackboard == null || m_NodeCount == 0 || !IsActive) return;
 
@@ -203,5 +209,28 @@ namespace Verve.AI
             m_ActiveNodes = null;
             m_IsDisposed = true;
         }
+        
+        public override string ToString()
+        {
+            var sb = new StringBuilder($"BehaviorTree(ID:{m_ID}, Nodes:{m_NodeCount})\n");
+            
+            for (int i = 0; i < m_NodeCount; i++)
+            {
+                var node = m_ActiveNodes[i].Node;
+                sb.AppendLine($"  [{i}] {node.GetType().Name} (Status: {m_ActiveNodes[i].LastStatus})");
+            }
+            
+            return sb.ToString();
+        }
+        
+        // public BehaviorTree DeepCopy(Func<IBTNode, bool> filter)
+        // {
+        //     var newTree = new BehaviorTree();
+        //     foreach (var node in m_ActiveNodes.Take(m_NodeCount).Where(n => filter(n.Node)))
+        //     {
+        //         newTree.AddNode(node.Node);
+        //     }
+        //     return newTree;
+        // }
     }
 }
