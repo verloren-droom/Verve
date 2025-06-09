@@ -1,6 +1,9 @@
 namespace Verve.AI
 {
     using System;
+    using System.Collections.Generic;
+    using System.Runtime.InteropServices;
+    using System.Runtime.CompilerServices;
 
     
     /// <summary>
@@ -32,7 +35,33 @@ namespace Verve.AI
         /// </summary>
         /// <param name="ctx"> 节点运行上下文 </param>
         /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         NodeStatus Run(ref NodeRunContext ctx);
+    }
+    
+    
+    /// <summary>
+    /// 行为树复合节点接口（使用结构体实现接口）
+    /// </summary>
+    /// <remarks>
+    /// 存在子节点的行为树节点必须实现此接口
+    /// </remarks>
+    public interface ICompositeNode : IBTNode
+    {
+        /// <summary>
+        /// 获取子节点总数
+        /// </summary>
+        int ChildCount { get; }
+        /// <summary>
+        /// 获取子节点
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        IEnumerable<IBTNode> GetChildren();
+        /// <summary>
+        /// 获取当前活跃的子节点
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        IEnumerable<IBTNode> GetActiveChildren();
     }
 
     
@@ -40,12 +69,18 @@ namespace Verve.AI
     /// 节点运行上下文
     /// </summary>
     [Serializable]
+    [StructLayout(LayoutKind.Explicit, Pack = 4, Size = 12)]
     public struct NodeRunContext
     {
         /// <summary> 关联黑板 </summary>
+        [FieldOffset(0)]
         public Blackboard BB;
         /// <summary> 时间增量 </summary>
+        [FieldOffset(8)]
         public float DeltaTime;
+        
+        [FieldOffset(12)]
+        private int _padding;
     }
     
     
@@ -59,7 +94,8 @@ namespace Verve.AI
     public interface IResetableNode
     {
         /// <summary> 重置节点内部数据 </summary>
-        void Reset(ref NodeResetContext ctx);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void Reset(ref  NodeResetContext ctx);
     }
 
     
@@ -67,7 +103,7 @@ namespace Verve.AI
     /// 节点重置模式
     /// </summary>
     [Serializable]
-    public enum NodeResetMode
+    public enum NodeResetMode : byte
     {
         /// <summary> 全部重置 </summary>
         Full,
@@ -82,15 +118,21 @@ namespace Verve.AI
     /// 节点重置上下文
     /// </summary>
     [Serializable]
+    [StructLayout(LayoutKind.Explicit, Pack = 4, Size = 12)]
     public struct NodeResetContext 
     {
         /// <summary> 关联黑板 </summary>
+        [FieldOffset(0)]
         public Blackboard BB;
         /// <summary> 重置模式 </summary>
+        [FieldOffset(8)]
         public NodeResetMode Mode;
+        
+        [FieldOffset(12)]
+        private int _padding;
     }
 
-    
+
     /// <summary>
     /// 节点数据接口（使用结构体实现接口）
     /// </summary>

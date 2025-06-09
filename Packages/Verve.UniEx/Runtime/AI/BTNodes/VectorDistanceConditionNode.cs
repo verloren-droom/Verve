@@ -5,13 +5,14 @@ namespace VerveUniEx.AI
     using System;
     using Verve.AI;
     using UnityEngine;
-    
+    using System.Diagnostics.CodeAnalysis;
+
     
     /// <summary>
-    /// 距离条件节点
+    /// 两点距离条件节点
     /// </summary>
     [Serializable]
-    public struct DistanceConditionNode : IBTNode
+    public struct VectorDistanceConditionNode : IBTNode, IDebuggableNode
     {
         [Serializable]
         public enum Comparison { LessThanOrEqual, GreaterThan }
@@ -39,6 +40,22 @@ namespace VerveUniEx.AI
                     : NodeStatus.Failure
             };
         }
+
+        
+        #region 调试部分
+        
+        [NotNull] public GameObject DebugTarget { get; set; }
+        public bool IsDebug { get; set; }
+        public string NodeName => nameof(VectorDistanceConditionNode);
+        
+        
+        void IDebuggableNode.DrawGizmos(ref NodeDebugContext ctx)
+        {
+            Gizmos.DrawLine(OwnerPoint, TargetPoint);
+            Gizmos.DrawWireSphere(TargetPoint, CheckDistance);
+        }
+
+        #endregion
     }
 }
 

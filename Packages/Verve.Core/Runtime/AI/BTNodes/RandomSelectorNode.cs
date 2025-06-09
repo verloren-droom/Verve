@@ -1,13 +1,14 @@
 namespace Verve.AI
 {
     using System;
+    using System.Collections.Generic;
     
     
     /// <summary>
     /// 随机选择节点
     /// </summary>
     [Serializable]
-    public struct RandomSelectorNode : IBTNode, IResetableNode
+    public struct RandomSelectorNode : ICompositeNode, IResetableNode
     {
         /// <summary> 子节点 </summary>
         public IBTNode[] Children;
@@ -39,5 +40,9 @@ namespace Verve.AI
                     resetable.Reset(ref ctx);
             }
         }
+        
+        public int ChildCount => Children?.Length ?? 0;
+        IEnumerable<IBTNode> ICompositeNode.GetChildren() => Children;
+        IEnumerable<IBTNode> ICompositeNode.GetActiveChildren() => new[] { Children[m_SelectedIndex] };
     }
 }

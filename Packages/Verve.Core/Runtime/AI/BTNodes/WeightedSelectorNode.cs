@@ -2,13 +2,14 @@ namespace Verve.AI
 {
     using System;
     using System.Linq;
-    
+    using System.Collections.Generic;
+
     
     /// <summary>
     /// 权重选择节点
     /// </summary>
     [Serializable]
-    public struct WeightedSelectorNode : IBTNode, IResetableNode
+    public struct WeightedSelectorNode : ICompositeNode, IResetableNode
     {
         [Serializable]
         public struct WeightedNode
@@ -95,6 +96,15 @@ namespace Verve.AI
                     resetable.Reset(ref ctx);
                 }
             }
+        }
+        
+        public int ChildCount => Nodes?.Length ?? 0;
+
+        IEnumerable<IBTNode> ICompositeNode.GetChildren() => Nodes.Select(x => x.Node);
+        IEnumerable<IBTNode> ICompositeNode.GetActiveChildren()
+        {
+            if (m_SelectedIndex < ChildCount)
+                yield return Nodes[m_SelectedIndex].Node;
         }
     }
 }

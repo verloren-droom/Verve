@@ -31,11 +31,21 @@ namespace Verve.AI
             }
         }
 
-        public BTType CreateBT<BTType>(bool isActive = true, int initialCapacity = 128, Blackboard bb = null)
+        protected override void OnShutdown()
+        {
+            base.OnShutdown();
+            for (int i = 0; i < GetAllBT().Count(); i++)
+            {
+                var tree = GetAllBT().ElementAt(i);
+                tree.Pause();
+                DestroyBT(tree.ID);
+            }
+        }
+
+        public BTType CreateBT<BTType>(int initialCapacity = 128, Blackboard bb = null)
             where BTType : class, IBehaviorTree
         {
             var tree = new BehaviorTree(initialCapacity, bb);
-            tree.IsActive = isActive;
             m_Trees.Add(tree.ID, tree);
             m_Blackboards.Add(tree.ID, tree.BB);
             return tree as BTType;
@@ -48,7 +58,7 @@ namespace Verve.AI
             {
                 return tree as BTType;
             }
-            return CreateBT<BTType>(isActive, initialCapacity, bb);
+            return CreateBT<BTType>(initialCapacity, bb);
         }
         
         public void DestroyBT(int id, bool isDestroyBB = true)
@@ -76,6 +86,11 @@ namespace Verve.AI
                 return tree as BTType;
             }
             return null;
+        }
+        
+        public IEnumerable<IBehaviorTree> GetAllBT()
+        {
+            return m_Trees.Values;
         }
 
         public Blackboard GetBlackboard(int id)

@@ -1,13 +1,15 @@
 namespace Verve.AI
 {
     using System;
+    using System.Linq;
+    using System.Collections.Generic;
     
     
     /// <summary>
     /// 并行节点（同时执行所有子节点）
     /// </summary>
     [Serializable]
-    public struct ParallelNode : IBTNode, IResetableNode
+    public struct ParallelNode : ICompositeNode, IResetableNode
     {
         /// <summary> 子节点 </summary>
         public IBTNode[] Children;
@@ -17,7 +19,7 @@ namespace Verve.AI
         private NodeStatus[] m_ChildStatus;
     
         
-        public NodeStatus Run(ref NodeRunContext ctx)
+        NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
             if (m_ChildStatus == null || m_ChildStatus.Length != Children.Length)
                 m_ChildStatus = new NodeStatus[Children.Length];
@@ -46,11 +48,23 @@ namespace Verve.AI
         
         void IResetableNode.Reset(ref NodeResetContext ctx)
         {
-            m_ChildStatus = null;
+            Array.Clear(m_ChildStatus, 0, m_ChildStatus.Length);
             for (int i = 0; i < Children.Length; i++)
             {
                 if (Children[i] is IResetableNode resetable)
                     resetable.Reset(ref ctx);
+            }
+        }
+
+        
+        public int ChildCount => Children?.Length ?? 0;
+        IEnumerable<IBTNode> ICompositeNode.GetChildren() => Children;
+        IEnumerable<IBTNode> ICompositeNode.GetActiveChildren()
+        {
+            for (int i = 0; i < ChildCount; i++)
+            {
+                if (m_ChildStatus[i] == NodeStatus.Running)
+                    yield return Children[i];
             }
         }
     }

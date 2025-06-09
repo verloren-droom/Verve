@@ -1,16 +1,17 @@
 namespace Verve.AI
 {
     using System;
+    using System.Collections.Generic;
     
     
     /// <summary>
     /// 重复执行节点
     /// </summary>
     [Serializable]
-    public struct RepeaterNode : IBTNode, IResetableNode
+    public struct RepeaterNode : ICompositeNode, IResetableNode
     {
         [Serializable]
-        public enum RepeatMode
+        public enum RepeatMode : byte
         {
             /// <summary> 无限 </summary>
             Infinite,
@@ -30,10 +31,10 @@ namespace Verve.AI
         /// <summary> 重复模式 </summary>
         public RepeatMode Mode;
         
-        private int m_CurrentCount;
+        private int m_CurrentChildIndex;
         private NodeStatus m_LastChildStatus;
 
-        public int CurrentCount => m_CurrentCount;
+        public int CurrentChildIndex => m_CurrentChildIndex;
 
         
         NodeStatus IBTNode.Run(ref NodeRunContext ctx)
@@ -45,7 +46,7 @@ namespace Verve.AI
             m_LastChildStatus = status;
 
             if (status != NodeStatus.Running)
-                m_CurrentCount++;
+                m_CurrentChildIndex++;
             
             return NodeStatus.Running;
         }
@@ -54,7 +55,7 @@ namespace Verve.AI
         {
             return Mode switch
             {
-                RepeatMode.CountLimited => m_CurrentCount >= RepeatCount,
+                RepeatMode.CountLimited => m_CurrentChildIndex >= RepeatCount,
                 RepeatMode.UntilSuccess => m_LastChildStatus == NodeStatus.Success,
                 RepeatMode.UntilFailure => m_LastChildStatus == NodeStatus.Failure,
                 _ => false
@@ -63,10 +64,20 @@ namespace Verve.AI
 
         void IResetableNode.Reset(ref NodeResetContext ctx)
         {
-            m_CurrentCount = 0;
+            m_CurrentChildIndex = 0;
             m_LastChildStatus = NodeStatus.Running;
             if (Child is IResetableNode resetable)
                 resetable.Reset(ref ctx);
+        }
+
+        public int ChildCount => 1;
+        IEnumerable<IBTNode> ICompositeNode.GetChildren() => new[] { Child };
+        IEnumerable<IBTNode> ICompositeNode.GetActiveChildren()
+        {
+            if (m_LastChildStatus == NodeStatus.Running)
+            {
+                yield return Child;
+            }
         }
     }
 }

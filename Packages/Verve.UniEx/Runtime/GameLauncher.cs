@@ -2,6 +2,7 @@
     
 namespace VerveUniEx
 {
+    using AI;
     using File;
     using Input;
     using Timer;
@@ -9,7 +10,6 @@ namespace VerveUniEx
     using Loader;
     using System;
     using Storage;
-    using Verve.AI;
     using Debugger;
     using Verve.ECS;
     using Verve.MVC;
@@ -47,14 +47,17 @@ namespace VerveUniEx
         public ViewUnit View => Launcher.GetUnit<ViewUnit>();
         public TimerUnit Timer => Launcher.GetUnit<TimerUnit>();
         public AIUnit AI => Launcher.GetUnit<AIUnit>();
+        
+        public event Action OnInitialize;
+        public event Action OnQuit;
 
         
-        IEnumerator Start()
+        protected virtual IEnumerator Start()
         {
             yield break;
         }
 
-        private void Awake()
+        protected virtual void Awake()
         {
             Launcher.AddUnit<DebuggerUnit>();
             Launcher.AddUnit<SerializableUnit>();
@@ -69,21 +72,28 @@ namespace VerveUniEx
             Launcher.AddUnit<StorageUnit>();
             Launcher.AddUnit<TimerUnit>();
             Launcher.AddUnit<AIUnit>();
-            
-            
+
             Launcher.Initialize();
+            
+            OnInitialize?.Invoke();
         }
 
-        private void Update()
+        protected virtual void Update()
         {
             Launcher.Update(Time.deltaTime, Time.unscaledTime);
+        }
+        
+        protected virtual void OnDestroy()
+        {
+            Launcher.DeInitialize();
         }
         
         /// <summary>
         /// 退出游戏（扩展方法）
         /// </summary>
-        public void Quit()
+        public virtual void Quit()
         {
+            OnQuit?.Invoke();
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
 #elif UNITY_5_3_OR_NEWER

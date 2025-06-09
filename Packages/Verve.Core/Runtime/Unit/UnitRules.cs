@@ -147,6 +147,8 @@ namespace Verve.Unit
             return (attr?.UnitName ?? unitType.Name, attr?.Priority ?? 0);
         }
 
+        public IEnumerable<ICustomUnit> GetAllDependencies() => m_Units.Values.Select(e => e.Instance);
+
         private struct UnitInfo
         {
             public int Priority { get; set; }

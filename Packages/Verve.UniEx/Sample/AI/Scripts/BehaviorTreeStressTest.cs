@@ -219,7 +219,7 @@ namespace VerveUniEx.Sample.AI
                 int batch = Mathf.Min(createPerFrame, ConcurrentTrees - created);
                 for (int i = 0; i < batch; i++)
                 {
-                    var tree = GameLauncher.Instance.AI.CreateBT<BehaviorTree>(true, NodesPerTree, bb);
+                    var tree = GameLauncher.Instance.AI.CreateBT<BehaviorTree>(NodesPerTree, bb);
                     PopulateTestNodes(tree, NodesPerTree);
                     m_TestTrees.Add(tree);
                     created++;
@@ -274,7 +274,7 @@ namespace VerveUniEx.Sample.AI
                     // 加锁操作测试树集合
                     if (rnd.NextDouble() > 0.5f && m_TestTrees.Count < ConcurrentTrees * 2)
                     {
-                        var newTree = GameLauncher.Instance.AI.CreateBT<BehaviorTree>(true, NodesPerTree, m_SharedBlackboard);
+                        var newTree = GameLauncher.Instance.AI.CreateBT<BehaviorTree>(NodesPerTree, m_SharedBlackboard);
                         PopulateTestNodes(newTree, NodesPerTree);
                         m_TestTrees.Add(newTree);
                     }

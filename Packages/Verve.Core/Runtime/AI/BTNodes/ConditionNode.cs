@@ -7,7 +7,6 @@ namespace Verve.AI
     /// 条件节点（根据条件回调的返回值决定成功/失败状态）
     /// </summary>
     [Serializable]
-    // [Obsolete("Please use BTNode<ConditionData, ConditionProcessor>")]
     public struct ConditionNode : IBTNode
     {
         /// <summary> 条件回调 </summary>

@@ -6,13 +6,14 @@ namespace VerveUniEx.AI
     using Verve.AI;
     using UnityEngine;
     using UnityEngine.AI;
+    using System.Diagnostics.CodeAnalysis;
 
 
     /// <summary>
     /// 导航网格移动节点（基于NavMeshAgent的智能移动）
     /// </summary>
     [Serializable]
-    public struct NavMeshMoveNode : IBTNode, IResetableNode
+    public struct NavMeshMoveNode : IBTNode, IResetableNode, IDebuggableNode
     {
         [Header("基本设置")]
         [Tooltip("到达目标点模式")] public TransformMoveNode.ArrivalActionMode ArrivalMode;
@@ -149,6 +150,21 @@ namespace VerveUniEx.AI
                 Agent.velocity = Vector3.zero;
             }
         }
+
+        
+        #region 调试部分
+
+        [NotNull] public GameObject DebugTarget { get; set; }
+        public bool IsDebug { get; set; }
+        public string NodeName => nameof(NavMeshMoveNode);
+
+        
+        void IDebuggableNode.DrawGizmos(ref NodeDebugContext ctx)
+        {
+            
+        }
+
+        #endregion
     }
 }
 

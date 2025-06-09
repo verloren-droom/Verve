@@ -1,37 +1,25 @@
+using System.Collections.Generic;
+
 #if UNITY_5_3_OR_NEWER
 
 namespace VerveUniEx.AI
 {
     using System;
     using Verve.AI;
-    using Unity.Jobs;
+    using System.Linq;
     using UnityEngine;
-    using Unity.Collections;
-    
-    
-    public struct TransformMoveJob : IJobParallelFor
-    {
-        public NativeArray<Vector3> Positions;
-        public NativeArray<Quaternion> Rotations;
-        [ReadOnly] public NativeArray<Vector3> TargetPositions;
-        public float DeltaTime;
-        public float MoveSpeed;
+    using System.Runtime.CompilerServices;
+    using System.Diagnostics.CodeAnalysis;
 
-        public void Execute(int index)
-        {
-            // 在此进行线程安全计算
-            Vector3 direction = (TargetPositions[index] - Positions[index]).normalized;
-            Positions[index] += direction * (MoveSpeed * DeltaTime);
-        }
-    }
+    
     /// <summary>
     /// 变换移动节点（基于Transform的位移控制）
     /// </summary>
     [Serializable]
-    public struct TransformMoveNode : IBTNode, IResetableNode
+    public struct TransformMoveNode : IBTNode, IResetableNode, IDebuggableNode
     {
         /// <summary>
-        /// 到达动作模式
+        /// 到达动作模式（仅目标点为多个生效）
         /// </summary>
         [Serializable]
         public enum ArrivalActionMode : byte
@@ -43,6 +31,9 @@ namespace VerveUniEx.AI
         }
         
         
+        /// <summary>
+        /// 循环模式（仅目标点为多个生效）
+        /// </summary>
         [Serializable]
         public enum LoopMode : byte
         {
@@ -90,10 +81,10 @@ namespace VerveUniEx.AI
         public int CurrentIndex => m_CurrentIndex;
         public bool IsMoving => m_IsMoving;
 
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
-            if (Targets == null || Targets.Length == 0 || Owner == null)
+            if (Targets == null || Targets.Length == 0 || !IsValidTarget(Owner))
                 return NodeStatus.Failure;
 
             if (!m_IsMoving)
@@ -118,6 +109,9 @@ namespace VerveUniEx.AI
             return NodeStatus.Running;
         }
         
+        private bool IsValidTarget(Transform t) => 
+            t != null && t.gameObject.activeInHierarchy;
+
         private bool GetCurrentTargetPosition(out Vector3 targetPos)
         {
             targetPos = Vector3.zero;
@@ -208,6 +202,21 @@ namespace VerveUniEx.AI
         {
             m_IsMoving = false;
         }
+
+        
+        #region 调试部分
+        
+        [NotNull] public GameObject DebugTarget { get; set; }
+        public bool IsDebug { get; set; }
+        public string NodeName => nameof(TransformMoveNode);
+
+        
+        void IDebuggableNode.DrawGizmos(ref NodeDebugContext ctx)
+        {
+            
+        }
+
+        #endregion
     }
 }
 

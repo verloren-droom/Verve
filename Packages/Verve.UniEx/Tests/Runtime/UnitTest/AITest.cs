@@ -6,6 +6,7 @@ namespace VerveUniEx.Tests
     using UnityEngine;
     using NUnit.Framework;
     using System.Collections;
+    using AIUnit = VerveUniEx.AI.AIUnit;
     
     
     [TestFixture]
@@ -37,12 +38,12 @@ namespace VerveUniEx.Tests
         {
             var bb = new Blackboard();
             
-            var node = new DistanceConditionNode
+            var node = new VectorDistanceConditionNode
             {
                 OwnerPoint = Vector3.zero,
                 TargetPoint = Vector3.forward * 3,
                 CheckDistance = 5f,
-                CompareMode = DistanceConditionNode.Comparison.LessThanOrEqual
+                CompareMode = VectorDistanceConditionNode.Comparison.LessThanOrEqual
             };
             
             var ctx = new NodeRunContext()

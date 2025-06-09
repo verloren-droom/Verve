@@ -1188,24 +1188,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 723c8505e95d41228eed8276932f482b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_InitialBlackboardSize: 32
-  m_InitialTreeCapacity: 64
   m_MoveSpeed: 2
   m_PatrolPoints:
   - {fileID: 1626382833}
   - {fileID: 1813081558}
   - {fileID: 428910565}
-  m_PauseDuration: 2
+  m_StoppingDistance: 0.5
   m_SightRange: 5
   m_LostSightTime: 5
   m_DetectionMask:
     serializedVersion: 2
     m_Bits: 128
-  m_CurrentState: 0
-  m_ArrivalMode: 0
-  m_LoopMode: 2
-  m_IgnoreAxes: 2
-  m_Agent: {fileID: 0}
 --- !u!136 &737604508
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1431,25 +1424,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 723c8505e95d41228eed8276932f482b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_InitialBlackboardSize: 32
-  m_InitialTreeCapacity: 64
   m_MoveSpeed: 9
   m_PatrolPoints:
   - {fileID: 2036597254}
   - {fileID: 855686363}
   - {fileID: 1941580047}
   - {fileID: 1271985256}
-  m_PauseDuration: 3
+  m_StoppingDistance: 0.5
   m_SightRange: 18
   m_LostSightTime: 3
   m_DetectionMask:
     serializedVersion: 2
     m_Bits: 128
-  m_CurrentState: 0
-  m_ArrivalMode: 1
-  m_LoopMode: 2
-  m_IgnoreAxes: 2
-  m_Agent: {fileID: 878008019}
 --- !u!136 &878008015
 CapsuleCollider:
   m_ObjectHideFlags: 0

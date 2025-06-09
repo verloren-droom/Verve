@@ -5,6 +5,7 @@ namespace Verve.AI
     using System.Linq;
     using System.Buffers;
     using System.Threading;
+    using System.Collections;
     using System.Threading.Tasks;
     using System.Collections.Generic;
     using System.Runtime.InteropServices;
@@ -20,7 +21,7 @@ namespace Verve.AI
     {
         [Serializable]
         [StructLayout(LayoutKind.Explicit, Size = 16)]
-        private struct NodeData
+        public struct NodeData
         {
             [FieldOffset(0)]
             public IBTNode Node;
@@ -47,12 +48,25 @@ namespace Verve.AI
         private bool m_IsDisposed;
         private int m_CurrentExecutingIndex = -1;
         private int m_ID;
+        private BitArray m_PausedStateMask;
+        private bool m_IsPaused;
+        private int m_PausedAtIndex = -1;
+        
         public int ID => m_ID;
-
-        public bool IsActive { get; set; } = true;
         
         public event Action<IBTNode, NodeStatus> OnNodeStatusChanged;
-        
+        public event Action<bool> OnPauseStateChanged;
+
+        public bool IsPaused
+        {
+            get => m_IsPaused;
+            private set
+            {
+                if (m_IsPaused == value) return;
+                m_IsPaused = value;
+                OnPauseStateChanged?.Invoke(value);
+            }
+        }
         
         public Blackboard BB
         {
@@ -70,7 +84,7 @@ namespace Verve.AI
             maxArrayLength: 1024 * 1024,
             maxArraysPerBucket: 10
         );
-        private static int s_NextTreeId = 1; 
+        private static int s_NextTreeId = 0; 
         public static int GenerateTreeId() => Interlocked.Increment(ref s_NextTreeId);
         
         
@@ -80,6 +94,8 @@ namespace Verve.AI
             m_ActiveNodes = new NodeData[initialCapacity];
             m_Blackboard = blackboard ?? new Blackboard();
         }
+
+        ~BehaviorTree() => Dispose();
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddNode<T>([NotNull] in T node) where T : struct, IBTNode
@@ -120,11 +136,6 @@ namespace Verve.AI
             }
         }
 
-        public NodeStatus GetNodeStatus(int nodeIndex)
-        {
-            return m_ActiveNodes[nodeIndex].LastStatus;
-        }
-
         public void ResetNode(int nodeIndex)
         {
             var state = m_ActiveNodes[nodeIndex];
@@ -133,9 +144,9 @@ namespace Verve.AI
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void IBehaviorTree.Update([NotNull] in float deltaTime)
+        public void Update(in float deltaTime)
         {
-            if (m_IsDisposed || m_Blackboard == null || m_NodeCount == 0 || !IsActive) return;
+            if (m_IsDisposed || m_Blackboard == null || m_NodeCount == 0 || IsPaused) return;
 
             bool foundRunning = false;
             int startIndex = m_CurrentExecutingIndex >= 0 ? m_CurrentExecutingIndex : 0;
@@ -193,10 +204,53 @@ namespace Verve.AI
                 ResetAllNodes();
             }
         }
+        
+        public void Pause()
+        {
+            if (IsPaused) return;
+        
+            m_PausedAtIndex = m_CurrentExecutingIndex;
+            m_PausedStateMask = new BitArray(m_NodeCount);
+            for (int i = 0; i < m_NodeCount; i++) {
+                m_PausedStateMask[i] = m_ActiveNodes[i].LastStatus == NodeStatus.Running;
+            }
+            IsPaused = true;
+        }
+
+        public void Resume()
+        {
+            if (!IsPaused) return;
+        
+            m_CurrentExecutingIndex = m_PausedAtIndex;
+            for (int i = 0; i < m_NodeCount; i++) {
+                if (m_PausedStateMask[i]) {
+                    m_ActiveNodes[i].LastStatus = NodeStatus.Running;
+                }
+            }
+            IsPaused = false;
+        }
 
         public IEnumerable<IBTNode> FindNodes(Func<IBTNode, bool> predicate)
         {
-            return m_ActiveNodes.Select(x => x.Node).Where(predicate);
+            foreach (var nodeData in m_ActiveNodes.Take(m_NodeCount))
+            {
+                var node = nodeData.Node;
+
+                var stack = new Stack<IBTNode>();
+                stack.Push(node);
+        
+                while (stack.Count > 0)
+                {
+                    var current = stack.Pop();
+                    if (predicate(current)) yield return current;
+
+                    if (current is ICompositeNode composite)
+                    {
+                        foreach (var child in composite.GetChildren())
+                            stack.Push(child);
+                    }
+                }
+            }
         }
 
         public void Dispose()
@@ -210,27 +264,84 @@ namespace Verve.AI
             m_IsDisposed = true;
         }
         
-        public override string ToString()
+        private IEnumerable<string> GenerateNodePaths()
         {
-            var sb = new StringBuilder($"BehaviorTree(ID:{m_ID}, Nodes:{m_NodeCount})\n");
-            
+            var paths = new List<string>();
             for (int i = 0; i < m_NodeCount; i++)
             {
                 var node = m_ActiveNodes[i].Node;
-                sb.AppendLine($"  [{i}] {node.GetType().Name} (Status: {m_ActiveNodes[i].LastStatus})");
+                TraverseNode(node, "", paths);
+            }
+            return paths.Distinct();
+        }
+        
+        private void TraverseNode(IBTNode node, string parentPath, List<string> paths)
+        {
+            var currentPath = string.IsNullOrEmpty(parentPath) 
+                ? node.GetType().Name 
+                : $"{parentPath}/{node.GetType().Name}";
+            
+            paths.Add(currentPath);
+        
+            if (node is ICompositeNode composite)
+            {
+                foreach (var child in composite.GetChildren())
+                {
+                    TraverseNode(child, currentPath, paths);
+                }
+            }
+        }
+        
+        public IEnumerable<string> GetActivePath()
+        {
+            var activePaths = new List<string>();
+            for (int i = 0; i < m_NodeCount; i++)
+            {
+                if (m_ActiveNodes[i].LastStatus == NodeStatus.Running)
+                {
+                    TraverseNode(m_ActiveNodes[i].Node, "", activePaths);
+                }
+            }
+            return activePaths.Distinct();
+        }
+        
+        public IEnumerable<NodeData> GetActiveNodes()
+        {
+            for (int i = 0; i < m_NodeCount; i++)
+            {
+                if (m_ActiveNodes[i].LastStatus == NodeStatus.Running)
+                {
+                    yield return m_ActiveNodes[i];
+                }
+            }
+        }
+        
+        public NodeStatus GetNodeStatus(IBTNode node)
+        {
+            foreach(var nodeData in GetActiveNodes())
+            {
+                if(nodeData.Node.Equals(node))
+                {
+                    return nodeData.LastStatus;
+                }
+            }
+            return NodeStatus.Running;
+        }
+
+        public IReadOnlyList<IBTNode> AllNodes => 
+            m_ActiveNodes.Take(m_NodeCount).Select(n => n.Node).ToList();
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder($"BehaviorTree(ID:{m_ID}, Nodes:{m_NodeCount})\n");
+            sb.AppendLine("Node Paths:");
+            
+            foreach (var path in GenerateNodePaths())
+            {
+                sb.AppendLine($"\t{path}");
             }
             
             return sb.ToString();
         }
-        
-        // public BehaviorTree DeepCopy(Func<IBTNode, bool> filter)
-        // {
-        //     var newTree = new BehaviorTree();
-        //     foreach (var node in m_ActiveNodes.Take(m_NodeCount).Where(n => filter(n.Node)))
-        //     {
-        //         newTree.AddNode(node.Node);
-        //     }
-        //     return newTree;
-        // }
     }
 }
