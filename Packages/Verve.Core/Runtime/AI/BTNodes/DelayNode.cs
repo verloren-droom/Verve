@@ -4,17 +4,17 @@ namespace Verve.AI
     
     
     /// <summary>
-    /// 等待时间节点
+    /// 延迟执行节点，在行为树中实现定时等待功能
     /// </summary>
     [Serializable]
-    public struct WaitNode : IBTNode, IResetableNode
+    public struct DelayNode : IBTNode, IResetableNode
     {
         [Serializable]
-        public enum ResetMode : byte
+        public enum DelayResetMode : byte
         {
-            /// <summary> 自动重置计时器 </summary>
-            AutoReset,
-            /// <summary> 仅生效一次 </summary>
+            /// <summary> 重新开始延时计时 </summary>
+            Restart,
+            /// <summary> 仅生效一次延时计时 </summary>
             Once
         }
 
@@ -22,36 +22,35 @@ namespace Verve.AI
         /// <summary> 等待时长（秒） </summary>
         public float Duration;
         /// <summary> 重置模式 </summary>
-        public ResetMode Mode;
+        public DelayResetMode Mode;
         
         /// <summary> 累计时间 </summary>
         private float m_ElapsedTime;
         /// <summary> 是否完成 </summary>
         private bool m_IsCompleted;
         
-        public float ElapsedTime => m_ElapsedTime;
-        public bool IsCompleted => m_IsCompleted;
+        public readonly float ElapsedTime => m_ElapsedTime;
+        public readonly bool IsCompleted => m_IsCompleted;
 
 
         NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
-            if (Duration <= 0.0f)
-                return NodeStatus.Failure;
             if (m_IsCompleted) 
                 return NodeStatus.Success;
+            if (Duration <= 0.0f)
+                return NodeStatus.Failure;
             
             m_ElapsedTime += ctx.DeltaTime;
-            if (m_ElapsedTime >= Duration)
-            {
-                m_IsCompleted = true;
-                return NodeStatus.Success;
-            }
-            return NodeStatus.Running;
+            
+            if (m_ElapsedTime < Duration) return NodeStatus.Running;
+            
+            m_IsCompleted = true;
+            return NodeStatus.Success;
         }
     
         void IResetableNode.Reset(ref NodeResetContext ctx)
         {
-            if (Mode != ResetMode.Once)
+            if (Mode != DelayResetMode.Once)
             {
                 m_ElapsedTime = 0f;
                 m_IsCompleted = false;

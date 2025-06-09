@@ -78,13 +78,13 @@ namespace VerveUniEx.AI
         private Vector3 m_CurrentTargetPos;
         private int m_CurrentDirection;
 
-        public int CurrentIndex => m_CurrentIndex;
-        public bool IsMoving => m_IsMoving;
+        public readonly int CurrentIndex => m_CurrentIndex;
+        public readonly bool IsMoving => m_IsMoving;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
-            if (Targets == null || Targets.Length == 0 || !IsValidTarget(Owner))
+            if (Targets == null || Targets.Length <= 0 || !IsValidTarget(Owner))
                 return NodeStatus.Failure;
 
             if (!m_IsMoving)
@@ -115,7 +115,7 @@ namespace VerveUniEx.AI
         private bool GetCurrentTargetPosition(out Vector3 targetPos)
         {
             targetPos = Vector3.zero;
-            if (Targets == null || Targets.Length <= 0 || m_CurrentIndex >= Targets.Length || Targets[m_CurrentIndex] == null) return false;
+            if (m_CurrentIndex >= Targets.Length || !IsValidTarget(Targets[m_CurrentIndex])) return false;
             targetPos = Targets[m_CurrentIndex].position;
             targetPos = ApplyAxisFilter(targetPos, Owner.position);
             return true;

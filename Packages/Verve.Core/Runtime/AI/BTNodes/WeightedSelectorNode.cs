@@ -24,7 +24,7 @@ namespace Verve.AI
         private int m_SelectedIndex;
         private bool m_IsSelected;
         
-        public int SelectedIndex => m_SelectedIndex;
+        public readonly int SelectedIndex => m_SelectedIndex;
 
 
         NodeStatus IBTNode.Run(ref NodeRunContext ctx)

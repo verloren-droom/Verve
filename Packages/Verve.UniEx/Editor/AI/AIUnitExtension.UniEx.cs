@@ -13,7 +13,7 @@ namespace VerveEditor.UniEx.AI
         {
             for (int i = 0; i < self.GetAllBT().Count(); i++)
             {
-                self.GetAllBT().ElementAt(i).DrawGizmos();
+                self.GetAllBT().ElementAt(i)?.DrawGizmos();
             }
         }
         

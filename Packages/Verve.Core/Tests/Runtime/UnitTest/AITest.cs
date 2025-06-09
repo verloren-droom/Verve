@@ -111,7 +111,7 @@ namespace Verve.Tests
             var callCount = 0;
             var sequence = new SequenceNode {
                 Children = new IBTNode[] {
-                    new WaitNode { Duration = 0.5f },
+                    new DelayNode { Duration = 0.5f },
                     new ActionNode { Callback = _ => {
                         callCount++;
                         return NodeStatus.Success;
@@ -163,8 +163,8 @@ namespace Verve.Tests
         {
             var parallel = new ParallelNode {
                 Children = new IBTNode[] {
-                    new WaitNode { Duration = 0.3f },
-                    new WaitNode { Duration = 0.6f }
+                    new DelayNode { Duration = 0.3f },
+                    new DelayNode { Duration = 0.6f }
                 }
             };
         
@@ -204,7 +204,7 @@ namespace Verve.Tests
         [Test]
         public void WaitNode_ShouldCompleteAfterDuration()
         {
-            IBTNode node = new WaitNode { Duration = 0.5f };
+            IBTNode node = new DelayNode { Duration = 0.5f };
             var bb = new Blackboard();
             var ctx = new NodeRunContext()
             {
@@ -212,7 +212,7 @@ namespace Verve.Tests
                 DeltaTime = 0.1f
             };
             var status = node.Run(ref ctx);
-            var wait = (WaitNode)node;
+            var wait = (DelayNode)node;
             Assert.AreEqual(NodeStatus.Running, status);
             Assert.AreEqual(0.1f, wait.ElapsedTime, 0.0001f);
         
@@ -220,7 +220,7 @@ namespace Verve.Tests
 
             ctx.DeltaTime = 0.4f;
             status = node.Run(ref ctx);
-            wait = (WaitNode)node;
+            wait = (DelayNode)node;
             Assert.AreEqual(NodeStatus.Success, status);
             Assert.AreEqual(0.5f, wait.ElapsedTime, 0.0001f);
         }
@@ -228,7 +228,7 @@ namespace Verve.Tests
         [Test]
         public void WaitNode_ShouldResetProperly()
         {
-            IBTNode node = new WaitNode { Duration = 0.3f };
+            IBTNode node = new DelayNode { Duration = 0.3f };
             var bb = new Blackboard();
             var ctx = new NodeRunContext()
             {
@@ -280,7 +280,7 @@ namespace Verve.Tests
                                 {
                                     Condition = b => b.GetValue<bool>("CanStart")
                                 },
-                                new WaitNode()
+                                new DelayNode()
                                 {
                                     Duration = 0.3f,
                                 },

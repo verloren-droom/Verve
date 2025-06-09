@@ -33,8 +33,8 @@ namespace VerveUniEx.AI
         private bool m_IsMoving;
         private int m_CurrentDirection;
         
-        public int CurrentIndex => m_CurrentIndex;
-        public bool IsMoving => m_IsMoving;
+        public readonly int CurrentIndex => m_CurrentIndex;
+        public readonly bool IsMoving => m_IsMoving;
         
 
         NodeStatus IBTNode.Run(ref NodeRunContext ctx)

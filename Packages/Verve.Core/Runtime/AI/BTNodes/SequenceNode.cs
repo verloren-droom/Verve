@@ -16,7 +16,7 @@ namespace Verve.AI
         /// <summary> 当前节点索引值 </summary>
         private int m_CurrentChildIndex;
 
-        public int CurrentChildIndex => m_CurrentChildIndex;
+        public readonly int CurrentChildIndex => m_CurrentChildIndex;
         
         
         NodeStatus IBTNode.Run(ref NodeRunContext ctx)

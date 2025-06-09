@@ -69,7 +69,7 @@ namespace VerveUniEx.Sample
                 {
                     Children = new IBTNode[]
                     {
-                        new WaitNode { Duration = 0.2f },
+                        new DelayNode { Duration = 0.2f },
                         new ConditionNode
                         {
                             Condition = CheckPlayerVisibility
@@ -143,7 +143,7 @@ namespace VerveUniEx.Sample
                         IsDebug = true,
                         DebugTarget = gameObject,
                     },
-                    new WaitNode { Duration = 5f },
+                    new DelayNode { Duration = 5f },
                     new ActionNode { Callback = ResetSearchState },
                 }
             };
@@ -166,7 +166,7 @@ namespace VerveUniEx.Sample
                         IsDebug = true,
                         DebugTarget = gameObject
                     },
-                    new WaitNode { Duration = 2f } // 巡逻点停留
+                    new DelayNode { Duration = 2f } // 巡逻点停留
                 }
             };
         }

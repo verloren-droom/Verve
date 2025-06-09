@@ -29,7 +29,7 @@ namespace VerveUniEx.AI
         private float SquaredSightDistance => SightDistance * SightDistance;
         
         public bool LastCheckResult { get; private set; }
-        public Vector3 LastHitPoint => m_LastHitPoint;
+        public readonly Vector3 LastHitPoint => m_LastHitPoint;
 
 
         NodeStatus IBTNode.Run(ref NodeRunContext ctx)

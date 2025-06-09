@@ -22,7 +22,7 @@ namespace Verve.AI
         private bool m_IsTimedOut;
         private NodeStatus m_LastChildStatus;
         
-        public float ElapsedTime => m_ElapsedTime;
+        public readonly float ElapsedTime => m_ElapsedTime;
 
         
         NodeStatus IBTNode.Run(ref NodeRunContext ctx)

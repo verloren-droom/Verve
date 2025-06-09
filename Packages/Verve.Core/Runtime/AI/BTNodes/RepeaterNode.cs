@@ -34,7 +34,7 @@ namespace Verve.AI
         private int m_CurrentChildIndex;
         private NodeStatus m_LastChildStatus;
 
-        public int CurrentChildIndex => m_CurrentChildIndex;
+        public readonly int CurrentChildIndex => m_CurrentChildIndex;
 
         
         NodeStatus IBTNode.Run(ref NodeRunContext ctx)
