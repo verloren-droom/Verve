@@ -42,8 +42,9 @@ namespace Verve.AI
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetValue<T>(string key, in T value)
         {
-            int hash = GetStableHash(key);
+            if (string.IsNullOrEmpty(key)) return;
             
+            int hash = GetStableHash(key);
             if (m_KeyIndexMap.TryGetValue(hash, out var index))
             {
                 ref var entry = ref m_Data[index];
@@ -71,16 +72,16 @@ namespace Verve.AI
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetValue<T>(in T value)
+        {
+            SetValue(nameof(value), value);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGetValue<T>(string key, out T value, T defaultValue = default)
         {
             value = GetValue(key, defaultValue);
             return !Equals(value, defaultValue);
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetValue<T>(in T value)
-        {
-            SetValue(nameof(value), value);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -108,8 +109,29 @@ namespace Verve.AI
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Contains(string key)
+        public void RemoveValue(string key)
         {
+            if (string.IsNullOrEmpty(key)) return;
+            
+            int hash = GetStableHash(key);
+            if (!m_KeyIndexMap.TryGetValue(hash, out int index)) return;
+        
+            int lastIndex = m_Count - 1;
+            if (index != lastIndex)
+            {
+                m_Data[index] = m_Data[lastIndex];
+                m_KeyIndexMap[m_Data[index].KeyHash] = index;
+            }
+        
+            m_Data[lastIndex] = default;
+            m_Count--;
+            m_KeyIndexMap.Remove(hash);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool HasValue(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return false;
             return m_KeyIndexMap.ContainsKey(GetStableHash(key));
         }
         

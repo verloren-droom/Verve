@@ -1195,10 +1195,10 @@ MonoBehaviour:
   - {fileID: 428910565}
   m_StoppingDistance: 0.5
   m_SightRange: 5
-  m_LostSightTime: 5
-  m_DetectionMask:
+  m_LostSightTime: 3
+  m_TargetMask:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 0
 --- !u!136 &737604508
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1431,9 +1431,9 @@ MonoBehaviour:
   - {fileID: 1941580047}
   - {fileID: 1271985256}
   m_StoppingDistance: 0.5
-  m_SightRange: 18
-  m_LostSightTime: 3
-  m_DetectionMask:
+  m_SightRange: 36
+  m_LostSightTime: 5
+  m_TargetMask:
     serializedVersion: 2
     m_Bits: 128
 --- !u!136 &878008015

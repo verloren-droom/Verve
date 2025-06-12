@@ -5,19 +5,25 @@ namespace VerveUniEx
     using System;
     
     
+    /// <summary>
+    /// 按钮属性，用于在 Inspector 中显示为按钮，并且可以指定按钮的标签和参数。
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     public class ButtonAttribute : Attribute
     {
         public string Label { get; }
-
-        public ButtonAttribute() { }
+        public string[] Parameters { get; }
     
-        public ButtonAttribute(string label)
+        public ButtonAttribute() : this(null, null) { }
+    
+        public ButtonAttribute(string label) : this(label, null) { }
+    
+        public ButtonAttribute(string label, params string[] parameters)
         {
             Label = label;
+            Parameters = parameters;
         }
     }
-
 }
 
 #endif

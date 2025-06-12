@@ -2,13 +2,11 @@ namespace Verve.AI
 {
     using System;
     using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
     
     
-    /// <summary>
-    /// 重复执行节点
-    /// </summary>
     [Serializable]
-    public struct RepeaterNode : ICompositeNode, IResetableNode
+    public struct RepeaterNodeData : INodeData
     {
         [Serializable]
         public enum RepeatMode : byte
@@ -30,22 +28,33 @@ namespace Verve.AI
         public int RepeatCount;
         /// <summary> 重复模式 </summary>
         public RepeatMode Mode;
-        
+    }
+    
+    
+    /// <summary>
+    /// 重复执行节点
+    /// </summary>
+    [Serializable]
+    public struct RepeaterNode : ICompositeNode, IResetableNode, IPreparableNode
+    {
+        public string Key;
+        public RepeaterNodeData Data;
+        public NodeStatus LastStatus { get; private set; }
+
         private int m_CurrentChildIndex;
-        private NodeStatus m_LastChildStatus;
 
         public readonly int CurrentChildIndex => m_CurrentChildIndex;
 
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
-            if (RepeatCount <= 0 && Mode == RepeatMode.CountLimited) return NodeStatus.Failure;
+            if (Data.RepeatCount <= 0 && Data.Mode == RepeaterNodeData.RepeatMode.CountLimited) return NodeStatus.Failure;
             if (CheckExitCondition()) return NodeStatus.Success;
 
-            var status = Child.Run(ref ctx);
-            m_LastChildStatus = status;
+            LastStatus = this.RunChildNode(ref Data.Child, ref ctx);
 
-            if (status != NodeStatus.Running)
+            if (LastStatus != NodeStatus.Running)
                 m_CurrentChildIndex++;
             
             return NodeStatus.Running;
@@ -53,31 +62,55 @@ namespace Verve.AI
         
         private bool CheckExitCondition()
         {
-            return Mode switch
+            return Data.Mode switch
             {
-                RepeatMode.CountLimited => m_CurrentChildIndex >= RepeatCount,
-                RepeatMode.UntilSuccess => m_LastChildStatus == NodeStatus.Success,
-                RepeatMode.UntilFailure => m_LastChildStatus == NodeStatus.Failure,
+                RepeaterNodeData.RepeatMode.CountLimited => m_CurrentChildIndex >= Data.RepeatCount,
+                RepeaterNodeData.RepeatMode.UntilSuccess => LastStatus == NodeStatus.Success,
+                RepeaterNodeData.RepeatMode.UntilFailure => LastStatus == NodeStatus.Failure,
                 _ => false
             };
         }
 
+        #region 可重置节点
+
         void IResetableNode.Reset(ref NodeResetContext ctx)
         {
             m_CurrentChildIndex = 0;
-            m_LastChildStatus = NodeStatus.Running;
-            if (Child is IResetableNode resetable)
+            LastStatus = NodeStatus.Running;
+            if (Data.Child is IResetableNode resetable)
                 resetable.Reset(ref ctx);
         }
 
+        #endregion
+
+        #region 复合节点
+
         public int ChildCount => 1;
-        IEnumerable<IBTNode> ICompositeNode.GetChildren() => new[] { Child };
+        
+        
+        IEnumerable<IBTNode> ICompositeNode.GetChildren() => new[] { Data.Child };
+        
         IEnumerable<IBTNode> ICompositeNode.GetActiveChildren()
         {
-            if (m_LastChildStatus == NodeStatus.Running)
+            if (LastStatus == NodeStatus.Running)
             {
-                yield return Child;
+                yield return Data.Child;
             }
         }
+
+        #endregion
+        
+        #region 可准备节点
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void IPreparableNode.Prepare(ref NodeRunContext ctx)
+        {
+            if (ctx.BB.HasValue(Key))
+            {
+                Data = ctx.BB.GetValue<RepeaterNodeData>(Key);
+            }
+        }
+        
+        #endregion
     }
 }

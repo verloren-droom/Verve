@@ -7,39 +7,50 @@ namespace VerveUniEx.AI
     using UnityEngine;
     using UnityEngine.AI;
     using System.Diagnostics.CodeAnalysis;
-
-
-    /// <summary>
-    /// 导航网格移动节点（基于NavMeshAgent的智能移动）
-    /// </summary>
+    using System.Runtime.CompilerServices;
+    
+    
     [Serializable]
-    public struct NavMeshMoveNode : IBTNode, IResetableNode, IDebuggableNode
+    public struct NavMeshMoveNodeData : INodeData
     {
         [Header("基本设置")]
-        [Tooltip("到达目标点模式")] public TransformMoveNode.ArrivalActionMode ArrivalMode;
+        [Tooltip("到达目标点模式")] public TransformMoveNodeData.ArrivalActionMode ArrivalMode;
         
         [Header("导航设置")]
         [Tooltip("导航代理")] public NavMeshAgent Agent;
 
         [Header("目标设置")]
         [Tooltip("目标数组")] public Transform[] Targets;
-        [Tooltip("循环模式")] public TransformMoveNode.LoopMode Loop;
+        [Tooltip("循环模式")] public TransformMoveNodeData.LoopMode Loop;
     
         [Header("旋转设置")]
         [Tooltip("自动旋转")] public bool AutoRotation;
         [Tooltip("旋转速度（度/秒）"), Min(0f)] public float RotationSpeed;
-    
-        private int m_CurrentIndex;
-        private bool m_IsMoving;
-        private int m_CurrentDirection;
+    }
+
+
+    /// <summary>
+    /// 导航网格移动节点（基于NavMeshAgent的智能移动）
+    /// </summary>
+    [Serializable]
+    public struct NavMeshMoveNode : IBTNode, IResetableNode, IDebuggableNode, IPreparableNode
+    {
+        public string Key;
+        public NavMeshMoveNodeData Data;
+        public NodeStatus LastStatus { get; private set; }
+
+        [SerializeField] private int m_CurrentIndex;
+        [SerializeField] private bool m_IsMoving;
+        [SerializeField] private int m_CurrentDirection;
         
         public readonly int CurrentIndex => m_CurrentIndex;
         public readonly bool IsMoving => m_IsMoving;
-        
 
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
-            if (Targets == null || Targets.Length == 0 || Agent == null)
+            if (Data.Targets == null || Data.Targets.Length == 0 || Data.Agent == null)
                 return NodeStatus.Failure;
     
             if (!m_IsMoving)
@@ -48,16 +59,16 @@ namespace VerveUniEx.AI
                 if (!SetNextTarget())
                     return NodeStatus.Failure;
                 
-                Agent.isStopped = false;
+                Data.Agent.isStopped = false;
                 m_IsMoving = true;
             }
     
-            if (!AutoRotation && Agent.velocity.sqrMagnitude > 0.1f)
+            if (!Data.AutoRotation && Data.Agent.velocity.sqrMagnitude > 0.1f)
             {
-                HandleRotation(Agent.velocity.normalized, ctx.DeltaTime);
+                HandleRotation(Data.Agent.velocity.normalized, ctx.DeltaTime);
             }
     
-            if (!Agent.pathPending && Agent.remainingDistance <= Agent.stoppingDistance)
+            if (!Data.Agent.pathPending && Data.Agent.remainingDistance <= Data.Agent.stoppingDistance)
             {
                 return HandleArrival();
             }
@@ -67,10 +78,10 @@ namespace VerveUniEx.AI
     
         private bool SetNextTarget()
         {
-            if (m_CurrentIndex >= Targets.Length || Targets[m_CurrentIndex] == null)
+            if (m_CurrentIndex >= Data.Targets.Length || Data.Targets[m_CurrentIndex] == null)
                 return false;
     
-            return Agent.SetDestination(Targets[m_CurrentIndex].position);
+            return Data.Agent.SetDestination(Data.Targets[m_CurrentIndex].position);
         }
     
         private void HandleRotation(Vector3 direction, float deltaTime)
@@ -78,61 +89,61 @@ namespace VerveUniEx.AI
             if (direction == Vector3.zero) return;
     
             Quaternion targetRotation = Quaternion.LookRotation(direction);
-            Agent.transform.rotation = Quaternion.RotateTowards(
-                Agent.transform.rotation,
+            Data.Agent.transform.rotation = Quaternion.RotateTowards(
+                Data.Agent.transform.rotation,
                 targetRotation,
-                RotationSpeed * deltaTime
+                Data.RotationSpeed * deltaTime
             );
         }
     
         private NodeStatus HandleArrival()
         {
             m_IsMoving = false;
-            Agent.isStopped = true;
+            Data.Agent.isStopped = true;
             
-            switch (ArrivalMode)
+            switch (Data.ArrivalMode)
             {
-                case TransformMoveNode.ArrivalActionMode.Proceed:
+                case TransformMoveNodeData.ArrivalActionMode.Proceed:
                     m_CurrentIndex += m_CurrentDirection;
     
-                    if (m_CurrentIndex >= Targets.Length || m_CurrentIndex < 0)
+                    if (m_CurrentIndex >= Data.Targets.Length || m_CurrentIndex < 0)
                     {
-                        switch (Loop)
+                        switch (Data.Loop)
                         {
-                            case TransformMoveNode.LoopMode.None:
-                                m_CurrentIndex = Mathf.Clamp(m_CurrentIndex, 0, Targets.Length - 1);
+                            case TransformMoveNodeData.LoopMode.None:
+                                m_CurrentIndex = Mathf.Clamp(m_CurrentIndex, 0, Data.Targets.Length - 1);
                                 return NodeStatus.Success;
-                            case TransformMoveNode.LoopMode.Repeat:
-                                m_CurrentIndex = (m_CurrentIndex + Targets.Length) % Targets.Length;
+                            case TransformMoveNodeData.LoopMode.Repeat:
+                                m_CurrentIndex = (m_CurrentIndex + Data.Targets.Length) % Data.Targets.Length;
                                 break;
-                            case TransformMoveNode.LoopMode.PingPong:
+                            case TransformMoveNodeData.LoopMode.PingPong:
                                 m_CurrentDirection *= -1;
                                 m_CurrentIndex += m_CurrentDirection * 2;
                                 break;
                         }
                     }
                     return NodeStatus.Running;
-                case TransformMoveNode.ArrivalActionMode.Keep:
-                    switch (Loop)
+                case TransformMoveNodeData.ArrivalActionMode.Keep:
+                    switch (Data.Loop)
                     {
-                        case TransformMoveNode.LoopMode.None:
-                            m_CurrentIndex = Mathf.Clamp(m_CurrentIndex + 1, 0, Targets.Length - 1);
+                        case TransformMoveNodeData.LoopMode.None:
+                            m_CurrentIndex = Mathf.Clamp(m_CurrentIndex + 1, 0, Data.Targets.Length - 1);
                             break;
-                        case TransformMoveNode.LoopMode.Repeat:
-                            m_CurrentIndex = (m_CurrentIndex + 1) % Targets.Length;
+                        case TransformMoveNodeData.LoopMode.Repeat:
+                            m_CurrentIndex = (m_CurrentIndex + 1) % Data.Targets.Length;
                             break;
-                        case TransformMoveNode.LoopMode.PingPong:
+                        case TransformMoveNodeData.LoopMode.PingPong:
                             m_CurrentIndex += m_CurrentDirection;
 
-                            bool shouldReverse = m_CurrentIndex > Targets.Length - 1 || m_CurrentIndex < 0;
+                            bool shouldReverse = m_CurrentIndex > Data.Targets.Length - 1 || m_CurrentIndex < 0;
     
                             if (shouldReverse)
                             {
                                 m_CurrentDirection *= -1;
                                 m_CurrentIndex = m_CurrentIndex < 0 
                                     ? 0 
-                                    : Targets.Length - 1;
-                                m_CurrentIndex = Mathf.Clamp(m_CurrentIndex, 0, Targets.Length - 1);
+                                    : Data.Targets.Length - 1;
+                                m_CurrentIndex = Mathf.Clamp(m_CurrentIndex, 0, Data.Targets.Length - 1);
                             }
                             break;
                     }
@@ -140,19 +151,23 @@ namespace VerveUniEx.AI
             }
             return NodeStatus.Success;
         }
-    
+
+        #region 可重置节点
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void IResetableNode.Reset(ref NodeResetContext ctx)
         {
             m_IsMoving = false;
-            if (Agent != null)
+            if (Data.Agent != null)
             {
-                Agent.ResetPath();
-                Agent.velocity = Vector3.zero;
+                Data.Agent.ResetPath();
+                Data.Agent.velocity = Vector3.zero;
             }
         }
 
+        #endregion
         
-        #region 调试部分
+        #region 可调试节点
 
         [NotNull] public GameObject DebugTarget { get; set; }
         public bool IsDebug { get; set; }
@@ -164,6 +179,19 @@ namespace VerveUniEx.AI
             
         }
 
+        #endregion
+        
+        #region 可准备节点
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void IPreparableNode.Prepare(ref NodeRunContext ctx)
+        {
+            if (ctx.BB.HasValue(Key))
+            {
+                Data = ctx.BB.GetValue<NavMeshMoveNodeData>(Key);
+            }
+        }
+        
         #endregion
     }
 }

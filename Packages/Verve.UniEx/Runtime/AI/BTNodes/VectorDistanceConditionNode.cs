@@ -6,13 +6,11 @@ namespace VerveUniEx.AI
     using Verve.AI;
     using UnityEngine;
     using System.Diagnostics.CodeAnalysis;
-
+    using System.Runtime.CompilerServices;
     
-    /// <summary>
-    /// 两点距离条件节点
-    /// </summary>
+    
     [Serializable]
-    public struct VectorDistanceConditionNode : IBTNode, IDebuggableNode
+    public struct VectorDistanceConditionNodeData : INodeData
     {
         [Serializable]
         public enum Comparison { LessThanOrEqual, GreaterThan }
@@ -22,17 +20,30 @@ namespace VerveUniEx.AI
         [Tooltip("目标位置")] public Vector3 TargetPoint;
         [Tooltip("检测距离")] public float CheckDistance;
         [Tooltip("比较方式")] public Comparison CompareMode;
-        
-        private float SquaredCheckDistance => CheckDistance * CheckDistance;
+    }
+
+    
+    /// <summary>
+    /// 两点距离条件节点
+    /// </summary>
+    [Serializable]
+    public struct VectorDistanceConditionNode : IBTNode, IPreparableNode, IDebuggableNode
+    {
+        public string Key;
+        public VectorDistanceConditionNodeData Data;
+        public NodeStatus LastStatus { get; private set; }
+
+        private float SquaredCheckDistance => Data.CheckDistance * Data.CheckDistance;
 
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         NodeStatus IBTNode.Run(ref NodeRunContext ctx)
         {
-            var sqrDistance = (TargetPoint - OwnerPoint).sqrMagnitude;
+            var sqrDistance = (Data.TargetPoint - Data.OwnerPoint).sqrMagnitude;
             
-            return CompareMode switch
+            return Data.CompareMode switch
             {
-                Comparison.LessThanOrEqual => sqrDistance <= SquaredCheckDistance
+                VectorDistanceConditionNodeData.Comparison.LessThanOrEqual => sqrDistance <= SquaredCheckDistance
                     ? NodeStatus.Success 
                     : NodeStatus.Failure,
                 _ => sqrDistance > SquaredCheckDistance
@@ -40,9 +51,8 @@ namespace VerveUniEx.AI
                     : NodeStatus.Failure
             };
         }
-
         
-        #region 调试部分
+        #region 可调试节点
         
         [NotNull] public GameObject DebugTarget { get; set; }
         public bool IsDebug { get; set; }
@@ -51,10 +61,23 @@ namespace VerveUniEx.AI
         
         void IDebuggableNode.DrawGizmos(ref NodeDebugContext ctx)
         {
-            Gizmos.DrawLine(OwnerPoint, TargetPoint);
-            Gizmos.DrawWireSphere(TargetPoint, CheckDistance);
+            Gizmos.DrawLine(Data.OwnerPoint, Data.TargetPoint);
+            Gizmos.DrawWireSphere(Data.TargetPoint, Data.CheckDistance);
         }
 
+        #endregion
+        
+        #region 可准备节点
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void IPreparableNode.Prepare(ref NodeRunContext ctx)
+        {
+            if (ctx.BB.HasValue(Key))
+            {
+                Data = ctx.BB.GetValue<VectorDistanceConditionNodeData>(Key);
+            }
+        }
+        
         #endregion
     }
 }

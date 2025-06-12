@@ -26,6 +26,11 @@ namespace Verve.AI
         void Update(in float deltaTime);
         void ResetNode(int nodeIndex);
         void ResetAllNodes(NodeResetMode resetMode = NodeResetMode.Full);
+        /// <summary>
+        /// 查找节点
+        /// </summary>
+        /// <param name="predicate"></param>
+        /// <returns></returns>
         IEnumerable<IBTNode> FindNodes(Func<IBTNode, bool> predicate);
         /// <summary> 暂停行为树执行 </summary>
         void Pause();

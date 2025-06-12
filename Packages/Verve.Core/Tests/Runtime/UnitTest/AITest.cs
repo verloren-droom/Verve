@@ -38,10 +38,13 @@ namespace Verve.Tests
             bool action1Executed = false;
 
             tree.AddNode(new ActionNode { 
-                Callback = _ => { 
-                    action1Executed = true; 
-                    return NodeStatus.Success;
-                } 
+                Data = new ActionNodeData()
+                {
+                    Callback = _ => { 
+                        action1Executed = true; 
+                        return NodeStatus.Success;
+                    } 
+                }
             });
 
             ((IBehaviorTree)tree).Update(0.1f);
@@ -68,7 +71,10 @@ namespace Verve.Tests
         {
             bool executed = false;
             var actionNode = new ActionNode {
-                Callback = _ => { executed = true; return NodeStatus.Success; }
+                Data = new ActionNodeData()
+                {
+                    Callback = _ => { executed = true; return NodeStatus.Success; }
+                }
             };
             
             var bb = new Blackboard();
@@ -87,10 +93,31 @@ namespace Verve.Tests
         public void SequenceNode_ShouldStopOnFailure()
         {
             var sequence = new SequenceNode {
-                Children = new IBTNode[] {
-                    new ActionNode { Callback = _ => NodeStatus.Success },
-                    new ConditionNode { Condition = _ => false },
-                    new ActionNode { Callback = _ => { Assert.Fail("Should not reach here");  return NodeStatus.Success; } }
+                Data = new SequenceNodeData()
+                {
+                    Children = new IBTNode[] {
+                        new ActionNode
+                        {
+                            Data = new ActionNodeData()
+                            {
+                                Callback = _ => NodeStatus.Success
+                            }
+                        },
+                        new ConditionNode
+                        {
+                            Data = new ConditionNodeData()
+                            {
+                                Condition = _ => false
+                            }
+                        },
+                        new ActionNode
+                        {
+                            Data = new ActionNodeData()
+                            {
+                                Callback = _ => { Assert.Fail("Should not reach here");  return NodeStatus.Success;
+                            }
+                        }}
+                    }
                 }
             };
             
@@ -110,12 +137,24 @@ namespace Verve.Tests
         {
             var callCount = 0;
             var sequence = new SequenceNode {
-                Children = new IBTNode[] {
-                    new DelayNode { Duration = 0.5f },
-                    new ActionNode { Callback = _ => {
-                        callCount++;
-                        return NodeStatus.Success;
-                    }}
+                Data = new SequenceNodeData()
+                {
+                    Children = new IBTNode[] {
+                        new DelayNode
+                        {
+                            Data = new DelayNodeData()
+                            {
+                                Duration = 0.5f
+                            }
+                        },
+                        new ActionNode
+                        {
+                            Data = new ActionNodeData()
+                            {
+                                Callback = _ => { callCount++; return NodeStatus.Success; }
+                            }
+                        }
+                    }
                 }
             };
 
@@ -140,11 +179,26 @@ namespace Verve.Tests
         public void ParallelNode_ShouldRequireAllSuccessWhenConfigured()
         {
             var parallel = new ParallelNode {
-                Children = new IBTNode[] {
-                    new ActionNode { Callback = _ => NodeStatus.Success },
-                    new ActionNode { Callback = _ => NodeStatus.Running }
-                },
-                RequireAllSuccess = true
+                Data = new ParallelNodeData()
+                {
+                    Children = new IBTNode[] {
+                        new ActionNode
+                        {
+                            Data = new ActionNodeData()
+                            {
+                                Callback = _ => NodeStatus.Success
+                            }
+                        },
+                        new ActionNode
+                        {
+                            Data = new ActionNodeData()
+                            {
+                                Callback = _ => NodeStatus.Running
+                            }
+                        }
+                    },
+                    RequireAllSuccess = true
+                }
             };
         
             var bb = new Blackboard();
@@ -162,9 +216,24 @@ namespace Verve.Tests
         public void ParallelNode_ShouldRememberChildStates()
         {
             var parallel = new ParallelNode {
-                Children = new IBTNode[] {
-                    new DelayNode { Duration = 0.3f },
-                    new DelayNode { Duration = 0.6f }
+                Data = new ParallelNodeData()
+                {
+                    Children = new IBTNode[] {
+                        new DelayNode
+                        {
+                            Data = new DelayNodeData()
+                            {
+                                Duration = 0.3f
+                            }
+                        },
+                        new DelayNode
+                        {
+                            Data = new DelayNodeData()
+                            {
+                                Duration = 0.6f
+                            }
+                        }
+                    }
                 }
             };
         
@@ -189,7 +258,13 @@ namespace Verve.Tests
         [Test]
         public void ConditionNode_ShouldHandleNullCondition()
         {
-            var node = new ConditionNode { Condition = null };
+            var node = new ConditionNode
+            {
+                Data = new ConditionNodeData()
+                {
+                    Condition = null
+                }
+            };
             var bb = new Blackboard();
             var ctx = new NodeRunContext()
             {
@@ -204,7 +279,13 @@ namespace Verve.Tests
         [Test]
         public void WaitNode_ShouldCompleteAfterDuration()
         {
-            IBTNode node = new DelayNode { Duration = 0.5f };
+            IBTNode node = new DelayNode
+            {
+                Data = new DelayNodeData()
+                {
+                    Duration = 0.5f
+                }
+            };
             var bb = new Blackboard();
             var ctx = new NodeRunContext()
             {
@@ -228,7 +309,13 @@ namespace Verve.Tests
         [Test]
         public void WaitNode_ShouldResetProperly()
         {
-            IBTNode node = new DelayNode { Duration = 0.3f };
+            IBTNode node = new DelayNode
+            {
+                Data = new DelayNodeData()
+                {
+                    Duration = 0.3f
+                }
+            };
             var bb = new Blackboard();
             var ctx = new NodeRunContext()
             {
@@ -265,69 +352,103 @@ namespace Verve.Tests
             // 创建深度嵌套的节点结构
             IBTNode rootNode = new RepeaterNode()
             {
-                Mode = RepeaterNode.RepeatMode.CountLimited,
-                RepeatCount = 2,
-                Child = new SequenceNode()
+                Data = new RepeaterNodeData()
                 {
-                    Children = new IBTNode[]
+                    Mode = RepeaterNodeData.RepeatMode.CountLimited,
+                    RepeatCount = 2,
+                    Child = new SequenceNode()
                     {
-                        new ParallelNode()
+                        Data = new SequenceNodeData()
                         {
-                            RequireAllSuccess = true,
                             Children = new IBTNode[]
                             {
-                                new ConditionNode()
+                                new ParallelNode()
                                 {
-                                    Condition = b => b.GetValue<bool>("CanStart")
+                                    Data = new ParallelNodeData()
+                                    {
+                                        RequireAllSuccess = true,
+                                        Children = new IBTNode[]
+                                        {
+                                            new ConditionNode()
+                                            {
+                                                Data = new ConditionNodeData()
+                                                {
+                                                    Condition = b => b.GetValue<bool>("CanStart")
+                                                }
+                                            },
+                                            new DelayNode()
+                                            {
+                                                Data = new DelayNodeData()
+                                                {
+                                                    Duration = 0.3f,
+                                                }
+                                            },
+                                            new ActionNode()
+                                            {
+                                                Data = new ActionNodeData()
+                                                {
+                                                    Callback = _ =>
+                                                    {
+                                                        executionLog.Add($"Wait Finish!");
+                                                        return NodeStatus.Success;
+                                                    }
+                                                }
+                                            },
+                                        }
+
+                                    }
                                 },
-                                new DelayNode()
+                                new RepeaterNode()
                                 {
-                                    Duration = 0.3f,
+                                    Data = new RepeaterNodeData()
+                                    { 
+                                        Mode = RepeaterNodeData.RepeatMode.CountLimited,
+                                        RepeatCount = 1,
+                                        Child = new SequenceNode()
+                                        {
+                                            Data = new SequenceNodeData()
+                                            {
+                                                Children = new IBTNode[]
+                                                {
+                                                    new ActionNode()
+                                                    {
+                                                        Data = new ActionNodeData()
+                                                        {
+                                                            Callback = _ =>
+                                                            {
+                                                                bb.SetValue("Counter", bb.GetValue<int>("Counter") + 1);
+                                                                executionLog.Add("CounterAction");
+                                                                return NodeStatus.Success;
+                                                            }
+                                                        }
+                                                    },
+                                                    new ConditionNode()
+                                                    {
+                                                        Data = new ConditionNodeData()
+                                                        {
+                                                            Condition = b => b.GetValue<int>("Counter") > 0
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 },
                                 new ActionNode()
                                 {
-                                    Callback = _ =>
-                                    {
-                                        executionLog.Add($"Wait Finish!");
-                                        return NodeStatus.Success;
-                                    }
-                                },
-                            }
-                        },
-                        new RepeaterNode()
-                        {
-                            Mode = RepeaterNode.RepeatMode.CountLimited,
-                            RepeatCount = 1,
-                            Child = new SequenceNode()
-                            {
-                                Children = new IBTNode[]
-                                {
-                                    new ActionNode()
+                                    Data = new ActionNodeData()
                                     {
                                         Callback = _ =>
                                         {
-                                            bb.SetValue("Counter", bb.GetValue<int>("Counter") + 1);
-                                            executionLog.Add("CounterAction");
+                                            executionLog.Add("FinalAction");
                                             return NodeStatus.Success;
                                         }
-                                    },
-                                    new ConditionNode()
-                                    {
-                                        Condition = b => b.GetValue<int>("Counter") > 0
                                     }
                                 }
                             }
-                        },
-                        new ActionNode()
-                        {
-                            Callback = _ =>
-                            {
-                                executionLog.Add("FinalAction");
-                                return NodeStatus.Success;
-                            }
                         }
                     }
-                }
+                },
             };
 
             // 将节点添加到行为树

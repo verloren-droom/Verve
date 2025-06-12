@@ -2,13 +2,12 @@
 
 namespace VerveEditor.UniEx
 {
-    using System;
     using VerveUniEx;
+    using System.Linq;
     using UnityEditor;
     using UnityEngine;
-    using System.Linq;
     using System.Reflection;
-    
+
     
     [CustomEditor(typeof(MonoBehaviour), true), CanEditMultipleObjects]
     public class ButtonEditor : Editor
@@ -16,32 +15,36 @@ namespace VerveEditor.UniEx
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector();
-    
+
             var targetObject = target;
-    
+
             var methods = targetObject.GetType()
                 .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                .Where(m => m.GetCustomAttributes(typeof(ButtonAttribute), false).Length > 0);
-    
-            foreach (var method in methods)
-            {
-                var buttonAttribute = (ButtonAttribute)method.GetCustomAttributes(typeof(ButtonAttribute), false)[0];
-                string buttonLabel = string.IsNullOrEmpty(buttonAttribute.Label) ? method.Name : buttonAttribute.Label;
+                .Where(m => m.GetCustomAttributes(typeof(ButtonAttribute), false).Length > 0)
+                .ToArray();
 
-                if (method.GetParameters().Length > 0)
-                {
-                    EditorGUILayout.HelpBox($"Method '{method.Name}' has parameters. Button methods should not have parameters.", MessageType.Warning);
-                    continue;
-                }
-
-                if (GUILayout.Button(buttonLabel))
-                {
-                    method.Invoke(targetObject, null);
-                }
-            }
+            ButtonEditorHelper.DrawButtons(targetObject, methods);
         }
     }
+    
+    
+    [CustomEditor(typeof(ScriptableObject), true), CanEditMultipleObjects]
+    public class ButtonScriptableObjectEditor : Editor
+    {
+        public override void OnInspectorGUI()
+        {
+            DrawDefaultInspector();
 
+            var targetObject = target;
+
+            var methods = targetObject.GetType()
+                .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .Where(m => m.GetCustomAttributes(typeof(ButtonAttribute), false).Length > 0)
+                .ToArray();
+
+            ButtonEditorHelper.DrawButtons(targetObject, methods);
+        }
+    }
 }
 
 #endif

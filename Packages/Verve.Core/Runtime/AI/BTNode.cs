@@ -31,6 +31,10 @@ namespace Verve.AI
     public interface IBTNode
     {
         /// <summary>
+        /// 获取节点状态
+        /// </summary>
+        public NodeStatus LastStatus { get; }
+        /// <summary>
         /// 运行节点
         /// </summary>
         /// <param name="ctx"> 节点运行上下文 </param>
@@ -38,8 +42,8 @@ namespace Verve.AI
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         NodeStatus Run(ref NodeRunContext ctx);
     }
-    
-    
+
+
     /// <summary>
     /// 行为树复合节点接口（使用结构体实现接口）
     /// </summary>
@@ -96,6 +100,21 @@ namespace Verve.AI
         /// <summary> 重置节点内部数据 </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void Reset(ref  NodeResetContext ctx);
+    }
+    
+    
+    /// <summary>
+    /// 可准备节点接口（使用结构体实现接口）
+    /// </summary>
+    /// <remarks>
+    /// 需要在运行前准备内部状态的节点应实现此接口，
+    /// 在节点执行前会被调用（如从黑板中实时获取最新值）
+    /// </remarks>
+    public interface IPreparableNode
+    {
+        /// <summary> 在运行前准备节点内部数据 </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void Prepare(ref NodeRunContext ctx);
     }
 
     
@@ -164,8 +183,9 @@ namespace Verve.AI
     {
         public TData Data;
         private TProcessor m_Processor;
+        public NodeStatus LastStatus { get; private set; }
         
-        
+
         public NodeStatus Run(ref NodeRunContext ctx) => m_Processor.Run(ref Data, ref ctx);
     
         public void Reset(ref NodeResetContext ctx) => m_Processor.Reset(ref Data, ref ctx);

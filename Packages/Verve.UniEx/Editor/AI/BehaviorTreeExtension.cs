@@ -1,10 +1,9 @@
-using UnityEngine;
-
 #if UNITY_EDITOR
 
 namespace VerveEditor.UniEx.AI
 {
     using Verve.AI;
+    using UnityEngine;
     using System.Linq;
     using VerveUniEx.AI;
     using System.Collections.Generic;
@@ -17,9 +16,16 @@ namespace VerveEditor.UniEx.AI
             = new ConditionalWeakTable<IBehaviorTree, List<IDebuggableNode>>();
     
         
+        /// <summary>
+        /// 绘制可视化调试图形（仅在运行时生效）
+        /// </summary>
+        /// <param name="self"></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void DrawGizmos(this IBehaviorTree self)
         {
+#if UNITY_EDITOR
+            if (!Application.isPlaying) return;
+            
             if (!s_DebugCache.TryGetValue(self, out var nodes))
             {
                 nodes = self.FindNodes(n => n is IDebuggableNode)
@@ -37,9 +43,11 @@ namespace VerveEditor.UniEx.AI
             {
                 if (node?.IsDebug == true)
                 {
-                    node.DebugTarget?.AddComponent<VisualizedDebuggableNode>().Init(node, ref debugContext);
+                    // node.DebugTarget?.AddComponent<VisualizedDebuggableNode>().Init(node, ref debugContext);
+                    node.DrawGizmos(ref debugContext);
                 }
             }
+#endif
         }
     }
 }

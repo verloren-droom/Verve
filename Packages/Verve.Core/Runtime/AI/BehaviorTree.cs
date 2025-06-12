@@ -53,6 +53,7 @@ namespace Verve.AI
         private int m_PausedAtIndex = -1;
         
         public int ID => m_ID;
+        public bool IsDisposed => m_IsDisposed;
         
         public event Action<IBTNode, NodeStatus> OnNodeStatusChanged;
         public event Action<bool> OnPauseStateChanged;
@@ -151,6 +152,11 @@ namespace Verve.AI
             bool foundRunning = false;
             int startIndex = m_CurrentExecutingIndex >= 0 ? m_CurrentExecutingIndex : 0;
             m_CurrentExecutingIndex = -1;
+            
+            var ctx = new NodeRunContext {
+                BB = m_Blackboard,
+                DeltaTime = deltaTime,
+            };
 
             for (int i = 0; i < startIndex; i++)
             {
@@ -161,18 +167,21 @@ namespace Verve.AI
                 };
                 if (m_ActiveNodes[i].Node is IResetableNode resetable)
                     resetable.Reset(ref resetCtx);
+                // if (m_ActiveNodes[i].Node is IPreparableNode prepareNode && prepareNode.IsPreparable)
+                //     prepareNode.Prepare(ref ctx);
             }
-            
-            var ctx = new NodeRunContext {
-                BB = m_Blackboard,
-                DeltaTime = deltaTime,
-            };
-            
+
             Action<int> body = (i) =>
             {
                 ref var state = ref m_ActiveNodes[i];
+                
+                if (state.Node is IPreparableNode prepareNode)
+                {
+                    prepareNode.Prepare(ref ctx);
+                }
+                
                 var newStatus = state.Node.Run(ref ctx);
-            
+
                 if (newStatus != state.LastStatus)
                 {
                     OnNodeStatusChanged?.Invoke(state.Node, newStatus);
@@ -232,7 +241,7 @@ namespace Verve.AI
 
         public IEnumerable<IBTNode> FindNodes(Func<IBTNode, bool> predicate)
         {
-            foreach (var nodeData in m_ActiveNodes.Take(m_NodeCount))
+            foreach (var nodeData in m_ActiveNodes?.Take(m_NodeCount))
             {
                 var node = nodeData.Node;
 
@@ -333,14 +342,14 @@ namespace Verve.AI
 
         public override string ToString()
         {
-            var sb = new StringBuilder($"BehaviorTree(ID:{m_ID}, Nodes:{m_NodeCount})\n");
-            sb.AppendLine("Node Paths:");
+            var sb = new StringBuilder($"BehaviorTree(ID: {m_ID}, Children: {m_NodeCount})\n");
+            sb.AppendLine("Node Paths: ");
             
             foreach (var path in GenerateNodePaths())
             {
                 sb.AppendLine($"\t{path}");
             }
-            
+
             return sb.ToString();
         }
     }

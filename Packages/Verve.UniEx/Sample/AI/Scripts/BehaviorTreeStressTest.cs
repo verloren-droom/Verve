@@ -62,7 +62,8 @@ namespace VerveUniEx.Sample.AI
         public struct TestNode : IBTNode, IResetableNode 
         {
             public enum NodeType { Success, Failure, Random }
-            
+            public NodeStatus LastStatus { get; private set; }
+
             [Tooltip("节点类型")] public NodeType Type;
             [Tooltip("执行耗时"), Range(0,100)] public int ExecutionCost;
             

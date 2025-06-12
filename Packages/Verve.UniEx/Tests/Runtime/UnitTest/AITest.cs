@@ -40,10 +40,13 @@ namespace VerveUniEx.Tests
             
             var node = new VectorDistanceConditionNode
             {
-                OwnerPoint = Vector3.zero,
-                TargetPoint = Vector3.forward * 3,
-                CheckDistance = 5f,
-                CompareMode = VectorDistanceConditionNode.Comparison.LessThanOrEqual
+                Data = new VectorDistanceConditionNodeData()
+                {
+                    OwnerPoint = Vector3.zero,
+                    TargetPoint = Vector3.forward * 3,
+                    CheckDistance = 5f,
+                    CompareMode = VectorDistanceConditionNodeData.Comparison.LessThanOrEqual
+                }
             };
             
             var ctx = new NodeRunContext()
@@ -54,7 +57,7 @@ namespace VerveUniEx.Tests
             var status = (node as IBTNode).Run(ref ctx);
             Assert.AreEqual(NodeStatus.Success, status);
         
-            node.TargetPoint = Vector3.forward * 6;
+            node.Data.TargetPoint = Vector3.forward * 6;
             status = (node as IBTNode).Run(ref ctx);
             Assert.AreEqual(NodeStatus.Failure, status);
         }
