@@ -37,12 +37,12 @@ namespace Verve.Tests
     
             bool action1Executed = false;
 
-            tree.AddNode(new ActionNode { 
-                Data = new ActionNodeData()
+            tree.AddNode(new ActionBTNode { 
+                data = new ActionBTNodeData()
                 {
-                    Callback = _ => { 
+                    callback = _ => { 
                         action1Executed = true; 
-                        return NodeStatus.Success;
+                        return BTNodeResult.Succeeded;
                     } 
                 }
             });
@@ -70,51 +70,51 @@ namespace Verve.Tests
         public void ActionNode_ShouldExecuteAction()
         {
             bool executed = false;
-            var actionNode = new ActionNode {
-                Data = new ActionNodeData()
+            var actionNode = new ActionBTNode {
+                data = new ActionBTNodeData()
                 {
-                    Callback = _ => { executed = true; return NodeStatus.Success; }
+                    callback = _ => { executed = true; return BTNodeResult.Succeeded; }
                 }
             };
             
             var bb = new Blackboard();
-            var ctx = new NodeRunContext()
+            var ctx = new BTNodeRunContext()
             {
-                BB = bb,
-                DeltaTime = 0.1f
+                bb = bb,
+                deltaTime = 0.1f
             };
             var status = (actionNode as IBTNode).Run(ref ctx);
             
             Assert.IsTrue(executed);
-            Assert.AreEqual(NodeStatus.Success, status);
+            Assert.AreEqual(BTNodeResult.Succeeded, status);
         }
         
         [Test]
         public void SequenceNode_ShouldStopOnFailure()
         {
-            var sequence = new SequenceNode {
-                Data = new SequenceNodeData()
+            var sequence = new SequenceBTNode {
+                data = new SequenceBTNodeData()
                 {
-                    Children = new IBTNode[] {
-                        new ActionNode
+                    children = new IBTNode[] {
+                        new ActionBTNode
                         {
-                            Data = new ActionNodeData()
+                            data = new ActionBTNodeData()
                             {
-                                Callback = _ => NodeStatus.Success
+                                callback = _ => BTNodeResult.Succeeded
                             }
                         },
-                        new ConditionNode
+                        new ConditionBTNode
                         {
-                            Data = new ConditionNodeData()
+                            data = new ConditionBTNodeData()
                             {
-                                Condition = _ => false
+                                condition = _ => false
                             }
                         },
-                        new ActionNode
+                        new ActionBTNode
                         {
-                            Data = new ActionNodeData()
+                            data = new ActionBTNodeData()
                             {
-                                Callback = _ => { Assert.Fail("Should not reach here");  return NodeStatus.Success;
+                                callback = _ => { Assert.Fail("Should not reach here");  return BTNodeResult.Succeeded;
                             }
                         }}
                     }
@@ -122,36 +122,36 @@ namespace Verve.Tests
             };
             
             var bb = new Blackboard();
-            var ctx = new NodeRunContext()
+            var ctx = new BTNodeRunContext()
             {
-                BB = bb,
-                DeltaTime = 0.1f
+                bb = bb,
+                deltaTime = 0.1f
             };
             var status = (sequence as IBTNode).Run(ref ctx);
             
-            Assert.AreEqual(NodeStatus.Failure, status);
+            Assert.AreEqual(BTNodeResult.Failed, status);
         }
 
         [Test]
         public void SequenceNode_ShouldRememberRunningState()
         {
             var callCount = 0;
-            var sequence = new SequenceNode {
-                Data = new SequenceNodeData()
+            var sequence = new SequenceBTNode {
+                data = new SequenceBTNodeData()
                 {
-                    Children = new IBTNode[] {
-                        new DelayNode
+                    children = new IBTNode[] {
+                        new DelayBTNode
                         {
-                            Data = new DelayNodeData()
+                            data = new DelayBTNodeData()
                             {
-                                Duration = 0.5f
+                                duration = 0.5f
                             }
                         },
-                        new ActionNode
+                        new ActionBTNode
                         {
-                            Data = new ActionNodeData()
+                            data = new ActionBTNodeData()
                             {
-                                Callback = _ => { callCount++; return NodeStatus.Success; }
+                                callback = _ => { callCount++; return BTNodeResult.Succeeded; }
                             }
                         }
                     }
@@ -159,10 +159,10 @@ namespace Verve.Tests
             };
 
             var bb = new Blackboard();
-            var ctx = new NodeRunContext()
+            var ctx = new BTNodeRunContext()
             {
-                BB = bb,
-                DeltaTime = 0.1f
+                bb = bb,
+                deltaTime = 0.1f
             };
             (sequence as IBTNode).Run(ref ctx);
             Assert.AreEqual(0, callCount);
@@ -170,7 +170,7 @@ namespace Verve.Tests
             (sequence as IBTNode).Run(ref ctx);
             Assert.AreEqual(0, callCount);
 
-            ctx.DeltaTime = 0.5f;
+            ctx.deltaTime = 0.5f;
             (sequence as IBTNode).Run(ref ctx);
             Assert.AreEqual(1, callCount);
         }
@@ -178,59 +178,59 @@ namespace Verve.Tests
         [Test]
         public void ParallelNode_ShouldRequireAllSuccessWhenConfigured()
         {
-            var parallel = new ParallelNode {
-                Data = new ParallelNodeData()
+            var parallel = new ParallelBTNode {
+                data = new ParallelBTNodeData()
                 {
-                    Children = new IBTNode[] {
-                        new ActionNode
+                    children = new IBTNode[] {
+                        new ActionBTNode
                         {
-                            Data = new ActionNodeData()
+                            data = new ActionBTNodeData()
                             {
-                                Callback = _ => NodeStatus.Success
+                                callback = _ => BTNodeResult.Succeeded
                             }
                         },
-                        new ActionNode
+                        new ActionBTNode
                         {
-                            Data = new ActionNodeData()
+                            data = new ActionBTNodeData()
                             {
-                                Callback = _ => NodeStatus.Running
+                                callback = _ => BTNodeResult.Running
                             }
                         }
                     },
-                    RequireAllSuccess = true
+                    requireAllSuccess = true
                 }
             };
         
             var bb = new Blackboard();
-            var ctx = new NodeRunContext()
+            var ctx = new BTNodeRunContext()
             {
-                BB = bb,
-                DeltaTime = 0.1f
+                bb = bb,
+                deltaTime = 0.1f
             };
             var status = (parallel as IBTNode).Run(ref ctx);
             
-            Assert.AreEqual(NodeStatus.Running, status);
+            Assert.AreEqual(BTNodeResult.Running, status);
         }
         
         [Test]
         public void ParallelNode_ShouldRememberChildStates()
         {
-            var parallel = new ParallelNode {
-                Data = new ParallelNodeData()
+            var parallel = new ParallelBTNode {
+                data = new ParallelBTNodeData()
                 {
-                    Children = new IBTNode[] {
-                        new DelayNode
+                    children = new IBTNode[] {
+                        new DelayBTNode
                         {
-                            Data = new DelayNodeData()
+                            data = new DelayBTNodeData()
                             {
-                                Duration = 0.3f
+                                duration = 0.3f
                             }
                         },
-                        new DelayNode
+                        new DelayBTNode
                         {
-                            Data = new DelayNodeData()
+                            data = new DelayBTNodeData()
                             {
-                                Duration = 0.6f
+                                duration = 0.6f
                             }
                         }
                     }
@@ -238,105 +238,105 @@ namespace Verve.Tests
             };
         
             var bb = new Blackboard();
-            var ctx = new NodeRunContext()
+            var ctx = new BTNodeRunContext()
             {
-                BB = bb,
-                DeltaTime = 0.1f
+                bb = bb,
+                deltaTime = 0.1f
             };
             var status = (parallel as IBTNode).Run(ref ctx);
-            Assert.AreEqual(NodeStatus.Running, status);
+            Assert.AreEqual(BTNodeResult.Running, status);
             
-            ctx.DeltaTime = 0.3f;
+            ctx.deltaTime = 0.3f;
             status = (parallel as IBTNode).Run(ref ctx);
-            Assert.AreEqual(NodeStatus.Running, status);
+            Assert.AreEqual(BTNodeResult.Running, status);
             
-            ctx.DeltaTime = 0.3f;
+            ctx.deltaTime = 0.3f;
             status = (parallel as IBTNode).Run(ref ctx);
-            Assert.AreEqual(NodeStatus.Success, status);
+            Assert.AreEqual(BTNodeResult.Succeeded, status);
         }
         
         [Test]
         public void ConditionNode_ShouldHandleNullCondition()
         {
-            var node = new ConditionNode
+            var node = new ConditionBTNode
             {
-                Data = new ConditionNodeData()
+                data = new ConditionBTNodeData()
                 {
-                    Condition = null
+                    condition = null
                 }
             };
             var bb = new Blackboard();
-            var ctx = new NodeRunContext()
+            var ctx = new BTNodeRunContext()
             {
-                BB = bb,
-                DeltaTime = 0.1f
+                bb = bb,
+                deltaTime = 0.1f
             };
             var status = (node as IBTNode).Run(ref ctx);
             
-            Assert.AreEqual(NodeStatus.Failure, status);
+            Assert.AreEqual(BTNodeResult.Failed, status);
         }
         
         [Test]
         public void WaitNode_ShouldCompleteAfterDuration()
         {
-            IBTNode node = new DelayNode
+            IBTNode node = new DelayBTNode
             {
-                Data = new DelayNodeData()
+                data = new DelayBTNodeData()
                 {
-                    Duration = 0.5f
+                    duration = 0.5f
                 }
             };
             var bb = new Blackboard();
-            var ctx = new NodeRunContext()
+            var ctx = new BTNodeRunContext()
             {
-                BB = bb,
-                DeltaTime = 0.1f
+                bb = bb,
+                deltaTime = 0.1f
             };
             var status = node.Run(ref ctx);
-            var wait = (DelayNode)node;
-            Assert.AreEqual(NodeStatus.Running, status);
+            var wait = (DelayBTNode)node;
+            Assert.AreEqual(BTNodeResult.Running, status);
             Assert.AreEqual(0.1f, wait.ElapsedTime, 0.0001f);
         
             node = wait;
 
-            ctx.DeltaTime = 0.4f;
+            ctx.deltaTime = 0.4f;
             status = node.Run(ref ctx);
-            wait = (DelayNode)node;
-            Assert.AreEqual(NodeStatus.Success, status);
+            wait = (DelayBTNode)node;
+            Assert.AreEqual(BTNodeResult.Succeeded, status);
             Assert.AreEqual(0.5f, wait.ElapsedTime, 0.0001f);
         }
         
         [Test]
         public void WaitNode_ShouldResetProperly()
         {
-            IBTNode node = new DelayNode
+            IBTNode node = new DelayBTNode
             {
-                Data = new DelayNodeData()
+                data = new DelayBTNodeData()
                 {
-                    Duration = 0.3f
+                    duration = 0.3f
                 }
             };
             var bb = new Blackboard();
-            var ctx = new NodeRunContext()
+            var ctx = new BTNodeRunContext()
             {
-                BB = bb,
-                DeltaTime = 0.1f
+                bb = bb,
+                deltaTime = 0.1f
             };
             var status = node.Run(ref ctx);
 
-            var resetCtx = new NodeResetContext()
+            var resetCtx = new BTNodeResetContext()
             {
-                BB = bb,
+                bb = bb,
             };
-            (node as IResetableNode).Reset(ref resetCtx);
+            (node as IBTNodeResettable).Reset(ref resetCtx);
 
-            ctx.DeltaTime = 0.2f;
+            ctx.deltaTime = 0.2f;
             status = node.Run(ref ctx);
-            Assert.AreEqual(NodeStatus.Running, status);
+            Assert.AreEqual(BTNodeResult.Running, status);
             
-            ctx.DeltaTime = 0.1f;
+            ctx.deltaTime = 0.1f;
             status = node.Run(ref ctx);
-            Assert.AreEqual(NodeStatus.Success, status);
+            Assert.AreEqual(BTNodeResult.Succeeded, status);
         }
 
         [Test]
@@ -350,47 +350,47 @@ namespace Verve.Tests
             var behaviorTree = m_AIUnit.CreateBT<BehaviorTree>(bb: bb);
 
             // 创建深度嵌套的节点结构
-            IBTNode rootNode = new RepeaterNode()
+            IBTNode rootNode = new RepeaterBTNode()
             {
-                Data = new RepeaterNodeData()
+                data = new RepeaterBTNodeData()
                 {
-                    Mode = RepeaterNodeData.RepeatMode.CountLimited,
-                    RepeatCount = 2,
-                    Child = new SequenceNode()
+                    repeatMode = RepeaterBTNodeData.RepeatMode.CountLimited,
+                    repeatCount = 2,
+                    child = new SequenceBTNode()
                     {
-                        Data = new SequenceNodeData()
+                        data = new SequenceBTNodeData()
                         {
-                            Children = new IBTNode[]
+                            children = new IBTNode[]
                             {
-                                new ParallelNode()
+                                new ParallelBTNode()
                                 {
-                                    Data = new ParallelNodeData()
+                                    data = new ParallelBTNodeData()
                                     {
-                                        RequireAllSuccess = true,
-                                        Children = new IBTNode[]
+                                        requireAllSuccess = true,
+                                        children = new IBTNode[]
                                         {
-                                            new ConditionNode()
+                                            new ConditionBTNode()
                                             {
-                                                Data = new ConditionNodeData()
+                                                data = new ConditionBTNodeData()
                                                 {
-                                                    Condition = b => b.GetValue<bool>("CanStart")
+                                                    condition = b => b.GetValue<bool>("CanStart")
                                                 }
                                             },
-                                            new DelayNode()
+                                            new DelayBTNode()
                                             {
-                                                Data = new DelayNodeData()
+                                                data = new DelayBTNodeData()
                                                 {
-                                                    Duration = 0.3f,
+                                                    duration = 0.3f,
                                                 }
                                             },
-                                            new ActionNode()
+                                            new ActionBTNode()
                                             {
-                                                Data = new ActionNodeData()
+                                                data = new ActionBTNodeData()
                                                 {
-                                                    Callback = _ =>
+                                                    callback = _ =>
                                                     {
                                                         executionLog.Add($"Wait Finish!");
-                                                        return NodeStatus.Success;
+                                                        return BTNodeResult.Succeeded;
                                                     }
                                                 }
                                             },
@@ -398,35 +398,35 @@ namespace Verve.Tests
 
                                     }
                                 },
-                                new RepeaterNode()
+                                new RepeaterBTNode()
                                 {
-                                    Data = new RepeaterNodeData()
+                                    data = new RepeaterBTNodeData()
                                     { 
-                                        Mode = RepeaterNodeData.RepeatMode.CountLimited,
-                                        RepeatCount = 1,
-                                        Child = new SequenceNode()
+                                        repeatMode = RepeaterBTNodeData.RepeatMode.CountLimited,
+                                        repeatCount = 1,
+                                        child = new SequenceBTNode()
                                         {
-                                            Data = new SequenceNodeData()
+                                            data = new SequenceBTNodeData()
                                             {
-                                                Children = new IBTNode[]
+                                                children = new IBTNode[]
                                                 {
-                                                    new ActionNode()
+                                                    new ActionBTNode()
                                                     {
-                                                        Data = new ActionNodeData()
+                                                        data = new ActionBTNodeData()
                                                         {
-                                                            Callback = _ =>
+                                                            callback = _ =>
                                                             {
                                                                 bb.SetValue("Counter", bb.GetValue<int>("Counter") + 1);
                                                                 executionLog.Add("CounterAction");
-                                                                return NodeStatus.Success;
+                                                                return BTNodeResult.Succeeded;
                                                             }
                                                         }
                                                     },
-                                                    new ConditionNode()
+                                                    new ConditionBTNode()
                                                     {
-                                                        Data = new ConditionNodeData()
+                                                        data = new ConditionBTNodeData()
                                                         {
-                                                            Condition = b => b.GetValue<int>("Counter") > 0
+                                                            condition = b => b.GetValue<int>("Counter") > 0
                                                         }
                                                     }
                                                 }
@@ -434,14 +434,14 @@ namespace Verve.Tests
                                         }
                                     }
                                 },
-                                new ActionNode()
+                                new ActionBTNode()
                                 {
-                                    Data = new ActionNodeData()
+                                    data = new ActionBTNodeData()
                                     {
-                                        Callback = _ =>
+                                        callback = _ =>
                                         {
                                             executionLog.Add("FinalAction");
-                                            return NodeStatus.Success;
+                                            return BTNodeResult.Succeeded;
                                         }
                                     }
                                 }
@@ -452,7 +452,7 @@ namespace Verve.Tests
             };
 
             // 将节点添加到行为树
-            behaviorTree.AddNode((RepeaterNode)rootNode);
+            behaviorTree.AddNode((RepeaterBTNode)rootNode);
 
             bb.SetValue("CanStart", false);
             bb.SetValue("Counter", 0);

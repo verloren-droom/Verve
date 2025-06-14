@@ -2,153 +2,163 @@ namespace Verve.AI
 {
     using System;
     using System.Collections.Generic;
+    using System.Runtime.Serialization;
     using System.Runtime.InteropServices;
     using System.Runtime.CompilerServices;
-
+    
     
     /// <summary>
-    /// 节点状态枚举
+    /// 行为树节点结果
     /// </summary>
     [Serializable]
-    public enum NodeStatus : byte
+    public enum BTNodeResult : byte
     {
         /// <summary> 节点运行中（阻塞当前节点直到完成） </summary>
+        [EnumMember(Value = "Running")]
         Running,
         /// <summary> 节点成功（允许执行后续节点） </summary>
-        Success,
+        [EnumMember(Value = "Succeeded")]
+        Succeeded,
         /// <summary> 节点失败（中断当前行为层级，结果将传递给父节点处理） </summary>
-        Failure
+        [EnumMember(Value = "Failed")]
+        Failed,
+        // /// <summary> 节点被打断（由自身或更高优先级节点触发） </summary>
+        // [EnumMember(Value = "Aborted")]
+        // Aborted,
     }
 
 
     /// <summary>
-    /// 行为树节点接口（使用结构体实现接口）
+    /// 行为树基础节点接口（使用结构体实现接口）
     /// </summary>
     /// <remarks>
-    /// 所有行为树节点必须实现此接口，
-    /// 定义节点的执行逻辑
+    /// 所有行为树节点必须实现此接口，定义节点的执行逻辑
     /// </remarks>
     public interface IBTNode
     {
-        /// <summary>
-        /// 获取节点状态
-        /// </summary>
-        public NodeStatus LastStatus { get; }
+        /// <summary> 获取节点结果 </summary>
+        public BTNodeResult LastResult { get; }
         /// <summary>
         /// 运行节点
         /// </summary>
         /// <param name="ctx"> 节点运行上下文 </param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        NodeStatus Run(ref NodeRunContext ctx);
+        BTNodeResult Run(ref BTNodeRunContext ctx);
     }
 
 
+    /// <summary>
+    /// 行为树节点运行上下文
+    /// </summary>
+    [Serializable]
+    [StructLayout(LayoutKind.Explicit, Pack = 4, Size = 12)]
+    public struct BTNodeRunContext
+    {
+        /// <summary> 关联黑板 </summary>
+        [FieldOffset(0)]
+        public Blackboard bb;
+        /// <summary> 时间增量 </summary>
+        [FieldOffset(8)]
+        public float deltaTime;
+        
+        /// <summary> 填充字段（占位预留） </summary>
+        [FieldOffset(12)]
+        private int _padding;
+    }
+
+    
     /// <summary>
     /// 行为树复合节点接口（使用结构体实现接口）
     /// </summary>
     /// <remarks>
-    /// 存在子节点的行为树节点必须实现此接口
+    /// 存在子节点的行为树节点必须实现此接口，控制子节点执行流程
     /// </remarks>
-    public interface ICompositeNode : IBTNode
+    public interface ICompositeBTNode : IBTNode
     {
-        /// <summary>
-        /// 获取子节点总数
-        /// </summary>
+        /// <summary> 获取子节点总数 </summary>
         int ChildCount { get; }
-        /// <summary>
-        /// 获取子节点
-        /// </summary>
+        /// <summary> 获取子节点 </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IEnumerable<IBTNode> GetChildren();
-        /// <summary>
-        /// 获取当前活跃的子节点
-        /// </summary>
+        /// <summary> 获取当前活跃的子节点 </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IEnumerable<IBTNode> GetActiveChildren();
     }
+    
+    
+    /// <summary>
+    /// 行为树节点能力增强接口
+    /// </summary>
+    /// <remarks>
+    /// 用于扩展节点功能，节点功能扩展应实现此接口
+    /// </remarks>
+    public interface IBTNodePlus { }
 
     
     /// <summary>
-    /// 节点运行上下文
-    /// </summary>
-    [Serializable]
-    [StructLayout(LayoutKind.Explicit, Pack = 4, Size = 12)]
-    public struct NodeRunContext
-    {
-        /// <summary> 关联黑板 </summary>
-        [FieldOffset(0)]
-        public Blackboard BB;
-        /// <summary> 时间增量 </summary>
-        [FieldOffset(8)]
-        public float DeltaTime;
-        
-        [FieldOffset(12)]
-        private int _padding;
-    }
-    
-    
-    /// <summary>
-    /// 可重置节点接口（使用结构体实现接口）
+    /// 可被重置的行为树节点
     /// </summary>
     /// <remarks>
-    /// 需要清理内部状态的节点应实现此接口，
-    /// 当节点被打断或行为树重置时会被调用
+    /// 需要清理内部状态的节点应实现此接口，当节点被打断或行为树重置时会被调用
     /// </remarks>
-    public interface IResetableNode
+    public interface IBTNodeResettable : IBTNodePlus
     {
         /// <summary> 重置节点内部数据 </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void Reset(ref  NodeResetContext ctx);
+        void Reset(ref BTNodeResetContext ctx);
     }
     
-    
-    /// <summary>
-    /// 可准备节点接口（使用结构体实现接口）
-    /// </summary>
-    /// <remarks>
-    /// 需要在运行前准备内部状态的节点应实现此接口，
-    /// 在节点执行前会被调用（如从黑板中实时获取最新值）
-    /// </remarks>
-    public interface IPreparableNode
-    {
-        /// <summary> 在运行前准备节点内部数据 </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void Prepare(ref NodeRunContext ctx);
-    }
 
-    
     /// <summary>
-    /// 节点重置模式
+    /// 行为树节点重置模式
     /// </summary>
     [Serializable]
-    public enum NodeResetMode : byte
+    public enum BTNodeResetMode : byte
     {
         /// <summary> 全部重置 </summary>
+        [EnumMember(Value = "Full")]
         Full,
         /// <summary> 部分重置 </summary>
+        [EnumMember(Value = "Partial")]
         Partial,
         /// <summary> 软重置 </summary>
+        [EnumMember(Value = "Soft")]
         Soft,
     }
     
-    
+
     /// <summary>
-    /// 节点重置上下文
+    /// 行为树节点重置上下文
     /// </summary>
     [Serializable]
     [StructLayout(LayoutKind.Explicit, Pack = 4, Size = 12)]
-    public struct NodeResetContext 
+    public struct BTNodeResetContext 
     {
         /// <summary> 关联黑板 </summary>
         [FieldOffset(0)]
-        public Blackboard BB;
+        public Blackboard bb;
         /// <summary> 重置模式 </summary>
         [FieldOffset(8)]
-        public NodeResetMode Mode;
+        public BTNodeResetMode resetMode;
         
+        /// <summary> 填充字段（占位预留） </summary>
         [FieldOffset(12)]
         private int _padding;
+    }
+    
+    
+    /// <summary>
+    /// 可被准备的行为树节点
+    /// </summary>
+    /// <remarks>
+    /// 需要在运行前准备内部状态的节点应实现此接口，在节点执行前会被调用（如从黑板中实时获取最新值）
+    /// </remarks>
+    public interface IBTNodePreparable : IBTNodePlus
+    {
+        /// <summary> 在运行前准备节点内部数据 </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void Prepare(ref BTNodeRunContext ctx);
     }
 
 
@@ -156,38 +166,4 @@ namespace Verve.AI
     /// 节点数据接口（使用结构体实现接口）
     /// </summary>
     public interface INodeData { }
-    
-    
-    /// <summary>
-    /// 节点逻辑处理器接口（使用结构体实现接口）
-    /// </summary>
-    /// <typeparam name="TData"> 节点数据类型 </typeparam>
-    public interface INodeProcessor<TData>
-        where TData : struct, INodeData
-    {
-        NodeStatus Run(ref TData data, ref NodeRunContext ctx);
-        void Reset(ref TData data, ref NodeResetContext ctx);
-    }
-    
-    
-    /// <summary>
-    /// 通用行为树节点结构体
-    /// </summary>
-    /// <remarks> 使用通用行为树节点可使数据（INodeData）和逻辑（INodeProcessor）解藕 </remarks>
-    /// <typeparam name="TData"> 节点数据类型 </typeparam>
-    /// <typeparam name="TProcessor"> 节点逻辑处理器类型 </typeparam>
-    [Serializable]
-    public struct BTNode<TData, TProcessor> : IBTNode, IResetableNode
-        where TData : struct, INodeData
-        where TProcessor : struct, INodeProcessor<TData>
-    {
-        public TData Data;
-        private TProcessor m_Processor;
-        public NodeStatus LastStatus { get; private set; }
-        
-
-        public NodeStatus Run(ref NodeRunContext ctx) => m_Processor.Run(ref Data, ref ctx);
-    
-        public void Reset(ref NodeResetContext ctx) => m_Processor.Reset(ref Data, ref ctx);
-    }
 }

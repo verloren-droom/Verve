@@ -59,17 +59,17 @@ namespace VerveUniEx.Sample.AI
         
         
         [Serializable]
-        public struct TestNode : IBTNode, IResetableNode 
+        public struct TestNode : IBTNode, IBTNodeResettable 
         {
             public enum NodeType { Success, Failure, Random }
-            public NodeStatus LastStatus { get; private set; }
+            public BTNodeResult LastResult { get; private set; }
 
             [Tooltip("节点类型")] public NodeType Type;
             [Tooltip("执行耗时"), Range(0,100)] public int ExecutionCost;
             
             private long m_StartTick;
             
-            public NodeStatus Run(ref NodeRunContext ctx)
+            public BTNodeResult Run(ref BTNodeRunContext ctx)
             {
                 // const int MATRIX_SIZE = 16;
                 // float[,] matrixA = new float[MATRIX_SIZE, MATRIX_SIZE];
@@ -105,17 +105,17 @@ namespace VerveUniEx.Sample.AI
                 double elapsedMs = (elapsedTicks * 1000.0) / System.Diagnostics.Stopwatch.Frequency;
         
                 if (elapsedMs < ExecutionCost)
-                    return NodeStatus.Running;
+                    return BTNodeResult.Running;
                 
                 return Type switch {
-                    NodeType.Success => NodeStatus.Success,
-                    NodeType.Failure => NodeStatus.Failure,
+                    NodeType.Success => BTNodeResult.Succeeded,
+                    NodeType.Failure => BTNodeResult.Failed,
                     _ => (new System.Random().Next(0,2) == 0) ? 
-                        NodeStatus.Success : NodeStatus.Failure
+                        BTNodeResult.Succeeded : BTNodeResult.Failed
                 };
             }
             
-            public void Reset(ref NodeResetContext ctx) => m_StartTick = System.Diagnostics.Stopwatch.GetTimestamp();
+            public void Reset(ref BTNodeResetContext ctx) => m_StartTick = System.Diagnostics.Stopwatch.GetTimestamp();
         }
 
 

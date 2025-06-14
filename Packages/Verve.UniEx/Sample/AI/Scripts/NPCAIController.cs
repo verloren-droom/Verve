@@ -1,14 +1,13 @@
+using System;
+using VerveEditor.UniEx.AI;
+
 #if VERVE_UNIEX_0_0_1_OR_NEWER
 
 namespace VerveUniEx.Sample
 {
-    using System;
     using Verve.AI;
     using UnityEngine;
     using VerveUniEx.AI;
-    using UnityEngine.AI;
-    using System.Collections;
-    using VerveEditor.UniEx.AI;
     
     
     public class NPCAIController : MonoBehaviour
@@ -38,81 +37,109 @@ namespace VerveUniEx.Sample
 
         private void BuildBehaviorTree()
         {
-            var root = new SelectorNode()
+            var data = new TransformMoveBTNodeData()
             {
-                Data = new SelectorNodeData()
+                owner = transform,
+                targets = new Transform[] { m_BB.GetValue<Transform>("Target") },
+                // Targets = new Func<Transform[]>(()
+                //     => m_BB.TryGetValue<Transform>("Target", out var t) 
+                //         ? new[] { t } 
+                //         : Array.Empty<Transform>())(),
+                // Targets = new Transform[] { m_Target },
+                moveSpeed = m_MoveSpeed,
+                minValidDistance = m_StoppingDistance,
+                faceMovementDirection = true,
+                rotationSpeed = 360f,
+            };
+            m_BB.SetValue("TransformMoveNode_1", data);
+
+            var root = new SelectorBTNode()
+            {
+                data = new SelectorBTNodeData()
                 {
-                    Children = new IBTNode[]
+                    children = new IBTNode[]
                     {
-                        new SequenceNode()
+                        new SequenceBTNode()
                         {
-                            Data = new SequenceNodeData()
+                            data = new SequenceBTNodeData()
                             {
-                                Children = new IBTNode[]
+                                children = new IBTNode[]
                                 {
-                                    new VisionCheckNode()
+                                    new VisionCheckBTNode()
                                     {
-                                        Key = "Vision123",
-                                        // IsPreparable = true,
-                                        Data = new VisionCheckNodeData()
+                                        data = new VisionCheckBTNodeData()
                                         {
-                                            Owner = transform,
-                                            FieldOfViewAngle = 360f,
-                                            EyeHeight = .8f,
-                                            SightDistance = m_SightRange,
-                                            TargetLayerMask = m_TargetMask,
-                                            TargetTags = new string[] { "Player" },
-                                            ResultTargetKey = "Target",
+                                            owner = transform,
+                                            fieldOfViewAngle = 360f,
+                                            eyeHeight = .25f,
+                                            sightDistance = m_SightRange,
+                                            targetLayerMask = m_TargetMask,
+                                            targetTags = new string[] { "Player" },
+                                            resultTargetKey = "Target",
                                             // Targets = new Transform[] { m_Target },
-                                            DetectionInterval = 0.1f,
+                                            detectionInterval = 0.1f,
                                         },
                                         IsDebug = true,
                                     },
-                                    new TransformMoveNode()
+                                    new ActionBTNode()
                                     {
-                                        Data = new TransformMoveNodeData()
+                                        data = new ActionBTNodeData()
                                         {
-                                            Owner = transform,
-                                            Targets = new Transform[] { m_BB.GetValue<Transform>("Target") },
-                                            // Targets = new Func<Transform[]>(()
-                                            //     => m_BB.TryGetValue<Transform>("Target", out var t) 
-                                            //         ? new[] { t } 
-                                            //         : Array.Empty<Transform>())(),
-                                            // Targets = new Transform[] { m_Target },
-                                            MoveSpeed = m_MoveSpeed,
-                                            MinValidDistance = m_StoppingDistance,
-                                            FaceMovementDirection = true,
-                                            RotationSpeed = 360f,
-                                        }, 
-                                    }
+                                            callback = bb =>
+                                            {
+                                                Debug.Log("Targets: ");
+                                                data.targets = new Transform[] { m_BB.GetValue<Transform>("Target") };
+                                                bb.SetValue("TransformMoveNode_1", data);
+                                                return BTNodeResult.Succeeded;
+                                            }
+                                        }
+                                    },
+                                    new TransformMoveBTNode()
+                                    {
+                                        dataKey = "TransformMoveNode_1",
+                                        data = data,
+                                    },
+                                    new ActionBTNode()
+                                    {
+                                        data = new ActionBTNodeData()
+                                        {
+                                            callback = bb =>
+                                            {
+                                                Debug.Log("Chasing!");
+                                                data.targets = new Transform[] { };
+                                                bb.SetValue("TransformMoveNode_1", data);
+                                                return BTNodeResult.Succeeded;
+                                            }
+                                        }
+                                    },
                                 }
                             }
                         },
-                        new SequenceNode()
+                        new SequenceBTNode()
                         {
-                            Data = new SequenceNodeData()
+                            data = new SequenceBTNodeData()
                             {
-                                Children = new IBTNode[]
+                                children = new IBTNode[]
                                 {
-                                    new DelayNode()
+                                    new DelayBTNode()
                                     {
-                                        Data = new DelayNodeData()
+                                        data = new DelayBTNodeData()
                                         {
-                                            Duration = m_LostSightTime
+                                            duration = m_LostSightTime
                                         }
                                     },
-                                    new TransformMoveNode()
+                                    new TransformMoveBTNode()
                                     {
-                                        Data = new TransformMoveNodeData()
+                                        data = new TransformMoveBTNodeData()
                                         {
-                                            Owner = transform,
-                                            Targets = m_PatrolPoints,
-                                            MoveSpeed = m_MoveSpeed,
-                                            MinValidDistance = m_StoppingDistance,
-                                            FaceMovementDirection = true,
-                                            RotationSpeed = 360f,
-                                            Loop = TransformMoveNodeData.LoopMode.PingPong,
-                                            ArrivalMode = TransformMoveNodeData.ArrivalActionMode.Keep,
+                                            owner = transform,
+                                            targets = m_PatrolPoints,
+                                            moveSpeed = m_MoveSpeed,
+                                            minValidDistance = m_StoppingDistance,
+                                            faceMovementDirection = true,
+                                            rotationSpeed = 360f,
+                                            loopMode = LoopMode.PingPong,
+                                            arrivalMode = ArrivalActionMode.Keep,
                                         }
                                     }
                                 }

@@ -18,12 +18,12 @@ namespace Verve.AI
         private struct BBEntry
         {
             [FieldOffset(0)]
-            public int KeyHash;
+            public int keyHash;
             [FieldOffset(4)]
-            public TypeCode ValueTypeCode;
+            public TypeCode valueTypeCode;
             [FieldOffset(8)] private long _padding;
             [FieldOffset(16)]
-            public object Value;
+            public object value;
         }
 
         
@@ -48,8 +48,8 @@ namespace Verve.AI
             if (m_KeyIndexMap.TryGetValue(hash, out var index))
             {
                 ref var entry = ref m_Data[index];
-                entry.Value = value;
-                entry.ValueTypeCode = Type.GetTypeCode(typeof(T));
+                entry.value = value;
+                entry.valueTypeCode = Type.GetTypeCode(typeof(T));
             }
             else
             {
@@ -60,9 +60,9 @@ namespace Verve.AI
                 
                 m_Data[m_Count] = new BBEntry 
                 {
-                    KeyHash = hash,
-                    ValueTypeCode = Type.GetTypeCode(typeof(T)),
-                    Value = value
+                    keyHash = hash,
+                    valueTypeCode = Type.GetTypeCode(typeof(T)),
+                    value = value
                 };
                 m_KeyIndexMap[hash] = m_Count;
                 m_Count++;
@@ -91,14 +91,14 @@ namespace Verve.AI
             if (m_KeyIndexMap.TryGetValue(hash, out var index))
             {
                 var entry = m_Data[index];
-                if (entry.Value is T typedValue)
+                if (entry.value is T typedValue)
                 {
                     return typedValue;
                 }
                 
                 try
                 {
-                    return (T)Convert.ChangeType(entry.Value, typeof(T));
+                    return (T)Convert.ChangeType(entry.value, typeof(T));
                 }
                 catch
                 {
@@ -120,7 +120,7 @@ namespace Verve.AI
             if (index != lastIndex)
             {
                 m_Data[index] = m_Data[lastIndex];
-                m_KeyIndexMap[m_Data[index].KeyHash] = index;
+                m_KeyIndexMap[m_Data[index].keyHash] = index;
             }
         
             m_Data[lastIndex] = default;

@@ -4,8 +4,11 @@ namespace Verve.AI
     using System.Runtime.CompilerServices;
     
     
+    /// <summary>
+    /// 延时节点数据
+    /// </summary>
     [Serializable]
-    public struct DelayNodeData : INodeData
+    public struct DelayBTNodeData : INodeData
     {
         [Serializable]
         public enum DelayResetMode : byte
@@ -18,20 +21,23 @@ namespace Verve.AI
 
 
         /// <summary> 等待时长（秒） </summary>
-        public float Duration;
+        public float duration;
         /// <summary> 重置模式 </summary>
-        public DelayResetMode Mode;
+        public DelayResetMode resetMode;
     }
 
 
     /// <summary>
-    /// 延迟执行节点，在行为树中实现定时等待功能
+    /// 延迟执行节点
     /// </summary>
-    [Serializable]
-    public struct DelayNode : IBTNode, IResetableNode
+    /// <remarks>
+    /// 定时等待，直到指定时长结束，才返回成功
+    /// </remarks>
+    [CustomBTNode(nameof(DelayBTNode)), Serializable]
+    public struct DelayBTNode : IBTNode, IBTNodeResettable
     {
-        public DelayNodeData Data;
-        public NodeStatus LastStatus { get; private set; }
+        public DelayBTNodeData data;
+        public BTNodeResult LastResult { get; private set; }
 
         /// <summary> 累计时间 </summary>
         private float m_ElapsedTime;
@@ -43,30 +49,30 @@ namespace Verve.AI
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        NodeStatus IBTNode.Run(ref NodeRunContext ctx)
+        BTNodeResult IBTNode.Run(ref BTNodeRunContext ctx)
         {
-            LastStatus = NodeStatus.Running;
+            LastResult = BTNodeResult.Running;
             
             if (m_IsCompleted) 
-                return NodeStatus.Success;
-            if (Data.Duration <= 0.0f)
-                return NodeStatus.Failure;
+                return BTNodeResult.Succeeded;
+            if (data.duration <= 0.0f)
+                return BTNodeResult.Failed;
             
-            m_ElapsedTime += ctx.DeltaTime;
+            m_ElapsedTime += ctx.deltaTime;
             
-            if (m_ElapsedTime < Data.Duration) return NodeStatus.Running;
+            if (m_ElapsedTime < data.duration) return BTNodeResult.Running;
             
-            LastStatus = NodeStatus.Success;
+            LastResult = BTNodeResult.Succeeded;
             m_IsCompleted = true;
-            return NodeStatus.Success;
+            return BTNodeResult.Succeeded;
         }
 
         #region 可重置节点
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void IResetableNode.Reset(ref NodeResetContext ctx)
+        void IBTNodeResettable.Reset(ref BTNodeResetContext ctx)
         {
-            if (Data.Mode != DelayNodeData.DelayResetMode.Once)
+            if (data.resetMode != DelayBTNodeData.DelayResetMode.Once)
             {
                 m_ElapsedTime = 0f;
                 m_IsCompleted = false;

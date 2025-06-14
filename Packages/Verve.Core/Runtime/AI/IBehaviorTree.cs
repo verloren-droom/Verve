@@ -25,7 +25,7 @@ namespace Verve.AI
         /// <param name="deltaTime">时间增量</param>
         void Update(in float deltaTime);
         void ResetNode(int nodeIndex);
-        void ResetAllNodes(NodeResetMode resetMode = NodeResetMode.Full);
+        void ResetAllNodes(BTNodeResetMode resetMode = BTNodeResetMode.Full);
         /// <summary>
         /// 查找节点
         /// </summary>
@@ -37,6 +37,6 @@ namespace Verve.AI
         /// <summary> 恢复行为树执行 </summary>
         void Resume();
         IEnumerable<string> GetActivePath();
-        event Action<IBTNode, NodeStatus> OnNodeStatusChanged;
+        event Action<IBTNode, BTNodeResult> OnNodeResultChanged;
     }
 }

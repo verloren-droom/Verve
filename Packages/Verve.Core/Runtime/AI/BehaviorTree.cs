@@ -8,6 +8,7 @@ namespace Verve.AI
     using System.Collections;
     using System.Threading.Tasks;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Runtime.InteropServices;
     using System.Runtime.CompilerServices;
     using System.Diagnostics.CodeAnalysis;
@@ -24,9 +25,9 @@ namespace Verve.AI
         public struct NodeData
         {
             [FieldOffset(0)]
-            public IBTNode Node;
+            public IBTNode node;
             [FieldOffset(8)]
-            public NodeStatus LastStatus;
+            public BTNodeResult lastResult;
             [FieldOffset(12)] private int _padding;
         }
         
@@ -55,7 +56,7 @@ namespace Verve.AI
         public int ID => m_ID;
         public bool IsDisposed => m_IsDisposed;
         
-        public event Action<IBTNode, NodeStatus> OnNodeStatusChanged;
+        public event Action<IBTNode, BTNodeResult> OnNodeResultChanged;
         public event Action<bool> OnPauseStateChanged;
 
         public bool IsPaused
@@ -88,12 +89,17 @@ namespace Verve.AI
         private static int s_NextTreeId = 0; 
         public static int GenerateTreeId() => Interlocked.Increment(ref s_NextTreeId);
         
-        
+        private static readonly List<BehaviorTree> s_AllBehaviorTrees = new();
+        /// <summary> 所有行为树 </summary>
+        public static IReadOnlyList<BehaviorTree> AllBehaviorTrees => new ReadOnlyCollection<BehaviorTree>(s_AllBehaviorTrees);
+
+
         public BehaviorTree(int initialCapacity = 128, Blackboard blackboard = null)
         {
             m_ID = GenerateTreeId();
             m_ActiveNodes = new NodeData[initialCapacity];
             m_Blackboard = blackboard ?? new Blackboard();
+            s_AllBehaviorTrees.Add(this);
         }
 
         ~BehaviorTree() => Dispose();
@@ -111,37 +117,37 @@ namespace Verve.AI
             }
         
             m_ActiveNodes[m_NodeCount++] = new NodeData {
-                Node = node,
-                LastStatus = NodeStatus.Running
+                node = node,
+                lastResult = BTNodeResult.Running
             };
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ResetAllNodes([NotNull] NodeResetMode resetMode = NodeResetMode.Full)
+        public void ResetAllNodes([NotNull] BTNodeResetMode resetMode = BTNodeResetMode.Full)
         {
             for (int i = 0; i < m_NodeCount; i++)
             {
-                var node = m_ActiveNodes[i].Node;
-                var resetCtx = new NodeResetContext()
+                var node = m_ActiveNodes[i].node;
+                var resetCtx = new BTNodeResetContext()
                 {
-                    BB = m_Blackboard,
-                    Mode = resetMode
+                    bb = m_Blackboard,
+                    resetMode = resetMode
                 };
-                if (node is IResetableNode resetable)
+                if (node is IBTNodeResettable resetable)
                     resetable.Reset(ref resetCtx);
                 
                 m_ActiveNodes[i] = new NodeData {
-                    Node = node,
-                    LastStatus = NodeStatus.Running
+                    node = node,
+                    lastResult = BTNodeResult.Running
                 };
             }
         }
 
         public void ResetNode(int nodeIndex)
         {
-            var state = m_ActiveNodes[nodeIndex];
-            state.LastStatus = NodeStatus.Running;
-            m_ActiveNodes[nodeIndex] = state;
+            var result = m_ActiveNodes[nodeIndex];
+            result.lastResult = BTNodeResult.Running;
+            m_ActiveNodes[nodeIndex] = result;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -153,42 +159,40 @@ namespace Verve.AI
             int startIndex = m_CurrentExecutingIndex >= 0 ? m_CurrentExecutingIndex : 0;
             m_CurrentExecutingIndex = -1;
             
-            var ctx = new NodeRunContext {
-                BB = m_Blackboard,
-                DeltaTime = deltaTime,
+            var ctx = new BTNodeRunContext {
+                bb = m_Blackboard,
+                deltaTime = deltaTime,
             };
 
             for (int i = 0; i < startIndex; i++)
             {
-                var resetCtx = new NodeResetContext()
+                var resetCtx = new BTNodeResetContext()
                 {
-                    BB = m_Blackboard,
-                    Mode = NodeResetMode.Partial
+                    bb = m_Blackboard,
+                    resetMode = BTNodeResetMode.Partial
                 };
-                if (m_ActiveNodes[i].Node is IResetableNode resetable)
-                    resetable.Reset(ref resetCtx);
-                // if (m_ActiveNodes[i].Node is IPreparableNode prepareNode && prepareNode.IsPreparable)
-                //     prepareNode.Prepare(ref ctx);
+                if (m_ActiveNodes[i].node is IBTNodeResettable resettableNode)
+                    resettableNode.Reset(ref resetCtx);
             }
 
             Action<int> body = (i) =>
             {
-                ref var state = ref m_ActiveNodes[i];
+                ref var result = ref m_ActiveNodes[i];
                 
-                if (state.Node is IPreparableNode prepareNode)
+                if (result.node is IBTNodePreparable prepareNode)
                 {
                     prepareNode.Prepare(ref ctx);
                 }
                 
-                var newStatus = state.Node.Run(ref ctx);
+                var newResult = result.node.Run(ref ctx);
 
-                if (newStatus != state.LastStatus)
+                if (newResult != result.lastResult)
                 {
-                    OnNodeStatusChanged?.Invoke(state.Node, newStatus);
-                    state.LastStatus = newStatus;
+                    OnNodeResultChanged?.Invoke(result.node, newResult);
+                    result.lastResult = newResult;
                 }
             
-                if (newStatus == NodeStatus.Running)
+                if (newResult == BTNodeResult.Running)
                 {
                     m_CurrentExecutingIndex = i;
                     foundRunning = true;
@@ -221,7 +225,7 @@ namespace Verve.AI
             m_PausedAtIndex = m_CurrentExecutingIndex;
             m_PausedStateMask = new BitArray(m_NodeCount);
             for (int i = 0; i < m_NodeCount; i++) {
-                m_PausedStateMask[i] = m_ActiveNodes[i].LastStatus == NodeStatus.Running;
+                m_PausedStateMask[i] = m_ActiveNodes[i].lastResult == BTNodeResult.Running;
             }
             IsPaused = true;
         }
@@ -233,7 +237,7 @@ namespace Verve.AI
             m_CurrentExecutingIndex = m_PausedAtIndex;
             for (int i = 0; i < m_NodeCount; i++) {
                 if (m_PausedStateMask[i]) {
-                    m_ActiveNodes[i].LastStatus = NodeStatus.Running;
+                    m_ActiveNodes[i].lastResult = BTNodeResult.Running;
                 }
             }
             IsPaused = false;
@@ -243,7 +247,7 @@ namespace Verve.AI
         {
             foreach (var nodeData in m_ActiveNodes?.Take(m_NodeCount))
             {
-                var node = nodeData.Node;
+                var node = nodeData.node;
 
                 var stack = new Stack<IBTNode>();
                 stack.Push(node);
@@ -253,7 +257,7 @@ namespace Verve.AI
                     var current = stack.Pop();
                     if (predicate(current)) yield return current;
 
-                    if (current is ICompositeNode composite)
+                    if (current is ICompositeBTNode composite)
                     {
                         foreach (var child in composite.GetChildren())
                             stack.Push(child);
@@ -266,6 +270,7 @@ namespace Verve.AI
         {
             if (m_IsDisposed) return;
             
+            s_AllBehaviorTrees.Remove(this);
             m_Blackboard?.Dispose();
             s_NodePool.Return(m_ActiveNodes);
             Array.Clear( m_ActiveNodes, 0, m_ActiveNodes.Length);
@@ -278,7 +283,7 @@ namespace Verve.AI
             var paths = new List<string>();
             for (int i = 0; i < m_NodeCount; i++)
             {
-                var node = m_ActiveNodes[i].Node;
+                var node = m_ActiveNodes[i].node;
                 TraverseNode(node, "", paths);
             }
             return paths.Distinct();
@@ -292,7 +297,7 @@ namespace Verve.AI
             
             paths.Add(currentPath);
         
-            if (node is ICompositeNode composite)
+            if (node is ICompositeBTNode composite)
             {
                 foreach (var child in composite.GetChildren())
                 {
@@ -306,9 +311,9 @@ namespace Verve.AI
             var activePaths = new List<string>();
             for (int i = 0; i < m_NodeCount; i++)
             {
-                if (m_ActiveNodes[i].LastStatus == NodeStatus.Running)
+                if (m_ActiveNodes[i].lastResult == BTNodeResult.Running)
                 {
-                    TraverseNode(m_ActiveNodes[i].Node, "", activePaths);
+                    TraverseNode(m_ActiveNodes[i].node, "", activePaths);
                 }
             }
             return activePaths.Distinct();
@@ -318,27 +323,26 @@ namespace Verve.AI
         {
             for (int i = 0; i < m_NodeCount; i++)
             {
-                if (m_ActiveNodes[i].LastStatus == NodeStatus.Running)
+                if (m_ActiveNodes[i].lastResult == BTNodeResult.Running)
                 {
                     yield return m_ActiveNodes[i];
                 }
             }
         }
         
-        public NodeStatus GetNodeStatus(IBTNode node)
+        public BTNodeResult GetNodeResult(IBTNode node)
         {
             foreach(var nodeData in GetActiveNodes())
             {
-                if(nodeData.Node.Equals(node))
+                if(nodeData.node.Equals(node))
                 {
-                    return nodeData.LastStatus;
+                    return nodeData.lastResult;
                 }
             }
-            return NodeStatus.Running;
+            return BTNodeResult.Running;
         }
 
-        public IReadOnlyList<IBTNode> AllNodes => 
-            m_ActiveNodes.Take(m_NodeCount).Select(n => n.Node).ToList();
+        public IReadOnlyList<IBTNode> AllNodes => m_ActiveNodes.Take(m_NodeCount).Select(n => n.node).ToList();
 
         public override string ToString()
         {

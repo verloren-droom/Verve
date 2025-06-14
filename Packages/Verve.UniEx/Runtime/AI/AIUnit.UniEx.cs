@@ -1,3 +1,5 @@
+#if UNITY_5_3_OR_NEWER
+
 namespace VerveUniEx.AI
 {
     using System;
@@ -15,3 +17,5 @@ namespace VerveUniEx.AI
 
     }
 }
+
+#endif

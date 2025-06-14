@@ -38,28 +38,28 @@ namespace VerveUniEx.Tests
         {
             var bb = new Blackboard();
             
-            var node = new VectorDistanceConditionNode
+            var node = new VectorDistanceConditionBTNode
             {
-                Data = new VectorDistanceConditionNodeData()
+                data = new VectorDistanceConditionBTNodeData()
                 {
-                    OwnerPoint = Vector3.zero,
-                    TargetPoint = Vector3.forward * 3,
-                    CheckDistance = 5f,
-                    CompareMode = VectorDistanceConditionNodeData.Comparison.LessThanOrEqual
+                    ownerPoint = Vector3.zero,
+                    targetPoint = Vector3.forward * 3,
+                    checkDistance = 5f,
+                    compareMode = VectorDistanceConditionBTNodeData.Comparison.LessThanOrEqual
                 }
             };
             
-            var ctx = new NodeRunContext()
+            var ctx = new BTNodeRunContext()
             {
-                BB = bb,
-                DeltaTime = 0f
+                bb = bb,
+                deltaTime = 0f
             };
             var status = (node as IBTNode).Run(ref ctx);
-            Assert.AreEqual(NodeStatus.Success, status);
+            Assert.AreEqual(BTNodeResult.Succeeded, status);
         
-            node.Data.TargetPoint = Vector3.forward * 6;
+            node.data.targetPoint = Vector3.forward * 6;
             status = (node as IBTNode).Run(ref ctx);
-            Assert.AreEqual(NodeStatus.Failure, status);
+            Assert.AreEqual(BTNodeResult.Failed, status);
         }
     }
 }
