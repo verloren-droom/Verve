@@ -22,28 +22,20 @@ namespace Verve.AI
         /// 重置子节点
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ResetChildNode(this ICompositeBTNode _, ref IBTNode child, ref BTNodeResetContext ctx, bool recursive = false)
+        public static void ResetChildNode(this ICompositeBTNode _, ref IBTNode child, ref BTNodeResetContext ctx)
         {
             (child as IBTNodeResettable)?.Reset(ref ctx);
-            if(recursive)
-            {
-                (child as ICompositeBTNode)?.ResetChildrenNode(ref ctx, recursive);
-            }
         }
         
         /// <summary>
         /// 重置所有子节点
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ResetChildrenNode(this ICompositeBTNode self, ref BTNodeResetContext ctx, bool recursive = false)
+        public static void ResetChildrenNode(this ICompositeBTNode self, ref BTNodeResetContext ctx)
         {
             foreach (var child in self.GetChildren())
             {
                 (child as IBTNodeResettable)?.Reset(ref ctx);
-                if (recursive && child is ICompositeBTNode composite)
-                {
-                    composite.ResetChildrenNode(ref ctx, true);
-                }
             }
         }
         
@@ -51,15 +43,11 @@ namespace Verve.AI
         /// 重置所有激活的子节点
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ResetActiveChildrenNode(this ICompositeBTNode self, ref BTNodeResetContext ctx, bool recursive = false)
+        public static void ResetActiveChildrenNode(this ICompositeBTNode self, ref BTNodeResetContext ctx)
         {
             foreach (var child in self.GetActiveChildren())
             {
                 (child as IBTNodeResettable)?.Reset(ref ctx);
-                if (recursive && child is ICompositeBTNode composite)
-                {
-                    composite.ResetActiveChildrenNode(ref ctx, true);
-                }
             }
         }
     }

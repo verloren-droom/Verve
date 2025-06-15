@@ -11,11 +11,7 @@ namespace Verve.AI
     /// </summary>
     [CustomUnit("AI"), Serializable]
     public partial class AIUnit : UnitBase
-    { 
-        private readonly Dictionary<int, IBehaviorTree> m_Trees = new Dictionary<int, IBehaviorTree>();
-        private readonly Dictionary<int, Blackboard> m_Blackboards = new Dictionary<int, Blackboard>();
-        
-        
+    {
         protected override void OnStartup(params object[] args)
         {
             base.OnStartup(args);
@@ -25,81 +21,60 @@ namespace Verve.AI
         protected override void OnTick(float deltaTime, float unscaledTime)
         {
             base.OnTick(deltaTime, unscaledTime);
-            for (int i = 0; i < m_Trees.Values.Count; i++)
+            for (int i = 0; i < BehaviorTree.AllBehaviorTrees.Count; i++)
             {
-                m_Trees.Values.ElementAt(i)?.Update(deltaTime);
+                BehaviorTree.AllBehaviorTrees[i]?.Update(deltaTime);
             }
         }
 
         protected override void OnShutdown()
         {
             base.OnShutdown();
-            for (int i = 0; i < GetAllBT().Count(); i++)
+            for (int i = 0; i < BehaviorTree.AllBehaviorTrees.Count; i++)
             {
-                var tree = GetAllBT().ElementAt(i);
-                tree.Pause();
-                DestroyBT(tree.ID);
+                BehaviorTree.AllBehaviorTrees[i]?.Dispose();
             }
         }
 
-        public BTType CreateBT<BTType>(int initialCapacity = 128, Blackboard bb = null)
+        public BTType CreateBehaviorTree<BTType>(int initialCapacity = 128, Blackboard bb = null)
             where BTType : class, IBehaviorTree
         {
             var tree = new BehaviorTree(initialCapacity, bb);
-            m_Trees.Add(tree.ID, tree);
-            m_Blackboards.Add(tree.ID, tree.BB);
             return tree as BTType;
         }
 
-        public BTType CreateOrGetBT<BTType>(int id, bool isActive = true, int initialCapacity = 64, Blackboard bb = null)
-            where BTType : class, IBehaviorTree
+         public BTType CreateOrGetBehaviorTree<BTType>(int id, int initialCapacity = 64, Blackboard bb = null)
+             where BTType : class, IBehaviorTree
+         {
+             var existing = BehaviorTree.AllBehaviorTrees.FirstOrDefault(x => x.ID == id);
+             if (existing != null) return existing as BTType;
+             return CreateBehaviorTree<BTType>(initialCapacity, bb);
+         }
+
+         public void DestroyBehaviorTree(int id, bool isDestroyBB = true)
         {
-            if (m_Trees.TryGetValue(id, out var tree))
+            BehaviorTree bt = BehaviorTree.AllBehaviorTrees.FirstOrDefault(x => x.ID == id);
+            if (bt != null)
             {
-                return tree as BTType;
-            }
-            return CreateBT<BTType>(initialCapacity, bb);
-        }
-        
-        public void DestroyBT(int id, bool isDestroyBB = true)
-        {
-            if (m_Trees.TryGetValue(id, out var tree))
-            {
-                tree?.Dispose();
+                bt.Dispose();
                 if (isDestroyBB)
                 {
-                    if (m_Blackboards.TryGetValue(id, out var bb))
-                    {
-                        bb?.Dispose();
-                    }
-                    m_Blackboards.Remove(id);
+                    Blackboard.AllBlackboards.FirstOrDefault(x => x.ID == id)?.Dispose();
                 }
-                m_Trees.Remove(id);
             }
         }
 
-        public BTType GetBT<BTType>(int id)
+        public BTType GetBehaviorTree<BTType>(int id)
             where BTType : class, IBehaviorTree
         {
-            if (m_Trees.TryGetValue(id, out var tree))
-            {
-                return tree as BTType;
-            }
-            return null;
-        }
-        
-        public IEnumerable<IBehaviorTree> GetAllBT()
-        {
-            return m_Trees.Values;
+            return BehaviorTree.AllBehaviorTrees
+                .FirstOrDefault(t => t.ID == id) as BTType;
         }
 
         public Blackboard GetBlackboard(int id)
         {
-            if (m_Blackboards.TryGetValue(id, out var bb))
-            {
-                return bb;
-            }
-            return null;
+            return Blackboard.AllBlackboards
+                .FirstOrDefault(t => t.ID == id);
         }
     }
 }

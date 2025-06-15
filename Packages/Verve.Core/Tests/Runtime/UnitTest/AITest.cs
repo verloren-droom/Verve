@@ -33,7 +33,7 @@ namespace Verve.Tests
         public void BehaviorTree_ShouldExecuteNodesCorrectly()
         {
             var bb = new Blackboard();
-            var tree = m_AIUnit.CreateBT<BehaviorTree>(bb: bb);
+            var tree = m_AIUnit.CreateBehaviorTree<BehaviorTree>(bb: bb);
     
             bool action1Executed = false;
 
@@ -347,7 +347,7 @@ namespace Verve.Tests
             var executionLog = new List<string>();
 
             // 构建完整行为树
-            var behaviorTree = m_AIUnit.CreateBT<BehaviorTree>(bb: bb);
+            var behaviorTree = m_AIUnit.CreateBehaviorTree<BehaviorTree>(bb: bb);
 
             // 创建深度嵌套的节点结构
             IBTNode rootNode = new RepeaterBTNode()

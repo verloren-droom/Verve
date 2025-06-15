@@ -81,12 +81,14 @@ namespace Verve.AI
             }
         }
 
+        
         private static readonly ParallelOptions s_ParallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 8 };
         private static readonly ArrayPool<NodeData> s_NodePool = ArrayPool<NodeData>.Create(
             maxArrayLength: 1024 * 1024,
             maxArraysPerBucket: 10
         );
-        private static int s_NextTreeId = 0; 
+        
+        private static int s_NextTreeId; 
         public static int GenerateTreeId() => Interlocked.Increment(ref s_NextTreeId);
         
         private static readonly List<BehaviorTree> s_AllBehaviorTrees = new();

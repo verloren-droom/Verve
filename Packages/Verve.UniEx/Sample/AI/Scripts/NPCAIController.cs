@@ -31,7 +31,7 @@ namespace VerveUniEx.Sample
         {
             // m_Target = GameObject.FindWithTag("Player").transform;
             m_BB = new Blackboard();
-            m_AI = GameLauncher.Instance.AI.CreateBT<BehaviorTree>(bb:  m_BB);
+            m_AI = GameLauncher.Instance.AI.CreateBehaviorTree<BehaviorTree>(bb:  m_BB);
             BuildBehaviorTree();
         }
 

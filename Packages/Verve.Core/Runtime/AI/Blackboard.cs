@@ -3,8 +3,9 @@ namespace Verve.AI
     using System;
     using System.Threading;
     using System.Collections.Generic;
-    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
+    using System.Collections.ObjectModel;
+    using System.Runtime.CompilerServices;
     
     
     /// <summary>
@@ -27,17 +28,30 @@ namespace Verve.AI
         }
 
         
+        private int m_ID;
         private BBEntry[] m_Data;
         private int m_Count;
         private Dictionary<int, int> m_KeyIndexMap;
         public event Action<string, object> OnValueChanged;
+        public int ID => m_ID;
+
+        private static int s_NextBBId; 
+        public static int GenerateBBId() => Interlocked.Increment(ref s_NextBBId);
         
-        
+        private static readonly List<Blackboard> s_AllBlackboards = new();
+        /// <summary> 所有黑板数据 </summary>
+        public static IReadOnlyList<Blackboard> AllBlackboards => new ReadOnlyCollection<Blackboard>(s_AllBlackboards);
+
+
         public Blackboard(int initialSize = 32)
         {
+            m_ID = GenerateBBId();
             m_Data = new BBEntry[initialSize];
             m_KeyIndexMap = new Dictionary<int, int>(initialSize);
+            s_AllBlackboards.Add(this);
         }
+
+        ~Blackboard() => Dispose();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetValue<T>(string key, in T value)
@@ -135,6 +149,7 @@ namespace Verve.AI
             return m_KeyIndexMap.ContainsKey(GetStableHash(key));
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int GetStableHash(string key)
         {
             unchecked {
@@ -149,6 +164,7 @@ namespace Verve.AI
         {
             Array.Clear(m_Data, 0, m_Count);
             m_KeyIndexMap.Clear();
+            s_AllBlackboards.Remove(this);
         }
     }
 }
