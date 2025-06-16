@@ -2,6 +2,10 @@
 
 namespace VerveUniEx.MVC
 {
+    using UnityEngine;
+    
+    
+    [DisallowMultipleComponent]
     public abstract partial class ViewBase
     {
         protected virtual void OnValidate()

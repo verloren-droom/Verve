@@ -30,6 +30,8 @@ namespace VerveUniEx.Tests
             m_InputUnit = null;
         }
         
+#if UNITY_2019_4_OR_NEWER && ENABLE_INPUT_SYSTEM
+
         [Test]
         public void SimulateInputSystem_ShouldWorkCorrectly()
         {
@@ -65,6 +67,7 @@ namespace VerveUniEx.Tests
             
             Object.DestroyImmediate(playerInput.gameObject);
         }
+#endif
         
         [Test]
         public void SimulateInputManager_ShouldWorkCorrectly()

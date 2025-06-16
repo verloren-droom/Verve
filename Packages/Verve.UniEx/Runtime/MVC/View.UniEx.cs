@@ -5,29 +5,30 @@ namespace VerveUniEx.MVC
     using Verve;
     using System;
     using Verve.MVC;
-    using System.Text.RegularExpressions;
     using UnityEngine;
-    using UnityEngine.EventSystems;
     using UnityEngine.UI;
+    using UnityEngine.EventSystems;
+    using System.Text.RegularExpressions;
     
     
     /// <summary>
     /// MVC视图基类
     /// </summary>
-    [DisallowMultipleComponent]
     public abstract partial class ViewBase : MonoBehaviour, IView
     {
         [SerializeField, PropertyDisable] private string m_ViewName;
-
         public virtual string ViewName
         {
             get => m_ViewName ??= 
                 Regex.Replace(gameObject.name, @"View$", string.Empty, RegexOptions.IgnoreCase);
             set => m_ViewName = value;
-        } 
+        }
     
         public event Action<IView> OnOpened;
         public event Action<IView> OnClosed;
+
+        public abstract IActivity Activity { get; set; }
+        
         
         protected virtual void OnOpening() { }
         protected virtual void OnClosing() { }
@@ -45,8 +46,9 @@ namespace VerveUniEx.MVC
             Destroy(gameObject);
         }
 
-        public abstract IActivity Activity { get; set; }
-        
+        /// <summary>
+        /// 添加事件监听
+        /// </summary>
         protected void AddEventTrigger(EventTrigger eventTrigger, EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)
         {
             if (eventTrigger == null || callback == null) return;
@@ -65,6 +67,19 @@ namespace VerveUniEx.MVC
         protected void AddEventTrigger(MaskableGraphic graphic, EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)
         {
             AddEventTrigger(graphic?.gameObject.GetComponent<EventTrigger>() ?? graphic?.gameObject.AddComponent<EventTrigger>(), type, callback);
+        }
+
+        /// <summary>
+        /// 批量添加多个事件类型
+        /// </summary>
+        public void AddEventTriggerRange(
+            EventTrigger eventTrigger,
+            params (EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)[] events)
+        {
+            foreach (var e in events)
+            {
+                AddEventTrigger(eventTrigger, e.type, e.callback);
+            }
         }
         
         protected void RemoveEventTrigger(EventTrigger eventTrigger, EventTriggerType type)
@@ -103,7 +118,7 @@ namespace VerveUniEx.MVC
         /// <summary>
         /// 清除所有事件监听
         /// </summary>
-        public void ClearAllTriggers(EventTrigger eventTrigger)
+        public void RemoveAllTriggers(EventTrigger eventTrigger)
         {
             if (eventTrigger != null)
             {
@@ -115,7 +130,7 @@ namespace VerveUniEx.MVC
             }
         }
         
-        public void ClearAllTriggers(MaskableGraphic graphic)
+        public void RemoveAllTriggers(MaskableGraphic graphic)
         {
             if (graphic == null || !graphic.TryGetComponent<EventTrigger>(out var eventTrigger)) return;
 
@@ -124,19 +139,6 @@ namespace VerveUniEx.MVC
                 entry.callback.RemoveAllListeners();
             }
             eventTrigger.triggers.Clear();
-        }
-
-        /// <summary>
-        /// 批量添加多个事件类型
-        /// </summary>
-        public void AddMultipleEvents(
-            EventTrigger eventTrigger,
-            params (EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)[] events)
-        {
-            foreach (var e in events)
-            {
-                AddEventTrigger(eventTrigger, e.type, e.callback);
-            }
         }
     }
 }

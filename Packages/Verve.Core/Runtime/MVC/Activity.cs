@@ -36,6 +36,7 @@ namespace Verve.MVC
     {
         private readonly IOCContainer m_Container = new IOCContainer();
         
+        
         public void RegisterModel<TModel>() where TModel : class, IModel, new()
         {
             if (!m_Container.TryResolve<TModel>(out _))

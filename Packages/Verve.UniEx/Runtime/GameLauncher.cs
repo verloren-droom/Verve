@@ -25,7 +25,7 @@ namespace VerveUniEx
     /// <summary>
     /// 游戏启动器
     /// </summary>
-    [AddComponentMenu("Verve/GameLauncher"), DisallowMultipleComponent, DefaultExecutionOrder(-100)]
+    [DefaultExecutionOrder(-100)]
     public partial class GameLauncher : ComponentInstanceBase<GameLauncher>
     {
         [Header("View")]

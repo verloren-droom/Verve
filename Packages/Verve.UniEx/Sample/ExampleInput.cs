@@ -26,12 +26,14 @@ namespace VerveUniEx.Sample
             Launcher.TryGetUnit(out m_Input);
             Launcher.TryGetUnit(out m_LoaderUnit);
             
-            
+#if UNITY_2019_4_OR_NEWER && ENABLE_INPUT_SYSTEM
+
             m_Input.AddListener<InputSystemService, float>("Move/Right", OnMoveRightAction);
             m_Input.AddListener<InputSystemService, float>("Move/Right", OnMoveRight1Action);
 
             m_Input.AddListener<InputSystemService, bool>("Interaction/Key", OnInteractionAction);
             m_Input.Enable<InputSystemService>();
+#endif
         }
 
         private void OnInteractionAction(InputServiceContext<bool> obj)

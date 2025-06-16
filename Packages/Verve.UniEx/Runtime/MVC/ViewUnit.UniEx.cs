@@ -28,7 +28,8 @@ namespace VerveUniEx.MVC
             catch { }
         }
         
-        public bool TryOpen<TView>(bool isCloseAllOther = false, Transform parent = null, Action<TView> onOpened = null) where TView : Verve.MVC.ViewBase, IView
+        public bool TryOpen<TView>(bool isCloseAllOther = false, Transform parent = null, Action<TView> onOpened = null)
+            where TView : VerveUniEx.MVC.ViewBase, IView
         {
             var viewType = typeof(TView);
             var info = GetViewInfo(viewType);
@@ -43,9 +44,9 @@ namespace VerveUniEx.MVC
             return false;
         }
 
-        public bool TryOpen(string resourcePath, Type loaderType, bool isCloseAllOther = false, Transform parent = null, Action<Verve.MVC.ViewBase> onOpened = null)
+        public bool TryOpen(string resourcePath, Type loaderType, bool isCloseAllOther = false, Transform parent = null, Action<VerveUniEx.MVC.ViewBase> onOpened = null)
         {
-            if (LoadView<Verve.MVC.ViewBase>(loaderType, resourcePath, parent) is Verve.MVC.ViewBase viewInstance)
+            if (LoadView<VerveUniEx.MVC.ViewBase>(loaderType, resourcePath, parent) is VerveUniEx.MVC.ViewBase viewInstance)
             {
                 if (isCloseAllOther) CloseAll();
                 viewInstance.Open();
@@ -56,7 +57,8 @@ namespace VerveUniEx.MVC
         }
 
         private TView LoadView<TView>(Type loaderType, string path,Transform parent = null) 
-            where TView : IView => (TView)LoadView(typeof(TView), loaderType, path, parent);
+            where TView : IView
+            => (TView)LoadView(typeof(TView), loaderType, path, parent);
         
         private IView LoadView(Type viewType, Type loaderType, string path, Transform parent = null)
         {
@@ -66,7 +68,8 @@ namespace VerveUniEx.MVC
         }
 
         private async Task<TView> LoadViewAsync<TView>(IAssetLoader loader, string path, Transform parent = null)
-            where TView : IView => (TView)await LoadViewAsync(typeof(TView), loader, path, parent);
+            where TView : IView
+            => (TView)await LoadViewAsync(typeof(TView), loader, path, parent);
         
         private async Task<object> LoadViewAsync(Type viewType, IAssetLoader loader, string path, Transform parent = null)
         {
