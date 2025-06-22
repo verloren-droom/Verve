@@ -13,7 +13,10 @@
 
 ## Dependencies
 - [Verve.Core](https://github.com/verloren-droom/Verve)
+- [NuGetForUnity](https://github.com/GlitchEnzo/NuGetForUnity)
 - [ProtoBuf](https://github.com/protobuf-net/protobuf-net)
 - [Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)
+- Microsoft.Extensions.DependencyInjection
+- Microsoft.Extensions.DependencyInjection.Abstractions
 - `Unity.Addressables`
 - `Unity.InputSystem`

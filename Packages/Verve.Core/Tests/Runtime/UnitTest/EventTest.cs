@@ -10,14 +10,14 @@ namespace Verve.Tests
     public class EventTest
     {
         private UnitRules m_UnitRules = new UnitRules();
-        private EventUnit m_EventUnit;
+        private EventBusUnit m_EventUnit;
 
         
         [SetUp]
         public void SetUp()
         {
             m_UnitRules = new UnitRules();
-            m_UnitRules.AddDependency<EventUnit>();
+            m_UnitRules.AddDependency<EventBusUnit>();
             m_UnitRules.Initialize();
             m_UnitRules.TryGetDependency(out m_EventUnit);
         }

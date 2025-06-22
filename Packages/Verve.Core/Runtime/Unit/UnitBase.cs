@@ -10,6 +10,7 @@ namespace Verve.Unit
     /// <summary>
     /// 单元基类
     /// </summary>
+    [Serializable]
     public abstract partial class UnitBase : ICustomUnit
     {
         public virtual string UnitName => Regex.Replace(GetType().GetCustomAttribute<CustomUnitAttribute>()?.UnitName ?? GetType().Name, "Unit", string.Empty);
@@ -73,6 +74,7 @@ namespace Verve.Unit
     }
 
     
+    [Serializable]
     public abstract partial class UnitBase<TUnitService> : UnitBase where TUnitService : IUnitService
     {
         protected readonly Dictionary<Type, TUnitService> m_UnitServices = new Dictionary<Type, TUnitService>();

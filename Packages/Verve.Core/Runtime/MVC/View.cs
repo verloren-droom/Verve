@@ -5,16 +5,20 @@ namespace Verve.MVC
 
     public abstract partial class ViewBase : IView
     {
+        public event Action<IView> OnOpened;
+        public event Action<IView> OnClosed;
+        
         public abstract IActivity Activity { get; set; }
         
-        public string ViewName { get; }
+        public abstract string ViewName { get; }
+
         
-        protected virtual void OnOpening() { }
+        protected virtual void OnOpening(params object[] _) { }
         protected virtual void OnClosing() { }
 
-        public void Open()
+        void IView.Open(params object[] args)
         {
-            OnOpening();
+            OnOpening(args);
             OnOpened?.Invoke(this);
         }
 
@@ -23,8 +27,5 @@ namespace Verve.MVC
             OnClosing();
             OnClosed?.Invoke(this);
         }
-
-        public event Action<IView> OnOpened;
-        public event Action<IView> OnClosed;
     }
 }

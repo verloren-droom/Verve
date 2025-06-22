@@ -42,6 +42,7 @@ namespace Verve.Pool
     
         public T Get(Predicate<T> predicate = null)
         {
+            if (m_Pool == null) { return null; }
             if (predicate == null)
             {
                 if (m_Pool.TryDequeue(out T obj))
@@ -100,7 +101,7 @@ namespace Verve.Pool
         
         public void Release(T element)
         {
-            if (element == null) { return; }
+            if (element == null || m_Pool == null) { return; }
             if (m_Pool.Count < m_MaxCapacity)
             {
                 m_OnReleaseToPool?.Invoke(element);
@@ -114,6 +115,7 @@ namespace Verve.Pool
         
         public void ReleaseRange(IEnumerable<T> elements)
         {
+            if (m_Pool == null) { return; }
             int availableSlots = m_MaxCapacity - m_Pool.Count;
             int count = 0;
             
@@ -131,6 +133,7 @@ namespace Verve.Pool
         
         public void Clear(bool isDestroy = true)
         {
+            if (m_Pool == null) { return; }
             if (isDestroy)
             {
                 while (m_Pool.TryDequeue(out var obj))

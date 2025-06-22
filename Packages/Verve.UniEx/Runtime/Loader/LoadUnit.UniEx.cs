@@ -44,7 +44,7 @@ namespace VerveUniEx.Loader
             LoadSceneParameters parameters = default, 
             Action<float> onProgress = null) where TLoaderType : class, VerveUniEx.Loader.IAssetLoader
         {
-            return GetService<TLoaderType>().LoadSceneAsync(sceneName, onComplete, allowSceneActivation, parameters, onProgress);
+            yield return GetService<TLoaderType>().LoadSceneAsync(sceneName, onComplete, allowSceneActivation, parameters, onProgress);
         }
 
         public async Task<SceneLoaderCallbackContext> UnloadSceneAsync<TLoaderType>(string sceneName, bool allowSceneActivation = true, UnloadSceneOptions options = UnloadSceneOptions.None, Action<float> onProgress = null) where TLoaderType : class, VerveUniEx.Loader.IAssetLoader

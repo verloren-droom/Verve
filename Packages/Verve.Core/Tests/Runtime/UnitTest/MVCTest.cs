@@ -91,8 +91,8 @@ namespace Verve.Tests
             
             view.OnOpened += v => openedFired = true;
             view.OnClosed += v => closedFired = true;
-            
-            view.Open();
+
+            ((IView)view).Open();
             Assert.IsTrue(openedFired);
             
             view.Close();
@@ -127,6 +127,7 @@ namespace Verve.Tests
 
         private class TestView : ViewBase
         {
+            public override string ViewName { get; } = nameof(TestView);
             public override IActivity Activity { get; set; }
         }
 

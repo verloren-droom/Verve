@@ -21,7 +21,7 @@ namespace VerveEditor.UniEx
     
                 if (parameters.Length > 0)
                 {
-                    if (buttonAttribute.Parameters == null || buttonAttribute.Parameters.Length != parameters.Length)
+                    if (buttonAttribute.Args == null || buttonAttribute.Args.Length != parameters.Length)
                     {
                         EditorGUILayout.HelpBox(
                             $"Method '{method.Name}' has parameters but ButtonAttribute does not specify matching parameters.",
@@ -33,7 +33,7 @@ namespace VerveEditor.UniEx
     
                     for (int i = 0; i < parameters.Length; i++)
                     {
-                        string paramName = buttonAttribute.Parameters[i];
+                        string paramName = buttonAttribute.Args[i];
                         var paramType = parameters[i].ParameterType;
     
                         var field = target.GetType().GetField(paramName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);

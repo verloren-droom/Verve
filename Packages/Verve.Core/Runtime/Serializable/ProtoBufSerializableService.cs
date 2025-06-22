@@ -2,7 +2,6 @@ namespace Verve.Serializable
 {
     using ProtoBuf;
     using System.IO;
-    using Google.Protobuf;
 
 
     public sealed partial class ProtoBufSerializableService : SerializableServiceBase
@@ -11,7 +10,7 @@ namespace Verve.Serializable
         {
             using (var stream = new MemoryStream())
             {
-                Serializer.Serialize(stream, obj);
+                Serializer.Serialize(stream, obj); 
                 return stream.ToArray();
             }
         }

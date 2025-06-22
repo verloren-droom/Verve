@@ -13,14 +13,6 @@ namespace Verve.MVC
         /// </summary>
         string ViewName { get; }
         /// <summary>
-        /// 打开视图
-        /// </summary>
-        void Open();
-        /// <summary>
-        /// 关闭视图
-        /// </summary>
-        void Close();
-        /// <summary>
         /// 视图打开事件
         /// </summary>
         event Action<IView> OnOpened;
@@ -28,5 +20,13 @@ namespace Verve.MVC
         /// 视图关闭事件
         /// </summary>
         event Action<IView> OnClosed;
+        /// <summary>
+        /// 打开视图
+        /// </summary>
+        void Open(params object[] args);
+        /// <summary>
+        /// 关闭视图
+        /// </summary>
+        void Close();
     }
 }

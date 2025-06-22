@@ -15,7 +15,7 @@ namespace VerveUniEx.Audio
     public sealed partial class AudioAsset : IDisposable
     {
         private readonly AudioSource m_Source;
-        [SerializeField, PropertyDisable] private string m_AssetName;
+        [SerializeField, ReadOnly] private string m_AssetName;
 
         /// <summary>
         /// 音效被播放事件

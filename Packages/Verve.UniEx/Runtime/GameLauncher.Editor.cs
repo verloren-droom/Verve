@@ -9,10 +9,10 @@ namespace VerveUniEx
     using UnityEngine;
     
     
-    [AddComponentMenu("Verve/GameLauncher"), DisallowMultipleComponent, ExecuteInEditMode]
     /// <summary>
     /// 启动器（编辑器模式）
     /// </summary>
+    [AddComponentMenu("Verve/GameLauncher"), DisallowMultipleComponent, ExecuteAlways]
     public partial class GameLauncher
     {
         private void OnGUI()

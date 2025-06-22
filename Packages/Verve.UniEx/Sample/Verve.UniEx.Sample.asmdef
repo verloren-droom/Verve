@@ -7,14 +7,18 @@
         "Unity.ResourceManager",
         "Verve.Core",
         "Verve.UniEx",
-        "Verve.UniEx.Editor",
-        "ProtoBuf"
+        "Verve.UniEx.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "protobuf-net.Core.dll",
+        "Microsoft.Extensions.DependencyInjection.dll",
+        "Microsoft.Extensions.DependencyInjection.Abstractions.dll",
+        "System.Collections.Immutable.dll"
+    ],
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],

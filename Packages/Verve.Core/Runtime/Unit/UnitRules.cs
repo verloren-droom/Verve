@@ -83,7 +83,7 @@ namespace Verve.Unit
             }
         }
 
-        internal UnitRules AddDependency(Type unitType, params object[] startupArgs)
+        public UnitRules AddDependency(Type unitType, params object[] startupArgs)
         {
             if (!typeof(ICustomUnit).IsAssignableFrom(unitType))
                 throw new InvalidUnitTypeException(unitType);

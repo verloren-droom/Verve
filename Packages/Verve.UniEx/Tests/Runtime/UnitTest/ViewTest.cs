@@ -12,14 +12,14 @@ namespace VerveUniEx.Tests
     public class ViewTest
     {
         private UnitRules m_UnitRules = new UnitRules();
-        private ViewUnit m_ViewUnit;
+        private MVCUnit m_ViewUnit;
 
         
         [SetUp]
         public void SetUp()
         {
             m_UnitRules = new UnitRules();
-            m_UnitRules.AddDependency<ViewUnit>();
+            m_UnitRules.AddDependency<MVCUnit>();
             m_UnitRules.Initialize();
             m_UnitRules.TryGetDependency(out m_ViewUnit);
         }

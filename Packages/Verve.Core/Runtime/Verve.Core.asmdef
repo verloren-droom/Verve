@@ -2,14 +2,19 @@
     "name": "Verve.Core",
     "rootNamespace": "Verve",
     "references": [
-        "ProtoBuf"
+        "NuGetForUnity"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": true,
     "overrideReferences": true,
     "precompiledReferences": [
-        "Newtonsoft.Json.dll"
+        "Newtonsoft.Json.dll",
+        "Microsoft.Extensions.DependencyInjection.dll",
+        "Microsoft.Extensions.DependencyInjection.Abstractions.dll",
+        "NuGetForUnity.PluginAPI.dll",
+        "protobuf-net.Core.dll",
+        "protobuf-net.dll"
     ],
     "autoReferenced": true,
     "defineConstraints": [],

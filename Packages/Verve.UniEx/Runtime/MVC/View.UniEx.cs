@@ -7,6 +7,7 @@ namespace VerveUniEx.MVC
     using Verve.MVC;
     using UnityEngine;
     using UnityEngine.UI;
+    using System.Collections;
     using UnityEngine.EventSystems;
     using System.Text.RegularExpressions;
     
@@ -16,13 +17,15 @@ namespace VerveUniEx.MVC
     /// </summary>
     public abstract partial class ViewBase : MonoBehaviour, IView
     {
-        [SerializeField, PropertyDisable] private string m_ViewName;
+        [SerializeField, ReadOnly] private string m_ViewName;
         public virtual string ViewName
         {
             get => m_ViewName ??= 
                 Regex.Replace(gameObject.name, @"View$", string.Empty, RegexOptions.IgnoreCase);
-            set => m_ViewName = value;
+            protected set => m_ViewName = value;
         }
+        
+        private bool m_IsOpened;
     
         public event Action<IView> OnOpened;
         public event Action<IView> OnClosed;
@@ -30,19 +33,35 @@ namespace VerveUniEx.MVC
         public abstract IActivity Activity { get; set; }
         
         
-        protected virtual void OnOpening() { }
+        protected virtual void OnOpening(params object[] args) { }
         protected virtual void OnClosing() { }
 
-        public void Open()
+        protected virtual IEnumerator Start()
         {
-            OnOpening();
+            if (!m_IsOpened)
+            {
+                ((IView)this).Open();
+            }
+            yield break;
+        }
+
+        void IView.Open(params object[] args)
+        {
+            if (m_IsOpened) return;
+            m_IsOpened = true;
+            gameObject.SetActive(true);
+            OnOpening(args);
             OnOpened?.Invoke(this);
         }
 
         public void Close()
         {
             OnClosing();
+            gameObject.SetActive(false);
             OnClosed?.Invoke(this);
+            m_IsOpened = false;
+            OnOpened = null;
+            OnClosed = null;
             Destroy(gameObject);
         }
 

@@ -1,13 +1,22 @@
 namespace Verve.MVC
 {
     using Unit;
-    using System;
-    using System.Collections.Generic;
+    using Loader;
     
 
-    [CustomUnit("MVC")]
-    public sealed partial class MVCUnit : UnitBase
+    /// <summary>
+    /// MVC 单元
+    /// </summary>
+    [CustomUnit("MVC", dependencyUnits: typeof(LoaderUnit)), System.Serializable]
+    public partial class MVCUnit : UnitBase
     {
-        private Dictionary<Type, IActivity> m_Activities = new Dictionary<Type, IActivity>();
+        protected LoaderUnit m_LoaderUnit;
+
+        
+        protected override void OnPostStartup(UnitRules parent)
+        {
+            base.OnPostStartup(parent);
+            parent.TryGetDependency<LoaderUnit>(out m_LoaderUnit);
+        }
     }
 }
