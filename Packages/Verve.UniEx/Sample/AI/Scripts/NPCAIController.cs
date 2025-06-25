@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using VerveEditor.UniEx.AI;
 
 #if VERVE_UNIEX_0_0_1_OR_NEWER
@@ -40,7 +41,7 @@ namespace VerveUniEx.Sample
             var data = new TransformMoveBTNodeData()
             {
                 owner = transform,
-                targets = new Transform[] { m_BB.GetValue<Transform>("Target") },
+                // targets = new Transform[] { m_BB.GetValue<Transform>("Target") },
                 // Targets = new Func<Transform[]>(()
                 //     => m_BB.TryGetValue<Transform>("Target", out var t) 
                 //         ? new[] { t } 
@@ -88,7 +89,7 @@ namespace VerveUniEx.Sample
                                             callback = bb =>
                                             {
                                                 Debug.Log("Targets: ");
-                                                data.targets = new Transform[] { m_BB.GetValue<Transform>("Target") };
+                                                data.targets = new Vector3[] { m_BB.GetValue<Vector3>("Target") };
                                                 bb.SetValue("TransformMoveNode_1", data);
                                                 return BTNodeResult.Succeeded;
                                             }
@@ -106,7 +107,7 @@ namespace VerveUniEx.Sample
                                             callback = bb =>
                                             {
                                                 Debug.Log("Chasing!");
-                                                data.targets = new Transform[] { };
+                                                data.targets = new Vector3[] { };
                                                 bb.SetValue("TransformMoveNode_1", data);
                                                 return BTNodeResult.Succeeded;
                                             }
@@ -133,7 +134,7 @@ namespace VerveUniEx.Sample
                                         data = new TransformMoveBTNodeData()
                                         {
                                             owner = transform,
-                                            targets = m_PatrolPoints,
+                                            targets = m_PatrolPoints.Select(x => x.transform.position).ToArray(),
                                             moveSpeed = m_MoveSpeed,
                                             minValidDistance = m_StoppingDistance,
                                             faceMovementDirection = true,

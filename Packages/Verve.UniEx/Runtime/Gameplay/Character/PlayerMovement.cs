@@ -5,6 +5,9 @@ namespace VerveUniEx.Gameplay
     using UnityEngine;
     
     
+    /// <summary>
+    /// 玩家移动
+    /// </summary>
     public partial class PlayerMovement : MonoBehaviour
     {
         [Header("移动设置")]
@@ -21,6 +24,7 @@ namespace VerveUniEx.Gameplay
         private bool m_IsGrounded;
         private float m_OriginalDrag;
 
+        
         private void Awake()
         {
             m_Rigidbody = GetComponent<Rigidbody>();

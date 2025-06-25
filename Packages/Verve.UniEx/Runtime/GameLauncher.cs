@@ -44,7 +44,6 @@ namespace VerveUniEx
         public StorageUnit Storage => Launcher.GetUnit<StorageUnit>();
         public TimerUnit Timer => Launcher.GetUnit<TimerUnit>();
         public AIUnit AI => Launcher.GetUnit<AIUnit>();
-        public GameplayUnit Gameplay => Launcher.GetUnit<GameplayUnit>();
         
         public event Action OnInitialize;
         public event Action OnQuit;
@@ -69,7 +68,6 @@ namespace VerveUniEx
             Launcher.AddUnit<StorageUnit>();
             Launcher.AddUnit<TimerUnit>();
             Launcher.AddUnit<AIUnit>();
-            Launcher.AddUnit<GameplayUnit>();
 
             Launcher.Initialize();
             

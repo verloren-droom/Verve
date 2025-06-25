@@ -40,9 +40,9 @@ namespace VerveUniEx
                 }
                 if (!m_IsInitialized)
                 {
+                    m_IsInitialized = true;
                     DontDestroyOnLoad(m_Instance.gameObject);
                     (m_Instance as ComponentInstanceBase<T>).OnInitialized();
-                    m_IsInitialized = true;
                 }
                 return m_Instance;
             }

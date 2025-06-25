@@ -8,7 +8,7 @@ namespace VerveUniEx.Gameplay
     
     
     /// <summary>
-    /// 玩家角色控制基类
+    /// 玩家控制器 - 玩家控制
     /// </summary>
     public partial class PlayerController : Controller
     {

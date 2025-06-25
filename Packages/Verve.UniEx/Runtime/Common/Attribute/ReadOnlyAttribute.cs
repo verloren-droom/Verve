@@ -1,13 +1,16 @@
 #if UNITY_5_3_OR_NEWER
 
-namespace Verve
+namespace VerveUniEx
 {
     using System;
     using UnityEngine;
     
     
+    /// <summary>
+    /// 只读属性
+    /// </summary>
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
-    public class PropertyDisableAttribute : PropertyAttribute { }
+    public sealed class ReadOnlyAttribute : PropertyAttribute { }
 }
 
 #endif

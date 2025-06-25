@@ -23,7 +23,7 @@ namespace VerveUniEx.AI
         [Tooltip("忽略的坐标轴")] public AxisFlags ignoreAxes;
         
         [Header("目标设置")]
-        [Tooltip("目标数组"), NotNull] public Transform[] targets;
+        [Tooltip("目标数组"), NotNull] public Vector3[] targets;
         [Tooltip("最小有效距离"), Range(0.01f, 2f)] public float minValidDistance;
         [Tooltip("循环模式")] public LoopMode loopMode;
     
@@ -131,8 +131,8 @@ namespace VerveUniEx.AI
         private bool GetCurrentTargetPosition(out Vector3 targetPos)
         {
             targetPos = Vector3.zero;
-            if (m_CurrentIndex >= data.targets.Length || !IsValidTarget(data.targets[m_CurrentIndex])) return false;
-            targetPos = data.targets[m_CurrentIndex].position;
+            if (m_CurrentIndex >= data.targets.Length) return false;
+            targetPos = data.targets[m_CurrentIndex];
             targetPos = ApplyAxisFilter(targetPos, data.owner.position);
             return true;
         }

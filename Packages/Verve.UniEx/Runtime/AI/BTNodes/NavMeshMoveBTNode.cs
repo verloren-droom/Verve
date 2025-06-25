@@ -23,7 +23,7 @@ namespace VerveUniEx.AI
         [Tooltip("导航代理"), NotNull] public NavMeshAgent agent;
 
         [Header("目标设置")]
-        [Tooltip("目标数组")] public Transform[] targets;
+        [Tooltip("目标数组")] public Vector3[] targets;
         [Tooltip("循环模式")] public LoopMode loopMode;
     
         [Header("旋转设置")]
@@ -88,7 +88,7 @@ namespace VerveUniEx.AI
             if (m_CurrentIndex >= data.targets.Length || data.targets[m_CurrentIndex] == null)
                 return false;
     
-            return data.agent.SetDestination(data.targets[m_CurrentIndex].position);
+            return data.agent.SetDestination(data.targets[m_CurrentIndex]);
         }
     
         private void HandleRotation(Vector3 direction, float deltaTime)

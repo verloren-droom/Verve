@@ -182,7 +182,7 @@ namespace VerveUniEx.Input
             return state;
         }
         
-        private void TriggerCallbacks<T>(string actionName, T value, InputServicePhase phase)where T : struct
+        private void TriggerCallbacks<T>(string actionName, T value, InputServicePhase phase) where T : struct
         {
             if (m_ActionCallbacks.TryGetValue(actionName, out var delegates))
             {

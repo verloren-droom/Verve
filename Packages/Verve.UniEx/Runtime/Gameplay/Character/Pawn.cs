@@ -3,11 +3,12 @@
 namespace VerveUniEx.Gameplay
 {
     using UnityEngine;
-
     
+
     /// <summary>
     /// 控制实体基类
     /// </summary>
+    [DisallowMultipleComponent]
     public abstract class Pawn : MonoBehaviour
     {
         public Controller Controller { get; protected set; }

@@ -2,16 +2,17 @@
 
 namespace VerveUniEx.Gameplay
 {
-    using Verve;
     using System;
+    using System.Linq;
     using UnityEngine;
     using System.Threading;
     using System.Collections.Generic;
     
     
     /// <summary>
-    /// 玩家出生点标记组件
+    /// 玩家出生点 - 用于生成玩家
     /// </summary>
+    [Serializable]
     public partial class PlayerStart : MonoBehaviour
     {
         [SerializeField, ReadOnly] private int m_ID;
@@ -20,6 +21,7 @@ namespace VerveUniEx.Gameplay
         [SerializeField, Tooltip("是否有效生成点"), ReadOnly] private bool m_IsValidSpawnPoint;
         [SerializeField, Tooltip("是否被占用"), ReadOnly] private bool m_IsOccupied;
         
+        private Collider[] m_ColliderBuffer = new Collider[8];
         
         public int ID => m_ID;
         /// <summary> 检查半径 </summary>
@@ -41,11 +43,10 @@ namespace VerveUniEx.Gameplay
         private static int s_NextSpawnID;
         private static int GenerateID() => Interlocked.Increment(ref s_NextSpawnID);
         
-        private static readonly HashSet<PlayerStart> s_PlayerStarts = new HashSet<PlayerStart>();
-        public static IReadOnlyCollection<PlayerStart> AllPlayerStarts => s_PlayerStarts;
-
-        public static event Action OnCreatePlayerStart;
-
+        private static readonly HashSet<PlayerStart> s_ActivePlayerStarts = new HashSet<PlayerStart>();
+        /// <summary> 所有有效生成点 </summary>
+        public static IReadOnlyCollection<PlayerStart> ActivePlayerStarts => s_ActivePlayerStarts;
+        
 
         private void Awake()
         {
@@ -54,38 +55,49 @@ namespace VerveUniEx.Gameplay
 
         private void OnEnable()
         {
-            s_PlayerStarts.Add(this);
-            OnCreatePlayerStart?.Invoke();
+            s_ActivePlayerStarts.Add(this);
         }
         
         private void OnDisable()
         {
-            s_PlayerStarts.Remove(this);
+            s_ActivePlayerStarts.Remove(this);
         }
 
         [Button("检查是否为有效生成点")]
         public bool CheckIsValidSpawnPoint()
         {
-            Collider[] colliders = Physics.OverlapSphere(
+            m_ColliderBuffer ??= new Collider[8];
+            int hitCount = Physics.OverlapSphereNonAlloc(
                 transform.position, 
                 m_CheckRadius, 
+                m_ColliderBuffer, 
                 m_CheckLayers
             );
-            
+    
             m_IsValidSpawnPoint = true;
-            for (int i = 0; i < colliders.Length; i++)
+            for (int i = 0; i < hitCount; i++)
             {
-                var collider = colliders[i];
-                if (collider == null) continue;
-                if (collider.gameObject != gameObject && !collider.isTrigger)
+                if (m_ColliderBuffer[i].gameObject != gameObject && !m_ColliderBuffer[i].isTrigger)
                 {
                     m_IsValidSpawnPoint = false;
                     break;
                 }
             }
-            
             return m_IsValidSpawnPoint;
         }
+        
+        /// <summary> 找到第一个有效生成点 </summary>
+        public static PlayerStart FindValidPlayerStart()
+            => ActivePlayerStarts
+                .Where(start => start.CheckIsValidSpawnPoint())
+                .FirstOrDefault(start => !start.IsOccupied);
+        
+        /// <summary> 找到距离指定位置最近的有效生成点 </summary>
+        public static PlayerStart FindNearValidPlayerStart(Vector3 position)
+            => ActivePlayerStarts
+                .Where(start => start.CheckIsValidSpawnPoint())
+                .OrderBy(start => Vector3.Distance(position, start.transform.position))
+                .FirstOrDefault(start => !start.IsOccupied);
     }
 }
 

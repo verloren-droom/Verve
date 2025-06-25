@@ -91,6 +91,7 @@ namespace VerveUniEx.Tests
             Assert.IsTrue(isTriggered);
             Assert.AreEqual(-1.0f, triggeredResult);
         }
+        
     }
 }
 

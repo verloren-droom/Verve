@@ -75,7 +75,7 @@ namespace VerveUniEx.Gameplay
                 
                 SetParentObject(playerRoot, menuCommand);
                 
-                Undo.RegisterCreatedObjectUndo(playerRoot, "Create Player Entity");
+                Undo.RegisterCreatedObjectUndo(playerRoot, "Create Player");
                 Selection.activeObject = playerRoot;
             }
             catch (Exception e)
@@ -89,7 +89,7 @@ namespace VerveUniEx.Gameplay
         /// <summary>
         /// 设置父级对象
         /// </summary>
-        private static void SetParentObject(GameObject playerObj, MenuCommand menuCommand)
+        private static void SetParentObject(GameObject obj, MenuCommand menuCommand)
         {
             GameObject parent = null;
             
@@ -108,35 +108,35 @@ namespace VerveUniEx.Gameplay
             
             if (parent != null)
             {
-                GameObjectUtility.SetParentAndAlign(playerObj, parent);
+                GameObjectUtility.SetParentAndAlign(obj, parent);
             }
         }
         
-        [Button("保存为预制体")]
-        private void SaveAsPrefab()
-        {
-            string path = EditorUtility.SaveFilePanelInProject(
-                "保存玩家预制体",
-                "Player.prefab",
-                "prefab",
-                "另存为"
-            );
-    
-            if (string.IsNullOrEmpty(path)) return;
-
-            GameObject prefab = gameObject;
-            GameObject prefabRoot = PrefabUtility.SaveAsPrefabAsset(prefab, path);
-    
-            if (prefabRoot != null)
-            {
-                Undo.DestroyObjectImmediate(gameObject);
-                GameObject newInstance = (GameObject)PrefabUtility.InstantiatePrefab(prefabRoot);
-                Undo.RegisterCreatedObjectUndo(newInstance, "Replace with Prefab");
-                Selection.activeObject = newInstance;
-            }
-
-            AssetDatabase.Refresh();
-        }
+        // [Button("保存为预制体")]
+        // private void SaveAsPrefab()
+        // {
+        //     string path = EditorUtility.SaveFilePanelInProject(
+        //         "保存玩家预制体",
+        //         "Player.prefab",
+        //         "prefab",
+        //         "另存为"
+        //     );
+        //
+        //     if (string.IsNullOrEmpty(path)) return;
+        //
+        //     GameObject prefab = gameObject;
+        //     GameObject prefabRoot = PrefabUtility.SaveAsPrefabAsset(prefab, path);
+        //
+        //     if (prefabRoot != null)
+        //     {
+        //         Undo.DestroyObjectImmediate(gameObject);
+        //         GameObject newInstance = (GameObject)PrefabUtility.InstantiatePrefab(prefabRoot);
+        //         Undo.RegisterCreatedObjectUndo(newInstance, "Replace with Prefab");
+        //         Selection.activeObject = newInstance;
+        //     }
+        //
+        //     AssetDatabase.Refresh();
+        // }
     }
 }
 

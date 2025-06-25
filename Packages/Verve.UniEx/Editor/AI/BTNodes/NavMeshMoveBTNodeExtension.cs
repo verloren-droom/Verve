@@ -17,7 +17,7 @@ namespace VerveEditor.UniEx.AI
             {
                 if (self.data.targets[i] == null) continue;
                 
-                Vector3 pos = self.data.targets[i].position;
+                Vector3 pos = self.data.targets[i];
                 Gizmos.color = (i == self.CurrentIndex) ? Color.green : Color.blue;
                 Gizmos.DrawSphere(pos, 0.25f);
                 
@@ -30,7 +30,7 @@ namespace VerveEditor.UniEx.AI
                 if (self.CurrentIndex < self.data.targets.Length && 
                     self.data.targets[self.CurrentIndex] != null)
                 {
-                    Vector3 targetPos = self.data.targets[self.CurrentIndex].position;
+                    Vector3 targetPos = self.data.targets[self.CurrentIndex];
                     Vector3 agentPos = self.data.agent.transform.position;
                     
                     Gizmos.color = Color.yellow;

@@ -7,7 +7,7 @@ namespace VerveUniEx.Gameplay
     using UnityEditor.SceneManagement;
     
     
-    [DisallowMultipleComponent]
+    [AddComponentMenu("Verve/Gameplay/World"), DisallowMultipleComponent]
     public partial class World
     {
         /// <summary>
@@ -29,7 +29,7 @@ namespace VerveUniEx.Gameplay
             }
             
             var prefab = new GameObject("World");
-            var playerStart = prefab.AddComponent<World>();
+            var world = prefab.AddComponent<World>();
             
             GameObject parent = null;
             if (PrefabStageUtility.GetCurrentPrefabStage() != null)

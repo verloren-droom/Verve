@@ -6,10 +6,10 @@ namespace Verve.Event
 
     
     /// <summary>
-    /// 全局事件单元
+    /// 事件总线单元
     /// </summary>
-    [CustomUnit("Event", 100), System.Serializable]
-    public partial class EventUnit : UnitBase
+    [CustomUnit("EventBus", 100), System.Serializable]
+    public partial class EventBusUnit : UnitBase
     {
         protected override void OnShutdown()
         {

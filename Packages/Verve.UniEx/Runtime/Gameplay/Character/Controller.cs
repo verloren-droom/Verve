@@ -3,7 +3,7 @@
 namespace VerveUniEx.Gameplay
 {
     using UnityEngine;
-
+    
     
     /// <summary>
     /// 控制基类
@@ -13,20 +13,26 @@ namespace VerveUniEx.Gameplay
     {
         public Pawn ControlledPawn { get; private set; }
     
-        public virtual void Possess(Pawn pawn)
+        
+        public void Possess(Pawn pawn)
         {
             ControlledPawn = pawn;
             pawn.transform.SetParent(transform);
+            OnPossess();
         }
     
-        public virtual void UnPossess()
+        public void UnPossess()
         {
             if (ControlledPawn != null)
             {
                 ControlledPawn.transform.SetParent(null);
                 ControlledPawn = null;
             }
+            OnUnPossess();
         }
+        
+        protected virtual void OnPossess() { }
+        protected virtual void OnUnPossess() { }
     }
 }
 

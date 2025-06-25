@@ -24,10 +24,10 @@ namespace VerveUniEx.Gameplay
         /// <summary>
         /// 创建玩家出生点
         /// </summary>
-        [MenuItem("GameObject/Verve/Gameplay/Player Start", false, 10)]
+        [MenuItem("GameObject/Verve/Gameplay/PlayerStart", false, 10)]
         private static void CreatePlayerStart(MenuCommand menuCommand)
         {
-            var prefab = new GameObject("PlayerStart (Clone)");
+            var prefab = new GameObject("PlayerStart");
             var playerStart = prefab.AddComponent<PlayerStart>();
             
             GameObject parent = null;
