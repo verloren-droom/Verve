@@ -35,7 +35,7 @@ namespace VerveUniEx.Gameplay
         {
             base.PossessedBy(controller);
             m_Movement ??= GetComponent<PlayerMovement>();
-            m_PlayerCamera ??= GetComponentInChildren<Camera>();
+            m_PlayerCamera ??= GetComponentInChildren<Camera>() ?? Camera.main;
         }
     }
 }

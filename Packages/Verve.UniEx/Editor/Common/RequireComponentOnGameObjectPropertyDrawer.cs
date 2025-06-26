@@ -9,7 +9,7 @@ namespace VerveEditor.UniEx
     
 
     [CustomPropertyDrawer(typeof(RequireComponentOnGameObjectAttribute))]
-    public class RequireComponentOnGameObjectDrawer : PropertyDrawer
+    public class RequireComponentOnGameObjectPropertyDrawer : PropertyDrawer
     {
         private const float WarningPadding = 2f;
         

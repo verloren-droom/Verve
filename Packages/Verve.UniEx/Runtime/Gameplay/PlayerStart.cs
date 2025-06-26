@@ -16,7 +16,7 @@ namespace VerveUniEx.Gameplay
     public partial class PlayerStart : MonoBehaviour
     {
         [SerializeField, ReadOnly] private int m_ID;
-        [SerializeField, Tooltip("用于检测出生点是否被占用的半径"), Min(0.01f)] private float m_CheckRadius = 1f;
+        [SerializeField, Tooltip("用于检测出生点是否被占用的半径"), Min(0.01f)] private float m_CheckRadius;
         [SerializeField, Tooltip("需要检测的层掩码")] private LayerMask m_CheckLayers = ~0;
         [SerializeField, Tooltip("是否有效生成点"), ReadOnly] private bool m_IsValidSpawnPoint;
         [SerializeField, Tooltip("是否被占用"), ReadOnly] private bool m_IsOccupied;

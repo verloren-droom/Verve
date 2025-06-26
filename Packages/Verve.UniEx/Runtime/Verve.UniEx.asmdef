@@ -6,7 +6,8 @@
         "Unity.InputSystem",
         "Unity.ResourceManager",
         "Verve.Core",
-        "NuGetForUnity"
+        "NuGetForUnity",
+        "Cinemachine"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
