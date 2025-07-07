@@ -4,7 +4,7 @@ namespace Verve.Unit
     using System.Linq;
  
     
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false), Obsolete("Unit system is deprecated, please use the GameFeatures system")]
     public sealed class CustomUnitAttribute : Attribute
     {
         public string UnitName { get; }
@@ -12,9 +12,6 @@ namespace Verve.Unit
         public Type[] DependencyUnits { get; }
         
         
-        /// <summary>
-        /// 
-        /// </summary>
         /// <param name="name">单元名</param>
         /// <param name="priority">单元加载优先级</param>
         /// <param name="dependencyUnits">依赖单元，仅做提示作用</param>

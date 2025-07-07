@@ -89,7 +89,7 @@ namespace Verve.AI
         );
         
         private static int s_NextTreeId; 
-        public static int GenerateTreeId() => Interlocked.Increment(ref s_NextTreeId);
+        private static int GenerateTreeId() => Interlocked.Increment(ref s_NextTreeId);
         
         private static readonly List<BehaviorTree> s_AllBehaviorTrees = new();
         /// <summary> 所有行为树 </summary>

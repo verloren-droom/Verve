@@ -8,23 +8,21 @@ namespace Verve.Tests
     [TestFixture]
     public class SerializableTest
     {
-        private UnitRules m_UnitRules = new UnitRules();
-        private SerializableUnit m_SerializableUnit;
+        private SerializableFeature m_Serializable;
 
         
         [SetUp]
         public void SetUp()
         {
-            m_UnitRules = new UnitRules();
-            m_UnitRules.AddDependency<SerializableUnit>();
-            m_UnitRules.Initialize();
-            m_UnitRules.TryGetDependency(out m_SerializableUnit);
+            m_Serializable =  new SerializableFeature();
+            ((IGameFeature)m_Serializable).Load();
+            ((IGameFeature)m_Serializable).Activate();
         }
         
         [TearDown]
         public void Teardown()
         {
-            m_SerializableUnit = null;
+            m_Serializable = null;
         }
         
         [Test]
@@ -40,7 +38,7 @@ namespace Verve.Tests
                 Gender = 'M',
             };
             
-            var serialized = m_SerializableUnit.Serialize<JsonSerializableService>(testSerializable);
+            var serialized = m_Serializable.Serialize<JsonSerializableSubmodule>(testSerializable);
 
             Assert.AreEqual(serialized,
                 "{\"Name\":\"Test\",\"Age\":18,\"IsMarried\":true,\"Height\":1.8,\"Weight\":80.0,\"Gender\":\"M\"}");
@@ -51,7 +49,7 @@ namespace Verve.Tests
         {
             var serialized = "{\"Name\":\"Test\",\"Age\":18,\"IsMarried\":true,\"Height\":1.8,\"Weight\":80.0,\"Gender\":\"M\"}";
             
-            var testSerializable = m_SerializableUnit.Deserialize<JsonSerializableService, TestSerializable>(serialized);
+            var testSerializable = m_Serializable.Deserialize<JsonSerializableSubmodule, TestSerializable>(serialized);
             
             Assert.AreEqual(testSerializable.Name, "Test");
             Assert.AreEqual(testSerializable.Age, 18);

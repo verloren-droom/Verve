@@ -9,23 +9,21 @@ namespace Verve.Tests
     [TestFixture]
     public class EventTest
     {
-        private UnitRules m_UnitRules = new UnitRules();
-        private EventBusUnit m_EventUnit;
+        private EventBusFeature m_Event;
 
         
         [SetUp]
         public void SetUp()
         {
-            m_UnitRules = new UnitRules();
-            m_UnitRules.AddDependency<EventBusUnit>();
-            m_UnitRules.Initialize();
-            m_UnitRules.TryGetDependency(out m_EventUnit);
+            m_Event = new EventBusFeature();
+            ((IGameFeature)m_Event).Load();
+            ((IGameFeature)m_Event).Activate();
         }
         
         [TearDown]
         public void Teardown()
         {
-            m_EventUnit = null;
+            m_Event = null;
         }
         
         /// <summary>
@@ -37,8 +35,8 @@ namespace Verve.Tests
             bool eventTriggered = false;
             var eventType = TestEnum.Event1;
         
-            m_EventUnit.AddListener(eventType, (TestEventArgs args) => eventTriggered = true);
-            m_EventUnit.Invoke(eventType, new TestEventArgs());
+            m_Event.AddListener(eventType, (TestEventArgs args) => eventTriggered = true);
+            m_Event.Invoke(eventType, new TestEventArgs());
             
             Assert.IsTrue(eventTriggered);
         }
@@ -53,9 +51,9 @@ namespace Verve.Tests
             var eventType = TestEnum.Event1;
             Action<TestEventArgs> handler = (args) => eventTriggered = true;
             
-            m_EventUnit.AddListener(eventType, handler);
-            m_EventUnit.RemoveListener(eventType, handler);
-            m_EventUnit.Invoke(eventType, new TestEventArgs());
+            m_Event.AddListener(eventType, handler);
+            m_Event.RemoveListener(eventType, handler);
+            m_Event.Invoke(eventType, new TestEventArgs());
             
             Assert.IsFalse(eventTriggered);
         }
@@ -70,9 +68,9 @@ namespace Verve.Tests
             bool eventTriggered2 = false;
             var eventType = TestEnum.Event1;
 
-            m_EventUnit.BindListener(eventType, (TestEventArgs args) => eventTriggered1 = true, overwrite: true);
-            m_EventUnit.BindListener(eventType, (TestEventArgs args) => eventTriggered2 = true, overwrite: true);
-            m_EventUnit.Invoke(eventType, new TestEventArgs());
+            m_Event.BindListener(eventType, (TestEventArgs args) => eventTriggered1 = true, overwrite: true);
+            m_Event.BindListener(eventType, (TestEventArgs args) => eventTriggered2 = true, overwrite: true);
+            m_Event.Invoke(eventType, new TestEventArgs());
             
             Assert.IsFalse(eventTriggered1);
             Assert.IsTrue(eventTriggered2);
@@ -88,9 +86,9 @@ namespace Verve.Tests
             bool eventTriggered2 = false;
             var eventType = TestEnum.Event2;
 
-            m_EventUnit.BindListener(eventType, (TestEventArgs args) => eventTriggered1 = true, overwrite: false);
-            m_EventUnit.BindListener(eventType, (TestEventArgs args) => eventTriggered2 = true, overwrite: false);
-            m_EventUnit.Invoke(eventType, new TestEventArgs());
+            m_Event.BindListener(eventType, (TestEventArgs args) => eventTriggered1 = true, overwrite: false);
+            m_Event.BindListener(eventType, (TestEventArgs args) => eventTriggered2 = true, overwrite: false);
+            m_Event.Invoke(eventType, new TestEventArgs());
             
             Assert.IsTrue(eventTriggered1);
             Assert.IsFalse(eventTriggered2);
@@ -104,8 +102,8 @@ namespace Verve.Tests
         {
             bool eventTriggered = false;
             
-            m_EventUnit.AddListener("testEvent", (obj) => eventTriggered = true);
-            m_EventUnit.Invoke("testEvent", null);
+            m_Event.AddListener("testEvent", (obj) => eventTriggered = true);
+            m_Event.Invoke("testEvent", null);
             
             Assert.IsTrue(eventTriggered);
         }
@@ -119,9 +117,9 @@ namespace Verve.Tests
             bool eventTriggered = false;
             Action<object> handler = (obj) => eventTriggered = true;
             
-            m_EventUnit.AddListener("testEvent", handler);
-            m_EventUnit.RemoveListener("testEvent", handler);
-            m_EventUnit.Invoke("testEvent", null);
+            m_Event.AddListener("testEvent", handler);
+            m_Event.RemoveListener("testEvent", handler);
+            m_Event.Invoke("testEvent", null);
             
             Assert.IsFalse(eventTriggered);
         }
@@ -136,11 +134,11 @@ namespace Verve.Tests
             bool stringEventTriggered = false;
             var eventType = TestEnum.Event1;
         
-            m_EventUnit.AddListener(eventType, (TestEventArgs args) => enumEventTriggered = true);
-            m_EventUnit.AddListener("testEvent", (obj) => stringEventTriggered = true);
-            m_EventUnit.RemoveAllListener();
-            m_EventUnit.Invoke(eventType, new TestEventArgs());
-            m_EventUnit.Invoke("testEvent", null);
+            m_Event.AddListener(eventType, (TestEventArgs args) => enumEventTriggered = true);
+            m_Event.AddListener("testEvent", (obj) => stringEventTriggered = true);
+            m_Event.RemoveAllListener();
+            m_Event.Invoke(eventType, new TestEventArgs());
+            m_Event.Invoke("testEvent", null);
             
             Assert.IsFalse(enumEventTriggered);
             Assert.IsFalse(stringEventTriggered);

@@ -3,6 +3,7 @@
 namespace VerveUniEx.Tests
 {
     using File;
+    using Verve;
     using System.IO;
     using Verve.Unit;
     using NUnit.Framework;
@@ -12,24 +13,21 @@ namespace VerveUniEx.Tests
     [TestFixture]
     public class FileTest
     {
-        private UnitRules m_UnitRules = new UnitRules();
-        private FileUnit m_FileUnit;
+        private FileFeature m_File;
 
 
         [SetUp]
         public void SetUp()
         {
-            m_UnitRules = new UnitRules();
-            m_UnitRules.AddDependency<SerializableUnit>();
-            m_UnitRules.AddDependency<FileUnit>();
-            m_UnitRules.Initialize();
-            m_UnitRules.TryGetDependency(out m_FileUnit);
+            m_File = new FileFeature();
+            ((IGameFeature)m_File).Load();
+            ((IGameFeature)m_File).Activate();
         }
 
         [TearDown]
         public void Teardown()
         {
-            m_FileUnit = null;
+            m_File = null;
         }
 
         [Test]
@@ -38,13 +36,13 @@ namespace VerveUniEx.Tests
             string relativePath = "testReadFileUniEx.txt";
             string testData = "Hello, World!";
         
-            m_FileUnit.WriteFile<JsonSerializableService, string>(relativePath, testData);
-            bool result = m_FileUnit.TryReadFile<JsonSerializableService, string>(relativePath, out string data);
+            m_File.WriteFile<JsonSerializableSubmodule, string>(relativePath, testData);
+            bool result = m_File.TryReadFile<JsonSerializableSubmodule, string>(relativePath, out string data);
         
             Assert.IsTrue(result);
             Assert.AreEqual(testData, data);
 
-            var del = m_FileUnit.DeleteFile(m_FileUnit.GetFullFilePath(relativePath));
+            var del = m_File.DeleteFile(m_File.GetFullFilePath(relativePath));
             Assert.IsTrue(del);
         }
         
@@ -54,12 +52,12 @@ namespace VerveUniEx.Tests
             string relativePath = "testFileUniEx.txt";
             string testData = "Hello, World!";
         
-            bool result = m_FileUnit.WriteFile<JsonSerializableService, string>(relativePath, testData);
+            bool result = m_File.WriteFile<JsonSerializableSubmodule, string>(relativePath, testData);
         
             Assert.IsTrue(result);
-            Assert.IsTrue(File.Exists(m_FileUnit.GetFullFilePath(relativePath)));
+            Assert.IsTrue(File.Exists(m_File.GetFullFilePath(relativePath)));
             
-            var del = m_FileUnit.DeleteFile(m_FileUnit.GetFullFilePath(relativePath));
+            var del = m_File.DeleteFile(m_File.GetFullFilePath(relativePath));
             Assert.IsTrue(del);
         }
         
@@ -70,16 +68,16 @@ namespace VerveUniEx.Tests
             string initialData = "Initial Data";
             string newData = "New Data";
 
-            m_FileUnit.WriteFile<JsonSerializableService, string>(relativePath, initialData);
+            m_File.WriteFile<JsonSerializableSubmodule, string>(relativePath, initialData);
         
-            bool result = m_FileUnit.WriteFile<JsonSerializableService, string>(relativePath, newData, true);
+            bool result = m_File.WriteFile<JsonSerializableSubmodule, string>(relativePath, newData, true);
         
             Assert.IsTrue(result);
         
-            m_FileUnit.TryReadFile<JsonSerializableService, string>(relativePath, out string data);
+            m_File.TryReadFile<JsonSerializableSubmodule, string>(relativePath, out string data);
             Assert.AreEqual(newData, data);
             
-            var del = m_FileUnit.DeleteFile(m_FileUnit.GetFullFilePath(relativePath));
+            var del = m_File.DeleteFile(m_File.GetFullFilePath(relativePath));
             Assert.IsTrue(del);
         }
     }

@@ -7,7 +7,7 @@ namespace VerveEditor.UniEx.Debugger
     
     public static class DebuggerUnitExtension
     {
-        public static string GetMemory(this DebuggerUnit debugger)
+        public static string GetMemory(this DebuggerFeature debugger)
         {
 #if UNITY_5_6_OR_NEWER
             return (UnityEngine.Profiling.Profiler.usedHeapSizeLong / 1024).ToString() + " kb";

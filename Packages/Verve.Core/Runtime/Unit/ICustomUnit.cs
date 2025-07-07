@@ -3,6 +3,7 @@ namespace Verve.Unit
     /// <summary>
     /// 自定义单元
     /// </summary>
+    [System.Obsolete("Unit system is deprecated, please use the GameFeatures system")]
     public interface ICustomUnit : System.IDisposable
     {
         /// <summary>

@@ -8,61 +8,60 @@ namespace Verve.Tests
     [TestFixture]
     public class DebuggerTest
     {
-        private UnitRules m_UnitRules = new UnitRules();
-        private DebuggerUnit m_DebuggerUnit;
+        private DebuggerFeature m_Debugger;
+        
 
         
         [SetUp]
         public void SetUp()
         {
-            m_UnitRules = new UnitRules();
-            m_UnitRules.AddDependency<DebuggerUnit>();
-            m_UnitRules.Initialize();
-            m_UnitRules.TryGetDependency(out m_DebuggerUnit);
+            m_Debugger = new DebuggerFeature();
+            ((IGameFeature)m_Debugger).Load();
+            ((IGameFeature)m_Debugger).Activate();
         }
                 
         [TearDown]
         public void Teardown()
         {
-            m_DebuggerUnit = null;
+            m_Debugger = null;
         }
         
         [Test]
         public void LogLevelAndMessageTracking_ShouldWorkCorrectly()
         {
-            m_DebuggerUnit.Log("Test Log");
+            m_Debugger.Log("Test Log");
             
-            Assert.AreEqual("Test Log", m_DebuggerUnit.GetLastLog().Message);
-            Assert.AreEqual(LogLevel.Log, m_DebuggerUnit.GetLastLog().Level);
+            Assert.AreEqual("Test Log", m_Debugger.GetLastLog().Message);
+            Assert.AreEqual(LogLevel.Log, m_Debugger.GetLastLog().Level);
             
-            m_DebuggerUnit.LogWarning("Test Warning");
+            m_Debugger.LogWarning("Test Warning");
             
-            Assert.AreEqual("Test Warning", m_DebuggerUnit.GetLastLog().Message);
-            Assert.AreEqual(LogLevel.Warning, m_DebuggerUnit.GetLastLog().Level);
+            Assert.AreEqual("Test Warning", m_Debugger.GetLastLog().Message);
+            Assert.AreEqual(LogLevel.Warning, m_Debugger.GetLastLog().Level);
             
-            m_DebuggerUnit.LogError("Test Error");
+            m_Debugger.LogError("Test Error");
             
-            Assert.AreEqual("Test Error", m_DebuggerUnit.GetLastLog().Message);
-            Assert.AreEqual(LogLevel.Error, m_DebuggerUnit.GetLastLog().Level);
+            Assert.AreEqual("Test Error", m_Debugger.GetLastLog().Message);
+            Assert.AreEqual(LogLevel.Error, m_Debugger.GetLastLog().Level);
         }
         
         [Test]
         public void DisableDebugger_ShouldWorkCorrectly()
         {
             const string testMessage = "Should not be logged";
+
+            ((IGameFeature)m_Debugger).Deactivate();
+            m_Debugger.Log(testMessage);
             
-            m_DebuggerUnit.IsEnable = false;
-            m_DebuggerUnit.Log(testMessage);
-            
-            Assert.AreNotEqual(testMessage, m_DebuggerUnit.GetLastLog().Message);
+            Assert.AreNotEqual(testMessage, m_Debugger.GetLastLog().Message);
         }
         
         [Test]
         public void LogFormatting_ShouldWorkCorrectly()
         {
-            m_DebuggerUnit.Log("Formatted {0} {1}", "log", 1);
+            m_Debugger.Log("Formatted {0} {1}", "log", 1);
             
-            Assert.AreEqual("Formatted log 1", m_DebuggerUnit.GetLastLog().Message);
+            Assert.AreEqual("Formatted log 1", m_Debugger.GetLastLog().Message);
         }
     }
 }

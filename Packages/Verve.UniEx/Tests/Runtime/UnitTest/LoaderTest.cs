@@ -2,6 +2,7 @@
 
 namespace VerveUniEx.Tests
 {
+    using Verve;
     using System;
     using Loader;
     using System.IO;
@@ -13,17 +14,15 @@ namespace VerveUniEx.Tests
     [TestFixture]
     public class LoaderTest
     {
-        private UnitRules m_UnitRules = new UnitRules();
-        private LoaderUnit m_LoaderUnit;
+        private LoaderFeature m_LoaderUnit;
 
         
         [SetUp]
         public void SetUp()
         {
-            m_UnitRules = new UnitRules();
-            m_UnitRules.AddDependency<LoaderUnit>();
-            m_UnitRules.Initialize();
-            m_UnitRules.TryGetDependency(out m_LoaderUnit);
+            m_LoaderUnit = new LoaderFeature();
+            ((IGameFeature)m_LoaderUnit).Load();
+            ((IGameFeature)m_LoaderUnit).Activate();
         }
         
         [TearDown]

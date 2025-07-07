@@ -1,36 +1,34 @@
+#if UNITY_5_3_OR_NEWER
+
 namespace VerveUniEx.Tests
 {
     using AI;
+    using Verve;
     using Verve.AI;
     using Verve.Unit;
     using UnityEngine;
     using NUnit.Framework;
     using System.Collections;
-    using AIUnit = VerveUniEx.AI.AIUnit;
-    
-    
+
+
     [TestFixture]
     public class AITest
     {
-        private UnitRules m_UnitRules;
-        private AIUnit m_AIUnit;
+        private AIFeatureComponent m_AI;
         
         
         [SetUp]
         public void SetUp()
         {
-            m_UnitRules = new UnitRules();
-            m_UnitRules.AddDependency<AIUnit>();
-            m_UnitRules.Initialize();
-            m_UnitRules.TryGetDependency(out m_AIUnit);
+            m_AI = new AIFeatureComponent();
+            ((IGameFeature)m_AI).Load();
+            ((IGameFeature)m_AI).Activate();
         }
         
         [TearDown]
         public void Teardown()
         {
-            m_UnitRules.DeInitialize();
-            m_UnitRules.Dispose();
-            m_AIUnit.Dispose();
+
         }
 
         [Test]
@@ -63,3 +61,5 @@ namespace VerveUniEx.Tests
         }
     }
 }
+
+#endif

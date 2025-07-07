@@ -9,23 +9,21 @@ namespace Verve.Tests
     [TestFixture]
     public class TimerTest
     {
-        private UnitRules m_UnitRules = new UnitRules();
-        private TimerUnit m_TimerUnit;
+        private TimerFeature m_Timer;
 
         
         [SetUp]
         public void SetUp()
         {
-            m_UnitRules = new UnitRules();
-            m_UnitRules.AddDependency<TimerUnit>();
-            m_UnitRules.Initialize();
-            m_UnitRules.TryGetDependency(out m_TimerUnit);
+            m_Timer = new TimerFeature();
+            ((IGameFeature)m_Timer).Load();
+            ((IGameFeature)m_Timer).Activate();
         }
         
         [TearDown]
         public void Teardown()
         {
-            m_TimerUnit = null;
+            m_Timer = null;
         }
         
         [Test]
@@ -34,8 +32,9 @@ namespace Verve.Tests
             bool timerCompleted = false;
             Action onComplete = () => timerCompleted = true;
 
-            m_TimerUnit.AddTimer<SimpleTimerService>(1.0f, onComplete);
-            ((ICustomUnit)m_TimerUnit).Tick(1.0f, 1.0f);
+            m_Timer.AddTimer<SimpleTimerSubmodule>(1.0f, onComplete);
+            ((ITimerSubmodule)m_Timer).Update(1.0f);
+            
 
             Assert.IsTrue(timerCompleted);
         }
@@ -46,10 +45,10 @@ namespace Verve.Tests
             bool timerCompleted = false;
             Action onComplete = () => timerCompleted = true;
 
-            m_TimerUnit.AddTimer<SimpleTimerService>(1.0f, onComplete);
-            m_TimerUnit.RemoveTimer<SimpleTimerService>(onComplete);
+            m_Timer.AddTimer<SimpleTimerSubmodule>(1.0f, onComplete);
+            m_Timer.RemoveTimer<SimpleTimerSubmodule>(onComplete);
             
-            ((ICustomUnit)m_TimerUnit).Tick(1.0f, 1.0f);
+            ((ITimerSubmodule)m_Timer).Update(1.0f);
 
             Assert.IsFalse(timerCompleted);
         }

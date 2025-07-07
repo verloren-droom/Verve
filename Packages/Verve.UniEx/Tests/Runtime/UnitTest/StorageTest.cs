@@ -3,34 +3,33 @@
 namespace VerveUniEx.Tests
 {
     using File;
+    using Verve;
     using Storage;
     using Verve.Unit;
+    using Verve.Storage;
     using NUnit.Framework;
     using Verve.Serializable;
+    using StorageFeature = VerveUniEx.Storage.StorageFeature;
     
     
     [TestFixture]
     public class StorageTest
     {
-        private UnitRules m_UnitRules = new UnitRules();
-        private StorageUnit m_StorageUnit;
+        private StorageFeature m_Storage;
 
         
         [SetUp]
         public void SetUp()
         {
-            m_UnitRules = new UnitRules();
-            m_UnitRules.AddDependency<SerializableUnit>();
-            m_UnitRules.AddDependency<FileUnit>();
-            m_UnitRules.AddDependency<StorageUnit>();
-            m_UnitRules.Initialize();
-            m_UnitRules.TryGetDependency(out m_StorageUnit);
+            m_Storage = new StorageFeature();
+            ((IGameFeature)m_Storage).Load();
+            ((IGameFeature)m_Storage).Activate();
         }
         
         [TearDown]
         public void Teardown()
         {
-            m_StorageUnit = null;
+            m_Storage = null;
         }
 
         /// <summary>
@@ -42,9 +41,9 @@ namespace VerveUniEx.Tests
             string key = "testKey";
             string value = "testValue";
         
-            m_StorageUnit.Write<JsonStorage, string>(key, value);
+            m_Storage.Write<JsonStorageSubmodule, string>(key, value);
         
-            bool result = m_StorageUnit.TryRead<JsonStorage, string>(key, out var outValue);
+            bool result = m_Storage.TryRead<JsonStorageSubmodule, string>(key, out var outValue);
         
             Assert.IsTrue(result);
             Assert.AreEqual(value, outValue);
@@ -59,11 +58,11 @@ namespace VerveUniEx.Tests
             string key = "testKey";
             string value = "testValue";
         
-            m_StorageUnit.Write<JsonStorage, string>(key, value);
-            m_StorageUnit.Delete<JsonStorage>(key);
-            m_StorageUnit.DeleteAll<JsonStorage>();
+            m_Storage.Write<JsonStorageSubmodule, string>(key, value);
+            m_Storage.Delete<JsonStorageSubmodule>(key);
+            m_Storage.DeleteAll<JsonStorageSubmodule>();
         
-            bool result = m_StorageUnit.TryRead<JsonStorage, string>(key, out var outValue);
+            bool result = m_Storage.TryRead<JsonStorageSubmodule, string>(key, out var outValue);
         
             Assert.IsFalse(result);
             Assert.IsNull(outValue);
@@ -93,17 +92,17 @@ namespace VerveUniEx.Tests
                 Height = 1.23f
             };
         
-            m_StorageUnit.Write<JsonStorage, string>(key1, value1);
-            m_StorageUnit.Write<JsonStorage, bool>(key2, value2);
-            m_StorageUnit.Write<JsonStorage, int>(key3, value3);
-            m_StorageUnit.Write<JsonStorage, float>(key4, value4);
-            m_StorageUnit.Write<JsonStorage, CustomTestData>(key5, value5);
+            m_Storage.Write<JsonStorageSubmodule, string>(key1, value1);
+            m_Storage.Write<JsonStorageSubmodule, bool>(key2, value2);
+            m_Storage.Write<JsonStorageSubmodule, int>(key3, value3);
+            m_Storage.Write<JsonStorageSubmodule, float>(key4, value4);
+            m_Storage.Write<JsonStorageSubmodule, CustomTestData>(key5, value5);
         
-            bool result1 = m_StorageUnit.TryRead<JsonStorage, string>(key1, out var outValue1);
-            bool result2 = m_StorageUnit.TryRead<JsonStorage, bool>(key2, out var outValue2);
-            bool result3 = m_StorageUnit.TryRead<JsonStorage, int>(key3, out var outValue3);
-            bool result4 = m_StorageUnit.TryRead<JsonStorage, float>(key4, out var outValue4);
-            bool result5 = m_StorageUnit.TryRead<JsonStorage, CustomTestData>(key5, out var outValue5);
+            bool result1 = m_Storage.TryRead<JsonStorageSubmodule, string>(key1, out var outValue1);
+            bool result2 = m_Storage.TryRead<JsonStorageSubmodule, bool>(key2, out var outValue2);
+            bool result3 = m_Storage.TryRead<JsonStorageSubmodule, int>(key3, out var outValue3);
+            bool result4 = m_Storage.TryRead<JsonStorageSubmodule, float>(key4, out var outValue4);
+            bool result5 = m_Storage.TryRead<JsonStorageSubmodule, CustomTestData>(key5, out var outValue5);
 
             Assert.IsTrue(result1);
             Assert.AreEqual(value1, outValue1);
@@ -128,8 +127,8 @@ namespace VerveUniEx.Tests
             string value = "testValue";
             string fileName = "customFile.txt";
             
-            m_StorageUnit.Write<JsonStorage, string>(fileName, key, value);
-            bool result = m_StorageUnit.TryRead<JsonStorage, string>(fileName, key, out var outValue);
+            m_Storage.Write<JsonStorageSubmodule, string>(fileName, key, value);
+            bool result = m_Storage.TryRead<JsonStorageSubmodule, string>(fileName, key, out var outValue);
 
             Assert.IsTrue(result);
             Assert.AreEqual(value, outValue);
@@ -145,11 +144,11 @@ namespace VerveUniEx.Tests
             string value = "testValue";
             string fileName = "customFile.txt";
 
-            m_StorageUnit.Write<JsonStorage, string>(fileName, key, value);
-            m_StorageUnit.Delete<JsonStorage>(fileName, key);
-            m_StorageUnit.DeleteAll<JsonStorage>(fileName);
+            m_Storage.Write<JsonStorageSubmodule, string>(fileName, key, value);
+            m_Storage.Delete<JsonStorageSubmodule>(fileName, key);
+            m_Storage.DeleteAll<JsonStorageSubmodule>(fileName);
         
-            bool result = m_StorageUnit.TryRead<JsonStorage, string>(fileName, key, out var outValue);
+            bool result = m_Storage.TryRead<JsonStorageSubmodule, string>(fileName, key, out var outValue);
         
             Assert.IsFalse(result);
             Assert.IsNull(outValue);

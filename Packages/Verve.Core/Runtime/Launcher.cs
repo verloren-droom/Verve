@@ -5,6 +5,7 @@ namespace Verve
     using System.Collections.Generic;
 
 
+    [Obsolete("Launcher is deprecated, please use the GameFeatures system")]
     public static partial class Launcher
     {
         private static UnitRules m_UnitRules = new UnitRules();

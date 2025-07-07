@@ -2,6 +2,7 @@
 
 namespace VerveUniEx.Tests
 {
+    using Verve;
     using Input;
     using Verve.Unit;
     using UnityEngine;
@@ -14,20 +15,21 @@ namespace VerveUniEx.Tests
     [TestFixture]
     public class InputUniExTest
     {
-        private UnitRules m_UnitRules = new UnitRules();
-        private InputUnit m_InputUnit;
+        private InputFeature m_Input;
 
         
         [SetUp]
         public void SetUp()
         {
-            m_UnitRules = new UnitRules();
+            m_Input = new InputFeature();
+            ((IGameFeature)m_Input).Load();
+            ((IGameFeature)m_Input).Activate();
         }
         
         [TearDown]
         public void Teardown()
         {
-            m_InputUnit = null;
+            m_Input = null;
         }
         
 #if UNITY_2019_4_OR_NEWER && ENABLE_INPUT_SYSTEM
@@ -48,19 +50,16 @@ namespace VerveUniEx.Tests
             var playerInput = obj.AddComponent<PlayerInput>();
             playerInput.actions = asset;
             
-            m_UnitRules.AddDependency<InputUnit>(playerInput);
-            m_UnitRules.Initialize();
-            m_UnitRules.TryGetDependency(out m_InputUnit);
             
-            m_InputUnit.Enable<InputSystemService>();
+            m_Input.Enable<InputSystemSubmodule>();
             
-            m_InputUnit.AddListener<InputSystemService, float>($"{mapName}/{actionName}", ctx => {
+            m_Input.AddListener<InputSystemSubmodule, float>($"{mapName}/{actionName}", ctx => {
                 isTriggered = true;
                 triggeredResult = ctx.value;
             });
 
             // TODO: Need to implement InputSystem Input simulation
-            m_InputUnit.SimulateInputAction<InputSystemService, float>($"{mapName}/{actionName}", -1.0f);
+            m_Input.SimulateInputAction<InputSystemSubmodule, float>($"{mapName}/{actionName}", -1.0f);
 
             Assert.IsTrue(isTriggered);
             Assert.AreEqual(-1.0f, triggeredResult);
@@ -75,18 +74,15 @@ namespace VerveUniEx.Tests
             bool isTriggered = false;
             float triggeredResult = 1.0f;
             const string actionName = "Horizontal";
-
-            m_UnitRules.AddDependency<InputUnit>();
-            m_UnitRules.Initialize();
-            m_UnitRules.TryGetDependency(out m_InputUnit);
-            m_InputUnit.Enable<InputManagerService>();
-            m_InputUnit.AddListener<InputManagerService, float>($"{actionName}", ctx =>
+            
+            m_Input.Enable<InputManagerSubmodule>();
+            m_Input.AddListener<InputManagerSubmodule, float>($"{actionName}", ctx =>
             {
                 isTriggered = true;
                 triggeredResult = ctx.value;
             });
             
-            m_InputUnit.SimulateInputAction<InputManagerService, float>($"{actionName}", -1.0f);
+            m_Input.SimulateInputAction<InputManagerSubmodule, float>($"{actionName}", -1.0f);
 
             Assert.IsTrue(isTriggered);
             Assert.AreEqual(-1.0f, triggeredResult);

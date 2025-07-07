@@ -3,7 +3,6 @@
 namespace VerveUniEx.Gameplay
 {
     using System;
-    using Verve.Pool;
     using UnityEngine;
     using System.Collections;
     using System.Collections.Generic;
@@ -28,7 +27,8 @@ namespace VerveUniEx.Gameplay
         /// <summary> 发射事件 </summary>
         public event Action OnFire;
         /// <summary> 销毁事件  </summary>
-        public event Action OnDestroy;
+        public event Action OnDestroyed;
+        
 
         private bool m_IsActive;
         private Rigidbody m_Rigidbody;
@@ -37,10 +37,9 @@ namespace VerveUniEx.Gameplay
         private RaycastHit[] m_Hits = new RaycastHit[10];
 
         
-        private void Awake()
+        protected virtual void Awake()
         {
             m_Rigidbody = GetComponent<Rigidbody>();
-            m_Rigidbody.isKinematic = false;
         }
 
         public virtual void ResetState()
@@ -108,7 +107,7 @@ namespace VerveUniEx.Gameplay
             {
                 yield return new WaitForSeconds(m_Lifetime);
                 m_IsActive = false;
-                OnDestroy?.Invoke();
+                OnDestroyed?.Invoke();
             }
         }
     }

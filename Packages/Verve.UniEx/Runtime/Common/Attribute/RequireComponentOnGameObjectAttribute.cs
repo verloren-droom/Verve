@@ -10,7 +10,7 @@ namespace VerveUniEx
     /// <summary>
     /// 要求引用的 GameObject 上必须包含指定组件
     /// </summary>
-    [AttributeUsage(AttributeTargets.Field)]
+    [AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]
     public class RequireComponentOnGameObjectAttribute : PropertyAttribute
     {
         public Type RequiredType { get; }

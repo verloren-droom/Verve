@@ -1,34 +1,28 @@
 namespace Verve.Tests
 {
-    using Unit;
     using MVC;
+    using Unit;
     using NUnit.Framework;
     
     
     [TestFixture]
     public class MVCTest
     {
-        private UnitRules m_UnitRules = new UnitRules();
-        private MVCUnit m_MVCUnit;
-        private TestActivity m_TestActivity;
+        private MVCFeature m_MVC;
         
         
         [SetUp]
         public void SetUp()
         {
-            m_UnitRules = new UnitRules();
-            m_UnitRules.AddDependency<MVCUnit>();
-            m_UnitRules.Initialize();
-            m_UnitRules.TryGetDependency(out m_MVCUnit);
-            
-            m_TestActivity = new TestActivity();
+            m_MVC = new MVCFeature();
+            ((IGameFeature)m_MVC).Load();
+            ((IGameFeature)m_MVC).Activate();
         }
         
         [TearDown]
         public void Teardown()
         {
-            m_MVCUnit = null;
-            m_TestActivity = null;
+            m_MVC = null;
         }
         
         /// <summary>
@@ -37,9 +31,9 @@ namespace Verve.Tests
         [Test]
         public void ActivityModelRegistration_ShouldWorkCorrectly()
         {
-            m_TestActivity.RegisterModel<TestModel>();
+            TestActivity.Instance.RegisterModel<TestModel>();
             
-            var model = m_TestActivity.GetModel<TestModel>();
+            var model = TestActivity.Instance.GetModel<TestModel>();
             
             Assert.IsNotNull(model);
             Assert.IsTrue(model.IsInitialized);
@@ -51,15 +45,15 @@ namespace Verve.Tests
         [Test]
         public void CommandExecution_ShouldWorkCorrectly()
         {
-            var command = m_TestActivity.RegisterCommand<TestCommand>();
+            var command = TestActivity.Instance.RegisterCommand<TestCommand>();
             
             Assert.IsNotNull(command);
             
-            m_TestActivity.ExecuteCommand<TestCommand>();
+            TestActivity.Instance.ExecuteCommand<TestCommand>();
 
             Assert.IsTrue(command.IsExecuted);
 
-            m_TestActivity.UndoCommand<TestCommand>();
+            TestActivity.Instance.UndoCommand<TestCommand>();
             
             Assert.IsFalse(command.IsExecuted);
         }
@@ -70,9 +64,9 @@ namespace Verve.Tests
         [Test]
         public void ControllerModelAccess_ShouldWorkCorrectly()
         {
-            m_TestActivity.RegisterModel<TestModel>();
+            TestActivity.Instance.RegisterModel<TestModel>();
             
-            var controller = new TestController { Activity = m_TestActivity };
+            var controller = new TestController { Activity = TestActivity.Instance };
             var model = controller.GetModel<TestModel>();
             
             Assert.IsNotNull(model);
@@ -84,7 +78,7 @@ namespace Verve.Tests
         [Test]
         public void ViewLifecycle_ShouldWorkCorrectly()
         {
-            var view = new TestView { Activity = m_TestActivity };
+            var view = new TestView { Activity = TestActivity.Instance };
             
             bool openedFired = false;
             bool closedFired = false;

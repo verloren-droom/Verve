@@ -12,20 +12,19 @@ namespace VerveUniEx
     [DisallowMultipleComponent]
     public abstract class ComponentInstanceBase<T> : MonoBehaviour where T : MonoBehaviour
     {
-        private static T m_Instance;
-        private static bool m_IsInitialized;
+        private static T s_Instance;
+        private static bool s_IsInitialized;
         
         public static T Instance
         {
             get
             {
-                // m_Instance ??= GameObject.FindObjectOfType<T>();
-                if (m_Instance == null)
+                if (s_Instance == null)
                 {
                     T[] existingInstances = FindObjectsByType<T>(FindObjectsSortMode.None);
                     if (existingInstances.Length > 0)
                     {
-                        m_Instance = existingInstances[0];
+                        s_Instance = existingInstances[0];
                                 
                         for (int i = 1; i < existingInstances.Length; i++)
                         {
@@ -35,18 +34,21 @@ namespace VerveUniEx
                     else
                     {
                         var obj = new GameObject(typeof(T).Name);
-                        m_Instance = obj.AddComponent<T>();
+                        s_Instance = obj.AddComponent<T>();
                     }
                 }
-                if (!m_IsInitialized)
+                if (!s_IsInitialized)
                 {
-                    m_IsInitialized = true;
-                    DontDestroyOnLoad(m_Instance.gameObject);
-                    (m_Instance as ComponentInstanceBase<T>).OnInitialized();
+                    s_IsInitialized = true;
+                    if (UnityEngine.Application.isPlaying)
+                    {
+                        DontDestroyOnLoad(s_Instance?.gameObject);
+                    }
+                    (s_Instance as ComponentInstanceBase<T>).OnInitialized();
                 }
-                return m_Instance;
+                return s_Instance;
             }
-            private set => m_Instance = value;
+            private set => s_Instance = value;
         }
         
         

@@ -10,7 +10,7 @@ namespace Verve.Unit
     /// <summary>
     /// 单元管理 
     /// </summary>
-    [System.Serializable]
+    [Serializable, Obsolete("Unit system is deprecated, please use the GameFeatures system")]
     public sealed partial class UnitRules : IDisposable
     {
         private readonly ConcurrentDictionary<string, UnitInfo> m_Units = new ConcurrentDictionary<string, UnitInfo>();

@@ -10,30 +10,28 @@ namespace Verve.Tests
     [TestFixture]
     public class AITest
     {
-        private UnitRules m_UnitRules = new UnitRules();
-        private AIUnit m_AIUnit;
+        private AIFeature m_AI;
         
         
         [SetUp]
         public void SetUp()
         {
-            m_UnitRules = new UnitRules();
-            m_UnitRules.AddDependency<AIUnit>();
-            m_UnitRules.Initialize();
-            m_UnitRules.TryGetDependency(out m_AIUnit);
+            m_AI = new AIFeature();
+            ((IGameFeature)m_AI).Load();
+            ((IGameFeature)m_AI).Activate();
         }
                 
         [TearDown]
         public void Teardown()
         {
-            m_AIUnit = null;
+            m_AI = null;
         }
         
         [Test]
         public void BehaviorTree_ShouldExecuteNodesCorrectly()
         {
             var bb = new Blackboard();
-            var tree = m_AIUnit.CreateBehaviorTree<BehaviorTree>(bb: bb);
+            var tree = new BehaviorTree(blackboard: bb);
     
             bool action1Executed = false;
 
@@ -347,7 +345,7 @@ namespace Verve.Tests
             var executionLog = new List<string>();
 
             // 构建完整行为树
-            var behaviorTree = m_AIUnit.CreateBehaviorTree<BehaviorTree>(bb: bb);
+            var behaviorTree = new BehaviorTree(blackboard: bb);
 
             // 创建深度嵌套的节点结构
             IBTNode rootNode = new RepeaterBTNode()

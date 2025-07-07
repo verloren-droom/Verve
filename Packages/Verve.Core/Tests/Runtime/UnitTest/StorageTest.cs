@@ -10,25 +10,21 @@ namespace Verve.Tests
     [TestFixture]
     public class StorageTest
     {
-        private UnitRules m_UnitRules = new UnitRules();
-        private StorageUnit m_StorageUnit;
+        private StorageFeature m_Storage;
 
         
         [SetUp]
         public void SetUp()
         {
-            m_UnitRules = new UnitRules();
-            m_UnitRules.AddDependency<SerializableUnit>();
-            m_UnitRules.AddDependency<FileUnit>();
-            m_UnitRules.AddDependency<StorageUnit>();
-            m_UnitRules.Initialize();
-            m_UnitRules.TryGetDependency(out m_StorageUnit);
+            m_Storage = new StorageFeature();
+            ((IGameFeature)m_Storage).Load();
+            ((IGameFeature)m_Storage).Activate();
         }
         
         [TearDown]
         public void Teardown()
         {
-            m_StorageUnit = null;
+            m_Storage = null;
         }
 
         /// <summary>
@@ -41,9 +37,9 @@ namespace Verve.Tests
             string key = "testKey";
             string value = "testValue";
         
-            m_StorageUnit.Write<JsonStorage, string>(fileName, key, value);
+            m_Storage.Write<JsonStorageSubmodule, string>(fileName, key, value);
         
-            bool result = m_StorageUnit.TryRead<JsonStorage, string>(fileName, key, out string outValue);
+            bool result = m_Storage.TryRead<JsonStorageSubmodule, string>(fileName, key, out string outValue);
         
             Assert.IsTrue(result);
             Assert.AreEqual(value, outValue);
@@ -59,11 +55,11 @@ namespace Verve.Tests
             string key = "testKey";
             string value = "testValue";
         
-            m_StorageUnit.Write<JsonStorage, string>(fileName, key, value);
-            m_StorageUnit.Delete<JsonStorage>(key);
-            m_StorageUnit.DeleteAll<JsonStorage>(fileName);
+            m_Storage.Write<JsonStorageSubmodule, string>(fileName, key, value);
+            m_Storage.Delete<JsonStorageSubmodule>(key);
+            m_Storage.DeleteAll<JsonStorageSubmodule>(fileName);
         
-            bool result = m_StorageUnit.TryRead<JsonStorage, string>(fileName, key, out string outValue);
+            bool result = m_Storage.TryRead<JsonStorageSubmodule, string>(fileName, key, out string outValue);
         
             Assert.IsFalse(result);
             Assert.IsNull(outValue);

@@ -5,7 +5,7 @@ namespace Verve.IO
     using System.Threading.Tasks;
     
 
-    public interface IIOProvider : IDisposable
+    public interface IIOProvider
     {
         Stream OpenRead(string path);
         Stream OpenWrite(string path, FileMode mode = FileMode.Create);
