@@ -12,7 +12,7 @@ namespace Verve.Application
         protected override void OnLoad()
         {
             m_Application = new GenericApplicationSubmodule();
-            m_Application?.OnModuleLoaded();
+            m_Application.OnModuleLoaded();
         }
         
         protected override void OnUnload()

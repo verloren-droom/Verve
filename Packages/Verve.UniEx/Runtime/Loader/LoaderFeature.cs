@@ -18,6 +18,7 @@ namespace VerveUniEx.Loader
         protected override void OnLoad()
         {
             base.OnLoad();
+            
             RegisterSubmodule(new AssetBundleLoader());
             RegisterSubmodule(new ResourcesLoader());
 #if UNITY_2018_3_OR_NEWER

@@ -14,7 +14,7 @@ namespace VerveUniEx.Debugger
         protected override void OnLoad()
         {
             m_DebuggerSubmodule = new GenericDebuggerSubmodule();
-            m_DebuggerSubmodule?.OnModuleLoaded();
+            m_DebuggerSubmodule.OnModuleLoaded();
         }
     }
 }

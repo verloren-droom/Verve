@@ -10,8 +10,9 @@ namespace VerveUniEx.Platform
         protected override void OnLoad()
         {
             base.OnLoad();
+            
             m_Platform = new GenericPlatformSubmodule();
-            m_Platform?.OnModuleLoaded();
+            m_Platform.OnModuleLoaded();
         }
     }
 }

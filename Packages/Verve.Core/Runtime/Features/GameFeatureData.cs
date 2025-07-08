@@ -12,7 +12,7 @@ namespace Verve
     {
         public abstract string FeatureName { get; }
         public virtual IReadOnlyList<string> Dependencies { get; } = Array.Empty<string>();
-        public virtual bool IsPersistent => false;
+        public virtual bool IsPersistent => true;
         public abstract IGameFeature CreateFeature();
     }
 }

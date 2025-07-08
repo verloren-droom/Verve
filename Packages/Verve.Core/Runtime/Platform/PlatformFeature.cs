@@ -11,12 +11,16 @@ namespace Verve.Platform
         
         protected override void OnLoad()
         {
+            base.OnLoad();
+            
             m_Platform = new GenericPlatformSubmodule();
-            m_Platform?.OnModuleLoaded();
+            m_Platform.OnModuleLoaded();
         }
         
         protected override void OnUnload()
         {
+            base.OnUnload();
+            
             m_Platform?.OnModuleUnloaded();
             m_Platform = null;
         }

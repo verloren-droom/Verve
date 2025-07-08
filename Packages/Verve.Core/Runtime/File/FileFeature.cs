@@ -14,22 +14,22 @@ namespace Verve.File
     public partial class FileFeature : GameFeature
     {
         protected IFileSubmodule m_FileSubmodule;
-        protected SerializableFeature m_Serializable;
-        protected PlatformFeature m_Platform;
+        [FeatureDependency] protected SerializableFeature m_Serializable;
+        [FeatureDependency] protected PlatformFeature m_Platform;
 
 
         protected override void OnLoad()
         {
             base.OnLoad();
+            
             m_FileSubmodule = new GenericFileSubmodule();
-            m_FileSubmodule?.OnModuleLoaded();
-            m_Serializable = GameFeaturesSystem.Runtime.GetFeature<SerializableFeature>();
-            m_Platform = GameFeaturesSystem.Runtime.GetFeature<PlatformFeature>();
+            m_FileSubmodule.OnModuleLoaded();
         }
         
         protected override void OnUnload()
         {
             base.OnUnload();
+            
             m_FileSubmodule?.OnModuleUnloaded();
             m_FileSubmodule = null;
             m_Serializable = null;

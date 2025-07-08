@@ -16,7 +16,7 @@ namespace Verve
         
         
         /// <summary> 注册子模块 </summary>
-        public void RegisterSubmodule(IGameFeatureSubmodule submodule)
+        protected void RegisterSubmodule(IGameFeatureSubmodule submodule)
         {
             if (submodule == null) return;
             

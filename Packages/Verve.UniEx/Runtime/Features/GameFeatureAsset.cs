@@ -23,6 +23,7 @@ namespace VerveUniEx
         public bool AutoLoad => m_AutoLoad;
         public bool AutoActivate => m_AutoActivate;
         public bool IsPersistent => m_IsPersistent;
+        public string Description => m_Description;
 
 
         /// <summary> 创建功能实例 </summary>

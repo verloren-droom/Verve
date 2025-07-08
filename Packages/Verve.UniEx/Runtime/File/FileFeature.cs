@@ -18,8 +18,6 @@ namespace VerveUniEx.File
             base.OnLoad();
             m_FileSubmodule = new GenericFileSubmodule();
             m_FileSubmodule?.OnModuleLoaded();
-            m_Serializable = Verve.GameFeaturesSystem.Runtime.GetFeature<SerializableFeature>();
-            m_Platform = Verve.GameFeaturesSystem.Runtime.GetFeature<PlatformFeature>();
         }
     }
 }

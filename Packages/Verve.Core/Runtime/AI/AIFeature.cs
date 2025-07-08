@@ -9,14 +9,6 @@ namespace Verve.AI
     [System.Serializable]
     public class AIFeature : GameFeature
     {
-        public void Update(float deltaTime)
-        {
-            for (int i = 0; i < BehaviorTree.AllBehaviorTrees.Count; i++)
-            {
-                BehaviorTree.AllBehaviorTrees[i]?.Update(deltaTime);
-            }
-        }
-
         protected override void OnUnload()
         {
             base.OnUnload();
@@ -26,6 +18,14 @@ namespace Verve.AI
             }
         }
         
+        public void Update(float deltaTime)
+        {
+            for (int i = 0; i < BehaviorTree.AllBehaviorTrees.Count; i++)
+            {
+                BehaviorTree.AllBehaviorTrees[i]?.Update(deltaTime);
+            }
+        }
+
         public BTType CreateBehaviorTree<BTType>(int initialCapacity = 128, Blackboard bb = null)
             where BTType : class, IBehaviorTree
         {

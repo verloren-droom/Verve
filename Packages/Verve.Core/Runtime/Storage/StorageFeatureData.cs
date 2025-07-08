@@ -11,7 +11,7 @@ namespace Verve.Storage
     {
         public override string FeatureName => "Verve.Storage";
 
-        public override IReadOnlyList<string> Dependencies => new string[] { "Verve.Serializable" };
+        public override IReadOnlyList<string> Dependencies => new string[] { "Verve.Serializable", "Verve.File", "Verve.Platform" };
 
 
         public override IGameFeature CreateFeature()

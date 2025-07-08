@@ -2,6 +2,7 @@
 
 namespace VerveUniEx.Audio
 {
+    using Verve;
     using System;
     using Loader;
     using Verve.Pool;
@@ -15,7 +16,7 @@ namespace VerveUniEx.Audio
     /// </summary>
     public partial class AudioFeatureComponent : GameFeatureComponent
     {
-        private LoaderFeature m_Loader;
+        [FeatureDependency] private LoaderFeature m_Loader;
         
         [SerializeField, Tooltip("音频混合器")] private AudioMixer m_Mixer;
         [SerializeField, Tooltip("音频分组-音效")] private AudioMixerGroup m_SfxGroup;

@@ -17,7 +17,7 @@ namespace Verve.Storage
     {
         public override string ModuleName => "JsonStorage";
         
-        private readonly SerializableFeature m_SerializableUnit;
+        private readonly SerializableFeature m_Serializable;
         private readonly FileFeature m_File;
         private readonly PlatformFeature m_Platform;
         
@@ -25,11 +25,12 @@ namespace Verve.Storage
         
         public override string DefaultFileExtension { get; set; } = ".json";
 
+        
         protected internal JsonStorageSubmodule(SerializableFeature serializable, FileFeature file, PlatformFeature platform)
         {
-            m_File = file ?? throw new ArgumentNullException(nameof(file));
-            m_SerializableUnit = serializable ?? throw new ArgumentNullException(nameof(serializable));
             m_Platform = platform ?? throw new ArgumentNullException(nameof(platform));
+            m_Serializable = serializable ?? throw new ArgumentNullException(nameof(serializable));
+            m_File = file ?? throw new ArgumentNullException(nameof(file));
         }
 
         public override void Write<T>(string fileName, string key, T value)
@@ -99,7 +100,7 @@ namespace Verve.Storage
             try
             {
                 using var fs = File.OpenRead(fullPath);
-                return m_SerializableUnit.DeserializeFromStream<JsonSerializableSubmodule, Dictionary<string, object>>(fs);
+                return m_Serializable.DeserializeFromStream<JsonSerializableSubmodule, Dictionary<string, object>>(fs);
             }
             catch
             {

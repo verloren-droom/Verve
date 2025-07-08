@@ -1,3 +1,5 @@
+using UnityEngine;
+
 #if UNITY_5_3_OR_NEWER
 
 namespace VerveUniEx.Storage
@@ -15,6 +17,7 @@ namespace VerveUniEx.Storage
         protected override void OnLoad()
         {
             base.OnLoad();
+            
             RegisterSubmodule(new BuiltInStorageSubmodule(m_Serializable));
         }
 

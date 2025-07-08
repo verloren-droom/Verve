@@ -93,6 +93,7 @@ namespace Verve
             try
             {
                 info.Feature = info.Data.CreateFeature();
+                FeatureDependencyInjector.InjectDependencies(info.Feature);
                 info.Feature.Load();
                 info.State = FeatureState.Loaded;
                 

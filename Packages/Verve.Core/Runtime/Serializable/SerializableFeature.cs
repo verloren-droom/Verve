@@ -13,6 +13,7 @@ namespace Verve.Serializable
         protected override void OnLoad()
         {
             base.OnLoad();
+            
             // RegisterSubmodule(new CsvSerializableService());
             RegisterSubmodule(new ProtoBufSerializableSubmodule());
             RegisterSubmodule(new JsonSerializableSubmodule());

@@ -9,6 +9,8 @@ namespace VerveUniEx.Application
     public class WebGLApplicationSubmodule : GenericApplicationSubmodule
     {
         public override string ModuleName => "WebGLApplication";
+        // [System.Runtime.InteropServices.DllImport("__Internal")]
+        // private static extern void ReloadPage();
 
         public override void QuitApplication()
         {

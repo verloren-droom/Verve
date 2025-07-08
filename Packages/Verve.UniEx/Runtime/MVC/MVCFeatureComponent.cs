@@ -2,6 +2,7 @@
 
 namespace VerveUniEx.MVC
 {
+    using Verve;
     using Loader;
     using System;
     using Verve.MVC;
@@ -22,14 +23,13 @@ namespace VerveUniEx.MVC
             new Dictionary<Type, WeakReference<IView>>();
 
         private Transform m_Root;
-        private LoaderFeature m_Loader;
+        [FeatureDependency] private LoaderFeature m_Loader;
 
         
         protected override void OnLoad()
         {
             base.OnLoad();
             m_Root = gameObject.transform;
-            m_Loader = Verve.GameFeaturesSystem.Runtime.GetFeature<LoaderFeature>();
         }
         
         protected override void OnUnload()

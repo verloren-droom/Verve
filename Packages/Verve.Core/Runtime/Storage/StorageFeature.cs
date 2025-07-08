@@ -14,22 +14,14 @@ namespace Verve.Storage
     [Serializable]
     public class StorageFeature : ModularGameFeature
     {
-        protected SerializableFeature m_Serializable;
-        protected FileFeature m_File;
-        protected PlatformFeature m_Platform;
+        [FeatureDependency] protected SerializableFeature m_Serializable;
+        [FeatureDependency] protected FileFeature m_File;
+        [FeatureDependency] protected PlatformFeature m_Platform;
         
-        
+
         protected override void OnLoad()
         {
             base.OnLoad();
-            m_Serializable = GameFeaturesSystem.Runtime.GetFeature<SerializableFeature>();
-            m_File = GameFeaturesSystem.Runtime.GetFeature<FileFeature>();
-            m_Platform = GameFeaturesSystem.Runtime.GetFeature<PlatformFeature>();
-        }
-
-        protected override void OnActivate()
-        {
-            base.OnActivate();
             
             RegisterSubmodule(new BinaryStorageSubmodule(m_Serializable));
             RegisterSubmodule(new JsonStorageSubmodule(m_Serializable, m_File, m_Platform));
