@@ -10,7 +10,6 @@ namespace VerveUniEx.MVC
     /// <summary>
     /// MVC功能数据
     /// </summary>
-    [CreateAssetMenu(fileName = "New MVCFeature", menuName = "Verve/Features/MVCFeature", order = 0)]
     public partial class MVCFeatureAsset : GameFeatureAsset
     {
         [SerializeField, Tooltip("功能名称（保证全局唯一）"), ReadOnly] private string m_FeatureName = "VerveUniEx.MVC";
@@ -23,10 +22,7 @@ namespace VerveUniEx.MVC
 
         public override IGameFeature CreateFeature()
         {
-            // if (!Application.isPlaying)
-            //     return null;
             return this.CreateFeatureInstance<MVCFeatureComponent>(m_ViewPrefab);
-            // return GameObject.Instantiate(m_ViewPrefab).GetComponent<MVCFeatureComponent>();
         }
     }
 }

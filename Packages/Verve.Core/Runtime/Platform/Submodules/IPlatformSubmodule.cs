@@ -1,18 +1,18 @@
 namespace Verve.Platform
 {
     /// <summary>
-    /// 平台子模块
+    /// 平台子模块接口
     /// </summary>
     public interface IPlatformSubmodule : IGameFeatureSubmodule
     {
-        /// <summary> 平台名称 </summary>
-        string PlatformName { get; }
-
         /// <summary> 打开网址 </summary>
         void OpenUrl(string url);
         
         /// <summary> 显示对话框 </summary>
         void ShowDialog(string title, string message);
+        
+        /// <summary>显示吐司</summary>
+        // void ShowToast(string message);
         
         /// <summary> 打开系统文件选择器 </summary>
         void OpenFilePicker(System.Action<string> onFileSelected, string filter = "All files (*.*)|*.*");

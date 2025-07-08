@@ -149,6 +149,7 @@ namespace Verve.Unit
 
         public IEnumerable<ICustomUnit> GetAllDependencies() => m_Units.Values.Select(e => e.Instance);
 
+        [Obsolete("Unit system is deprecated, please use the GameFeatures system")]
         private struct UnitInfo
         {
             public int Priority { get; set; }

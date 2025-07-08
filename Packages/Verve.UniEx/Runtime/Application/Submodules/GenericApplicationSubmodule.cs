@@ -8,13 +8,14 @@ namespace VerveUniEx.Application
     /// <summary>
     /// Unity通用应用子模块
     /// </summary>
+    [System.Serializable]
     public class GenericApplicationSubmodule : Verve.Application.ApplicationSubmodule
     {
         public override string ModuleName => "GenericApplication";
         public override string DeviceId => SystemInfo.deviceUniqueIdentifier;
         public override string Version => Application.version;
-        public override string PlatformName => Application.platform.ToString();
         
+
         public override void OnModuleLoaded()
         {
             base.OnModuleLoaded();

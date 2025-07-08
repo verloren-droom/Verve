@@ -21,7 +21,7 @@ namespace Verve.Application
             m_Application = null;
         }
         
-        public virtual string PlatformName => m_Application.PlatformName;
+        public virtual string PlatformName => System.Runtime.InteropServices.RuntimeInformation.OSDescription;
         public virtual string AppVersion => m_Application.Version;
         public virtual string DeviceId => m_Application.DeviceId;
         

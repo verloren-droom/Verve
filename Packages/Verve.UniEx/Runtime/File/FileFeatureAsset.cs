@@ -10,7 +10,6 @@ namespace VerveUniEx.File
     /// <summary>
     /// 文件功能数据
     /// </summary>
-    [CreateAssetMenu(fileName = "New FileFeature", menuName = "Verve/Features/FileFeature", order = 0)]
     public partial class FileFeatureAsset : GameFeatureAsset
     {
         [SerializeField, Tooltip("功能名称（保证全局唯一）"), ReadOnly] private string m_FeatureName = "VerveUniEx.File";

@@ -9,8 +9,7 @@ namespace VerveUniEx.Debugger
     /// <summary>
     /// 调试器功能数据
     /// </summary>
-    [CreateAssetMenu(fileName = "New DebuggerFeature", menuName = "Verve/Features/DebuggerFeature")]
-    public class DebuggerFeatureAsset : GameFeatureAsset
+    public partial class DebuggerFeatureAsset : GameFeatureAsset
     {
         [SerializeField, Tooltip("功能名称（保证全局唯一）"), ReadOnly] private string m_FeatureName = "VerveUniEx.Debugger";
 

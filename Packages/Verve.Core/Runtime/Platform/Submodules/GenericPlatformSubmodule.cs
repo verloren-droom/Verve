@@ -6,7 +6,5 @@ namespace Verve.Platform
     public class GenericPlatformSubmodule : PlatformSubmodule
     {
         public override string ModuleName => "GenericPlatform";
-        
-        public override string PlatformName { get; }
     }
 }

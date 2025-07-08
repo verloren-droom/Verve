@@ -1,5 +1,3 @@
-using UnityEngine.SceneManagement;
-
 #if UNITY_5_3_OR_NEWER
 
 namespace VerveUniEx.MVC
@@ -18,7 +16,6 @@ namespace VerveUniEx.MVC
     /// <summary>
     /// MVC功能
     /// </summary>
-    [DisallowMultipleComponent, AddComponentMenu("Verve/Features/MVCFeatureComponent")]
     public partial class MVCFeatureComponent : GameFeatureComponent
     {
         private readonly Dictionary<Type, WeakReference<IView>> m_CachedView = 

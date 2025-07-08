@@ -9,7 +9,6 @@ namespace VerveUniEx.Input
     /// <summary>
     /// 输入功能数据
     /// </summary>
-    [CreateAssetMenu(fileName = "New InputFeature", menuName = "Verve/Features/InputFeature", order = 0)]
     public partial class InputFeatureAsset : GameFeatureAsset
     {
         [SerializeField, Tooltip("功能名称（保证全局唯一）"), ReadOnly] private string m_FeatureName = "VerveUniEx.Input";

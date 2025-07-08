@@ -164,6 +164,10 @@ namespace Verve
                         if (m_Features.TryGetValue(dependencies[i], out var depInfo))
                         {
                             depInfo.ReferenceCount--;
+                            if (depInfo.ReferenceCount == 0 && depInfo.State == FeatureState.Loaded && !depInfo.Data.IsPersistent)
+                            {
+                                UnloadFeature(dependencies[i]);
+                            }
                         }
                     }
                 }

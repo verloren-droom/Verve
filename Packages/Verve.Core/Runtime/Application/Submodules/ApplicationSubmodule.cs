@@ -12,9 +12,7 @@ namespace Verve.Application
         public virtual string ModuleName { get; }
         public virtual void OnModuleLoaded() { }
         public virtual void OnModuleUnloaded() { }
-
-        public virtual string PlatformName { get; } = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
-
+        
         public virtual string Version
         {
             get

@@ -10,7 +10,6 @@ namespace VerveUniEx.Audio
     /// <summary>
     /// 音频功能数据
     /// </summary>
-    [CreateAssetMenu(fileName = "New AudioFeature", menuName = "Verve/Features/AudioFeature", order = 0)]
     public partial class AudioFeatureAsset : GameFeatureAsset
     {
         [SerializeField, Tooltip("功能名称（保证全局唯一）"), ReadOnly] private string m_FeatureName = "VerveUniEx.Audio";

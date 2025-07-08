@@ -28,11 +28,14 @@ namespace VerveUniEx
 
             GameObject instance = prefab != null ? GameObject.Instantiate(prefab) : new GameObject($"[Feature] {self.FeatureName}");
 
-            if (self is GameFeatureAsset asset && asset.IsPersistent)
+            if (self.IsPersistent)
             {
                 GameObject.DontDestroyOnLoad(instance);
             }
-            // SceneManager.MoveGameObjectToScene(instance, SceneManager.GetActiveScene());
+            else
+            {
+                SceneManager.MoveGameObjectToScene(instance, SceneManager.GetActiveScene());
+            }
 
             var component = instance.GetComponent<T>() ?? instance.AddComponent<T>();
             m_FeatureInstances[self.FeatureName] = instance;

@@ -10,10 +10,10 @@ namespace VerveUniEx.Timer
     /// <summary>
     /// 计时器功能组件
     /// </summary>
-    [DisallowMultipleComponent, AddComponentMenu("Verve/Features/TimerFeatureComponent")]
     public partial class TimerFeatureComponent : GameFeatureComponent
     {
         private Verve.Timer.TimerFeature m_TimerFeature;
+
         
         protected override void OnLoad()
         {

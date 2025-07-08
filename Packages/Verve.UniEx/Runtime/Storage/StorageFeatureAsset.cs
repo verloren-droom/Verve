@@ -10,7 +10,7 @@ namespace VerveUniEx.Storage
     /// <summary>
     /// 持久化功能数据
     /// </summary>
-    [CreateAssetMenu(fileName = "New StorageFeature", menuName = "Verve/Features/StorageFeature", order = 0)]
+    [System.Serializable]
     public partial class StorageFeatureAsset : GameFeatureAsset
     {
         [SerializeField, Tooltip("功能名称（保证全局唯一）"), ReadOnly] private string m_FeatureName = "VerveUniEx.Storage";

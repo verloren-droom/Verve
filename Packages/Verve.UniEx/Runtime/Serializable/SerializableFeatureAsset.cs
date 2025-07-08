@@ -10,7 +10,6 @@ namespace VerveUniEx.Serializable
     /// <summary>
     /// 序列化功能数据
     /// </summary>
-    [CreateAssetMenu(fileName = "New SerializableFeature", menuName = "Verve/Features/SerializableFeature")]
     public partial class SerializableFeatureAsset : GameFeatureAsset
     {
         [SerializeField, Tooltip("功能名称（保证全局唯一）"), ReadOnly] private string m_FeatureName = "VerveUniEx.Serializable";

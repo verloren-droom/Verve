@@ -6,7 +6,9 @@ namespace VerveUniEx.AI
     using UnityEngine;
     
     
-    [CreateAssetMenu(fileName = "New AIFeature", menuName = "Verve/Features/AIFeature", order = 0)]
+    /// <summary>
+    /// AI功能数据
+    /// </summary>
     public partial class AIFeatureAsset : GameFeatureAsset
     {
         [SerializeField, Tooltip("功能名称（保证全局唯一）"), ReadOnly] private string m_FeatureName = "VerveUniEx.AI";

@@ -8,10 +8,15 @@ namespace VerveUniEx.Application
     [System.Serializable]
     public partial class ApplicationFeature : Verve.Application.ApplicationFeature
     {
+        public override string PlatformName =>  UnityEngine.Application.platform.ToString();
+
+        
         protected override void OnLoad()
         {
             base.OnLoad();
-#if UNITY_STANDALONE_WIN
+#if UNITY_EDITOR
+            m_Application = new GenericApplicationSubmodule();
+#elif UNITY_STANDALONE_WIN
             m_Application = new WindowApplicationSubmodule();
 #elif UNITY_STANDALONE_OSX
             m_Application = new MacApplicationSubmodule();

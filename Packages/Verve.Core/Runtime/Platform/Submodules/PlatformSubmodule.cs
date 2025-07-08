@@ -12,8 +12,6 @@ namespace Verve.Platform
         public abstract string ModuleName { get; }
         public virtual void OnModuleLoaded() { }
         public virtual void OnModuleUnloaded() { }
-
-        public abstract string PlatformName { get; }
         
         public virtual void OpenUrl(string url) => System.Diagnostics.Process.Start(url);
         public virtual void ShowDialog(string title, string message) { }
@@ -25,9 +23,10 @@ namespace Verve.Platform
         
         protected string[] ParseFilter(string filter)
         {
+            filter = filter.Trim();
             if (string.IsNullOrEmpty(filter)) 
-                return new string[0];
-        
+                return Array.Empty<string>();
+
             try
             {
                 string[] parts = filter.Split('|');
@@ -42,7 +41,7 @@ namespace Verve.Platform
             }
             catch
             {
-                return new string[0];
+                return Array.Empty<string>();
             }
         }
     }

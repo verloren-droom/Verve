@@ -12,8 +12,7 @@ namespace VerveUniEx.Platform
     public class GenericPlatformSubmodule : Verve.Platform.PlatformSubmodule
     {
         public override string ModuleName => "GenericPlatform";
-        public override string PlatformName => Application.platform.ToString();
-
+        
         public override void OpenUrl(string url) => Application.OpenURL(url);
 
         public override void ShowDialog(string title, string message)

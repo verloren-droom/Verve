@@ -1,4 +1,4 @@
-#if UNITY_5_3_OR_NEWER && UNITY_STANDALONE_OSX
+#if UNITY_5_3_OR_NEWER
 
 namespace VerveUniEx.Application
 {
@@ -10,8 +10,11 @@ namespace VerveUniEx.Application
     /// <summary>
     /// MacOS应用子模块
     /// </summary>
+    [System.Serializable]
     public class MacApplicationSubmodule : GenericApplicationSubmodule
     {
+        public override string ModuleName => "MacApplication";
+
         public override void RestartApplication()
         {
             string appPath = Path.Combine(

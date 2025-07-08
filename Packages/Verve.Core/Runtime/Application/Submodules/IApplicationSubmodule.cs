@@ -5,9 +5,6 @@ namespace Verve.Application
     /// </summary>
     public interface IApplicationSubmodule : IGameFeatureSubmodule
     {
-        /// <summary> 平台名称 </summary>
-        string PlatformName { get; }
-        
         /// <summary> 应用版本号 </summary>
         string Version { get; }
         

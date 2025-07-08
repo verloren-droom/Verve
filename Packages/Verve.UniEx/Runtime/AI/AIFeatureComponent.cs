@@ -9,7 +9,6 @@ namespace VerveUniEx.AI
     /// <summary>
     /// AI功能组件
     /// </summary>
-    [DisallowMultipleComponent, AddComponentMenu("Verve/Features/AIFeatureComponent")]
     public partial class AIFeatureComponent : GameFeatureComponent
     {
         private void Update()

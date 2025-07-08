@@ -6,6 +6,10 @@ namespace VerveUniEx.Pool
     using UnityEngine;
     
     
+    /// <summary>
+    /// 游戏对象池
+    /// </summary>
+    [System.Serializable]
     public class GameObjectPool : ObjectPool<GameObject>
     {
         private readonly Transform m_Parent;
@@ -25,7 +29,7 @@ namespace VerveUniEx.Pool
                     go.SetActive(false);
                     go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
                 },
-                onDestroyObject: (go) => Object.Destroy(go),
+                onDestroyObject: GameObject.Destroy,
                 preSize: preSize,
                 maxCapacity: maxCapacity)
         {

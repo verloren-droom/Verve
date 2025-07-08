@@ -18,7 +18,7 @@ namespace VerveUniEx
     {
         [SerializeField, Tooltip("注册游戏功能资源")] private GameFeatureAsset[] m_Features = Array.Empty<GameFeatureAsset>();
         [SerializeField, Tooltip("是否自动注册功能")] private bool m_AutoRegister = true;
-        [SerializeField, Tooltip("是否持久化")] private bool m_IsPersistent = true;
+        [SerializeField, Tooltip("是否常驻")] private bool m_IsPersistent = true;
         
         private List<GameFeatureAsset> m_SortedFeatures;
         
@@ -70,6 +70,7 @@ namespace VerveUniEx
             {
                 var feature = m_SortedFeatures[i];
                 if (feature != null)
+                    // StartCoroutine(GameFeaturesSystem.Runtime.UnloadFeatureAsync(feature.FeatureName));
                     GameFeaturesSystem.Runtime.UnloadFeature(feature.FeatureName);
             }
             

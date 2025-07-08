@@ -5,7 +5,7 @@ namespace VerveUniEx.Platform
     /// <summary>
     /// 平台功能
     /// </summary>
-    public class PlatformFeature : Verve.Platform.PlatformFeature
+    public partial class PlatformFeature : Verve.Platform.PlatformFeature
     {
         protected override void OnLoad()
         {

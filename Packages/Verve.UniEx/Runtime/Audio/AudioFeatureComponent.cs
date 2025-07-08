@@ -3,18 +3,16 @@
 namespace VerveUniEx.Audio
 {
     using System;
-    using System.Collections.Generic;
-    using UnityEngine.Audio;
+    using Loader;
     using Verve.Pool;
-    using Verve.Unit;
-    using VerveUniEx.Loader;
     using UnityEngine;
+    using UnityEngine.Audio;
+    using System.Collections.Generic;
     
     
     /// <summary>
     /// 音频功能组件
     /// </summary>
-    [DisallowMultipleComponent, AddComponentMenu("Verve/Features/AudioFeatureComponent")]
     public partial class AudioFeatureComponent : GameFeatureComponent
     {
         private LoaderFeature m_Loader;
