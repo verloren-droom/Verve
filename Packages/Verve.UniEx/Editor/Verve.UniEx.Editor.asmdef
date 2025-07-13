@@ -3,7 +3,24 @@
     "rootNamespace": "VerveEditor.UniEx",
     "references": [
         "Verve.Core",
-        "Verve.UniEx"
+        "Verve.UniEx",
+        "Verve.Platform",
+        "Verve.Serializable",
+        "Verve.AI",
+        "Verve.UniEx.AI",
+        "Verve.UniEx.Platform",
+        "Verve.UniEx.Serializable",
+        "Verve.File",
+        "Verve.UniEx.File",
+        "Verve.Input",
+        "Verve.UniEx.Input",
+        "Verve.Storage",
+        "Verve.UniEx.Storage",
+        "Verve.Loader",
+        "Verve.UniEx.Loader",
+        "Verve.UniEx.Gameplay",
+        "Verve.Debug",
+        "Verve.UniEx.Debug"
     ],
     "includePlatforms": [
         "Editor"

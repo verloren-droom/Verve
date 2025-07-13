@@ -7,12 +7,12 @@ namespace VerveUniEx.Platform
     /// </summary>
     public partial class PlatformFeature : Verve.Platform.PlatformFeature
     {
-        protected override void OnLoad()
+        protected override void OnLoad(Verve.IReadOnlyFeatureDependencies dependencies)
         {
-            base.OnLoad();
+            base.OnLoad(dependencies);
             
             m_Platform = new GenericPlatformSubmodule();
-            m_Platform.OnModuleLoaded();
+            m_Platform.OnModuleLoaded(dependencies);
         }
     }
 }

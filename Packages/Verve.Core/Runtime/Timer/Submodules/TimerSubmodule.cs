@@ -9,7 +9,7 @@ namespace Verve.Timer
     public abstract class TimerSubmodule : ITimerSubmodule
     {
         public abstract string ModuleName { get; }
-        public virtual void OnModuleLoaded() { }
+        public virtual void OnModuleLoaded(IReadOnlyFeatureDependencies dependencies) { }
         public virtual void OnModuleUnloaded() { }
 
         public float TimeScale { get; set; } = 1.0f;

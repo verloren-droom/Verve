@@ -7,6 +7,7 @@ namespace Verve.Storage
     using Serializable;
     using System.Collections.Generic;
     using System.Collections.Concurrent;
+    using System.Diagnostics.CodeAnalysis;
 
     
     /// <summary>
@@ -33,10 +34,8 @@ namespace Verve.Storage
             m_File = file ?? throw new ArgumentNullException(nameof(file));
         }
 
-        public override void Write<T>(string fileName, string key, T value)
+        public override void Write<T>(string fileName, [NotNull] string key, T value)
         {
-            ValidateParameters(fileName, key);
-            
             var fullPath = BuildFullPath(fileName);
             var dataDict = GetOrCreateFileData(fullPath);
             dataDict[key] = value;
@@ -45,10 +44,9 @@ namespace Verve.Storage
             CacheData(fullPath, key, value);
         }
 
-        public override bool TryRead<T>(string fileName, string key, out T value, T defaultValue = default)
+        public override bool TryRead<T>(string fileName, [NotNull] string key, out T value, T defaultValue = default)
         {
             value = defaultValue;
-            if (!ValidateParameters(fileName, key)) return false;
             
             var fullPath = BuildFullPath(fileName);
             if (TryGetFromCache(fullPath, key, out value)) return true;
@@ -62,10 +60,8 @@ namespace Verve.Storage
             return true;
         }
 
-        public override void Delete(string fileName, string key)
+        public override void Delete(string fileName, [NotNull] string key)
         {
-            if (!ValidateParameters(fileName, key)) return;
-            
             var fullPath = BuildFullPath(fileName);
             var dataDict = LoadFileData(fullPath);
             if (dataDict?.Remove(key) ?? false)
@@ -100,7 +96,7 @@ namespace Verve.Storage
             try
             {
                 using var fs = File.OpenRead(fullPath);
-                return m_Serializable.DeserializeFromStream<JsonSerializableSubmodule, Dictionary<string, object>>(fs);
+                return m_Serializable.GetSubmodule<JsonSerializableSubmodule>().DeserializeFromStream<Dictionary<string, object>>(fs);
             }
             catch
             {
@@ -132,7 +128,7 @@ namespace Verve.Storage
             m_MemoryCache.AddOrUpdate(cacheKey, value, (_, __) => value);
         }
 
-        private void RemoveCache(string fullPath, string key)
+        private void RemoveCache(string fullPath, [NotNull] string key)
         {
             var cacheKey = $"{fullPath}:{key}";
             m_MemoryCache.TryRemove(cacheKey, out _);
@@ -147,17 +143,6 @@ namespace Verve.Storage
                     m_MemoryCache.TryRemove(key, out _);
                 }
             }
-        }
-
-        private static bool ValidateParameters(string fileName, string key)
-        {
-            if (string.IsNullOrWhiteSpace(key))
-                return false;
-
-            if (key.Length > 256)
-                throw new ArgumentException("Key exceeds maximum length (256)");
-
-            return true;
         }
 
         public override void Dispose() => m_MemoryCache.Clear();

@@ -1,0 +1,19 @@
+{
+  "name": "Verve.UniEx.Audio",
+  "rootNamespace": "VerveUniEx",
+  "references": [
+    "Verve.Core",
+    "Verve.UniEx",
+    "Verve.UniEx.Loader",
+    "Verve.Loader"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": true,
+  "overrideReferences": true,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

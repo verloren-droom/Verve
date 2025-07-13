@@ -7,6 +7,7 @@ namespace VerveUniEx.Loader
     using System.Collections;
     using System.Threading.Tasks;
     using UnityEngine.SceneManagement;
+    using Object = UnityEngine.Object;
     
     
     public interface IAssetLoader : Verve.Loader.IAssetLoader

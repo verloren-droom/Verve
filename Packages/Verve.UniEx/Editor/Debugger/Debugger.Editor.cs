@@ -7,7 +7,7 @@ namespace VerveEditor.UniEx.Debugger
     using System.Linq;
     using UnityEditor;
     using UnityEngine;
-    using Verve.Debugger;
+    using Verve.Debug;
     using System.Reflection;
     using System.Collections.Generic;
     using System.Text.RegularExpressions;

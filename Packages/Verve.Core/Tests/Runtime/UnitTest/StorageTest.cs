@@ -17,7 +17,7 @@ namespace Verve.Tests
         public void SetUp()
         {
             m_Storage = new StorageFeature();
-            ((IGameFeature)m_Storage).Load();
+            ((IGameFeature)m_Storage).Load(null);
             ((IGameFeature)m_Storage).Activate();
         }
         
@@ -37,9 +37,9 @@ namespace Verve.Tests
             string key = "testKey";
             string value = "testValue";
         
-            m_Storage.Write<JsonStorageSubmodule, string>(fileName, key, value);
+            m_Storage.GetSubmodule<JsonStorageSubmodule>().Write<string>(fileName, key, value);
         
-            bool result = m_Storage.TryRead<JsonStorageSubmodule, string>(fileName, key, out string outValue);
+            bool result = m_Storage.GetSubmodule<JsonStorageSubmodule>().TryRead<string>(fileName, key, out string outValue);
         
             Assert.IsTrue(result);
             Assert.AreEqual(value, outValue);
@@ -55,11 +55,11 @@ namespace Verve.Tests
             string key = "testKey";
             string value = "testValue";
         
-            m_Storage.Write<JsonStorageSubmodule, string>(fileName, key, value);
-            m_Storage.Delete<JsonStorageSubmodule>(key);
-            m_Storage.DeleteAll<JsonStorageSubmodule>(fileName);
+            m_Storage.GetSubmodule<JsonStorageSubmodule>().Write<string>(fileName, key, value);
+            m_Storage.GetSubmodule<JsonStorageSubmodule>().Delete(null, key);
+            m_Storage.GetSubmodule<JsonStorageSubmodule>().DeleteAll(fileName);
         
-            bool result = m_Storage.TryRead<JsonStorageSubmodule, string>(fileName, key, out string outValue);
+            bool result = m_Storage.GetSubmodule<JsonStorageSubmodule>().TryRead<string>(fileName, key, out string outValue);
         
             Assert.IsFalse(result);
             Assert.IsNull(outValue);

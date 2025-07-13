@@ -1,4 +1,4 @@
-namespace Verve.Debugger
+namespace Verve.Debug
 {
     /// <summary>
     /// 调试器功能数据

@@ -22,7 +22,7 @@ namespace VerveUniEx.Tests
         public void SetUp()
         {
             m_Input = new InputFeature();
-            ((IGameFeature)m_Input).Load();
+            ((IGameFeature)m_Input).Load(null);
             ((IGameFeature)m_Input).Activate();
         }
         

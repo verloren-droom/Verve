@@ -21,7 +21,7 @@ namespace VerveUniEx.Tests
         public void SetUp()
         {
             m_LoaderUnit = new LoaderFeature();
-            ((IGameFeature)m_LoaderUnit).Load();
+            ((IGameFeature)m_LoaderUnit).Load(null);
             ((IGameFeature)m_LoaderUnit).Activate();
         }
         

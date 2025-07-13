@@ -21,7 +21,7 @@ namespace VerveUniEx.Tests
         public void SetUp()
         {
             m_AI = new AIFeatureComponent();
-            ((IGameFeature)m_AI).Load();
+            ((IGameFeature)m_AI).Load(null);
             ((IGameFeature)m_AI).Activate();
         }
         

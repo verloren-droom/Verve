@@ -132,7 +132,7 @@ namespace Verve.File
         }
 
         public abstract string ModuleName { get; }
-        public virtual void OnModuleLoaded() { }
+        public virtual void OnModuleLoaded(IReadOnlyFeatureDependencies dependencies) { }
         public void OnModuleUnloaded() { }
     }
 }

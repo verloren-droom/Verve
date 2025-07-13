@@ -1,0 +1,18 @@
+{
+  "name": "Verve.UniEx.Serializable",
+  "rootNamespace": "VerveUniEx",
+  "references": [
+    "Verve.Core",
+    "Verve.UniEx",
+    "Verve.Serializable"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": true,
+  "overrideReferences": true,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

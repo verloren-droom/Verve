@@ -1,4 +1,4 @@
-namespace Verve.Debugger
+namespace Verve.Debug
 {
     using System.Diagnostics;
     
@@ -12,10 +12,10 @@ namespace Verve.Debugger
         protected IDebuggerSubmodule m_DebuggerSubmodule;
         
         
-        protected override void OnLoad()
+        protected override void OnLoad(IReadOnlyFeatureDependencies dependencies)
         {
             m_DebuggerSubmodule = new ConsoleDebuggerSubmodule();
-            m_DebuggerSubmodule.OnModuleLoaded();
+            m_DebuggerSubmodule.OnModuleLoaded(dependencies);
         }
 
         protected override void OnUnload()

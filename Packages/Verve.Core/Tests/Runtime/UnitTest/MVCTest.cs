@@ -15,7 +15,7 @@ namespace Verve.Tests
         public void SetUp()
         {
             m_MVC = new MVCFeature();
-            ((IGameFeature)m_MVC).Load();
+            ((IGameFeature)m_MVC).Load(null);
             ((IGameFeature)m_MVC).Activate();
         }
         

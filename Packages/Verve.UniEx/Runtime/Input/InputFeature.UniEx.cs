@@ -21,9 +21,9 @@ namespace VerveUniEx.Input
             m_Input = input;
         }
 
-        protected override void OnLoad()
+        protected override void OnLoad(Verve.IReadOnlyFeatureDependencies dependencies)
         {
-            base.OnLoad();
+            base.OnLoad(dependencies);
             
 #if ENABLE_LEGACY_INPUT_MANAGER
             RegisterSubmodule(new InputManagerSubmodule());

@@ -1,7 +1,7 @@
 namespace Verve.Tests
 {
     using Unit;
-    using Debugger;
+    using Debug;
     using NUnit.Framework;
     
     
@@ -16,7 +16,7 @@ namespace Verve.Tests
         public void SetUp()
         {
             m_Debugger = new DebuggerFeature();
-            ((IGameFeature)m_Debugger).Load();
+            ((IGameFeature)m_Debugger).Load(null);
             ((IGameFeature)m_Debugger).Activate();
         }
                 

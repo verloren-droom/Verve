@@ -11,9 +11,9 @@ namespace Verve.Event
     [System.Serializable]
     public class EventBusFeature : GameFeature
     {
-        protected override void OnLoad()
+        protected override void OnLoad(IReadOnlyFeatureDependencies dependencies)
         {
-            base.OnLoad();
+            base.OnLoad(dependencies);
             m_EnumEventHandlers = new ConcurrentDictionary<Enum, Delegate>();
             m_StringEventHandlers = new ConcurrentDictionary<string, Delegate>();
         }

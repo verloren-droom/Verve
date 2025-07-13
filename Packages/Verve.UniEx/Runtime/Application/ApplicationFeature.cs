@@ -11,9 +11,9 @@ namespace VerveUniEx.Application
         public override string PlatformName =>  UnityEngine.Application.platform.ToString();
 
         
-        protected override void OnLoad()
+        protected override void OnLoad(Verve.IReadOnlyFeatureDependencies dependencies)
         {
-            base.OnLoad();
+            base.OnLoad(dependencies);
 #if UNITY_EDITOR
             m_Application = new GenericApplicationSubmodule();
 #elif UNITY_STANDALONE_WIN
@@ -25,7 +25,7 @@ namespace VerveUniEx.Application
 #else
             m_Application = new GenericApplicationSubmodule();
 #endif
-            m_Application?.OnModuleLoaded();
+            m_Application?.OnModuleLoaded(dependencies);
         }
     }
 }

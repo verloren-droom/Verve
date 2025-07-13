@@ -15,7 +15,7 @@ namespace VerveUniEx.Loader
         public override string ModuleName => "AssetBundle";
 
         private readonly Dictionary<string, AssetBundle> m_LoadedBundles = new Dictionary<string, AssetBundle>();
-        
+
         public override TObject LoadAsset<TObject>(string assetPath)
         {
             throw new NotImplementedException();

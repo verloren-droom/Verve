@@ -10,7 +10,7 @@ namespace Verve.Application
     public abstract class ApplicationSubmodule : IApplicationSubmodule
     {
         public virtual string ModuleName { get; }
-        public virtual void OnModuleLoaded() { }
+        public virtual void OnModuleLoaded(IReadOnlyFeatureDependencies dependencies) { }
         public virtual void OnModuleUnloaded() { }
         
         public virtual string Version

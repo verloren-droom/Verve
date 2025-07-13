@@ -37,7 +37,7 @@ namespace VerveUniEx.Loader
 
         public override IEnumerator LoadAssetAsync<TObject>(string assetPath, Action<AssetLoaderCallbackContext<TObject>> onComplete)
         {
-            if (string.IsNullOrEmpty(assetPath)) yield return null;
+            if (string.IsNullOrEmpty(assetPath)) yield break;
             var handle = TrackHandle(Addressables.LoadAssetAsync<TObject>(assetPath), assetPath);
             while (!handle.IsDone)
             {

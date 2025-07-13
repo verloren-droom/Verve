@@ -23,12 +23,13 @@ namespace VerveUniEx.MVC
             new Dictionary<Type, WeakReference<IView>>();
 
         private Transform m_Root;
-        [FeatureDependency] private LoaderFeature m_Loader;
+        private LoaderFeature m_Loader;
 
         
-        protected override void OnLoad()
+        protected override void OnLoad(Verve.IReadOnlyFeatureDependencies dependencies)
         {
-            base.OnLoad();
+            m_Loader = dependencies.Get<LoaderFeature>();
+            base.OnLoad(dependencies);
             m_Root = gameObject.transform;
         }
         

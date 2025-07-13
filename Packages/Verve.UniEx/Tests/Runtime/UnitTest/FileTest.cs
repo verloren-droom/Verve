@@ -20,7 +20,7 @@ namespace VerveUniEx.Tests
         public void SetUp()
         {
             m_File = new FileFeature();
-            ((IGameFeature)m_File).Load();
+            ((IGameFeature)m_File).Load(null);
             ((IGameFeature)m_File).Activate();
         }
 

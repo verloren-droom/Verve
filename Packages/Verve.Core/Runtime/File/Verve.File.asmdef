@@ -1,0 +1,18 @@
+{
+  "name": "Verve.File",
+  "rootNamespace": "Verve",
+  "references": [
+    "Verve.Core",
+    "Verve.Serializable",
+    "Verve.Platform"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": true,
+  "overrideReferences": true,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

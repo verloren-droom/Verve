@@ -17,7 +17,7 @@ namespace VerveUniEx.MVC
         
         public override string FeatureName => m_FeatureName;
 
-        public override IReadOnlyList<string> Dependencies => new string[] { "VerveUniEx.Loader" };
+        public override IReadOnlyCollection<string> Dependencies => new string[] { "VerveUniEx.Loader" };
 
 
         public override IGameFeature CreateFeature()

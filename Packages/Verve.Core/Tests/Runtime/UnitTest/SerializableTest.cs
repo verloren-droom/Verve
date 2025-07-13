@@ -15,7 +15,7 @@ namespace Verve.Tests
         public void SetUp()
         {
             m_Serializable =  new SerializableFeature();
-            ((IGameFeature)m_Serializable).Load();
+            ((IGameFeature)m_Serializable).Load(null);
             ((IGameFeature)m_Serializable).Activate();
         }
         
@@ -38,7 +38,7 @@ namespace Verve.Tests
                 Gender = 'M',
             };
             
-            var serialized = m_Serializable.Serialize<JsonSerializableSubmodule>(testSerializable);
+            var serialized = m_Serializable.GetSubmodule<JsonSerializableSubmodule>().Serialize(testSerializable);
 
             Assert.AreEqual(serialized,
                 "{\"Name\":\"Test\",\"Age\":18,\"IsMarried\":true,\"Height\":1.8,\"Weight\":80.0,\"Gender\":\"M\"}");
@@ -49,7 +49,8 @@ namespace Verve.Tests
         {
             var serialized = "{\"Name\":\"Test\",\"Age\":18,\"IsMarried\":true,\"Height\":1.8,\"Weight\":80.0,\"Gender\":\"M\"}";
             
-            var testSerializable = m_Serializable.Deserialize<JsonSerializableSubmodule, TestSerializable>(serialized);
+            var testSerializable = m_Serializable.GetSubmodule<JsonSerializableSubmodule>().Deserialize<TestSerializable>(
+                System.Text.Encoding.UTF8.GetBytes(serialized));
             
             Assert.AreEqual(testSerializable.Name, "Test");
             Assert.AreEqual(testSerializable.Age, 18);

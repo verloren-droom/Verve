@@ -1,0 +1,19 @@
+{
+  "name": "Verve.UniEx.Input",
+  "rootNamespace": "VerveUniEx",
+  "references": [
+    "Verve.Core",
+    "Verve.UniEx",
+    "Verve.Input",
+    "Unity.InputSystem"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": true,
+  "overrideReferences": true,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

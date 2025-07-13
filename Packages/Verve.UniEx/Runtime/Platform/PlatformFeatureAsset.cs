@@ -11,9 +11,11 @@ namespace VerveUniEx.Platform
     /// </summary>
     public partial class PlatformFeatureAsset : GameFeatureAsset
     {
-        public override string FeatureName => "VerveUniEx.Platform";
+        [SerializeField, Tooltip("功能名称（保证全局唯一）"), ReadOnly] private string m_FeatureName = "VerveUniEx.Platform";
         
-        
+        public override string FeatureName => m_FeatureName;
+
+
         public override IGameFeature CreateFeature()
         {
             return new PlatformFeature();

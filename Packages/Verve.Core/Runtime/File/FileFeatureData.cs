@@ -11,7 +11,7 @@ namespace Verve.File
     {
         public override string FeatureName => "Verve.File";
 
-        public override IReadOnlyList<string> Dependencies => new string[] { "Verve.Serializable", "Verve.Platform" };
+        public override IReadOnlyCollection<string> Dependencies => new string[] { "Verve.Serializable", "Verve.Platform" };
         
         
         public override IGameFeature CreateFeature()

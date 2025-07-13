@@ -1,0 +1,20 @@
+{
+  "name": "Verve.UniEx.Storage",
+  "rootNamespace": "VerveUniEx",
+  "references": [
+    "Verve.Core",
+    "Verve.UniEx",
+    "Verve.Storage",
+    "Verve.Serializable",
+    "Verve.UniEx.Serializable"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": true,
+  "overrideReferences": true,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

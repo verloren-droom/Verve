@@ -1,0 +1,20 @@
+{
+  "name": "Verve.UniEx.Loader",
+  "rootNamespace": "VerveUniEx",
+  "references": [
+    "Verve.Core",
+    "Verve.UniEx",
+    "Verve.Loader",
+    "Unity.ResourceManager",
+    "Unity.Addressables"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": true,
+  "overrideReferences": true,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

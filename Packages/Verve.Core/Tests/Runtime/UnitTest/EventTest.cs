@@ -16,7 +16,7 @@ namespace Verve.Tests
         public void SetUp()
         {
             m_Event = new EventBusFeature();
-            ((IGameFeature)m_Event).Load();
+            ((IGameFeature)m_Event).Load(null);
             ((IGameFeature)m_Event).Activate();
         }
         

@@ -1,0 +1,29 @@
+{
+    "name": "Verve.UniEx.HotFix",
+    "rootNamespace": "VerveUniEx",
+    "references": [
+        "Verve.Core",
+        "Verve.UniEx",
+        "Verve.HotFix",
+        "Verve.Loader",
+        "Verve.UniEx.Loader",
+        "Verve.Platform",
+        "Verve.UniEx.Platform",
+        "Verve.Serializable",
+        "Verve.UniEx.Serializable",
+        "Verve.Net",
+        "Verve.UniEx.Net",
+        "HybridCLR.Runtime",
+        "Verve.Application",
+        "Verve.UniEx.Application"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

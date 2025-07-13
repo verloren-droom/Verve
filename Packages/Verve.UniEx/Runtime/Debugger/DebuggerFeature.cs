@@ -2,19 +2,19 @@
 
 namespace VerveUniEx.Debugger
 {
-    using Verve.Debugger;
+    using Verve.Debug;
 
     
     /// <summary>
     /// 调试器功能
     /// </summary>
     [SkipInStackTrace, System.Serializable]
-    public partial class DebuggerFeature : Verve.Debugger.DebuggerFeature
+    public partial class DebuggerFeature : Verve.Debug.DebuggerFeature
     {
-        protected override void OnLoad()
+        protected override void OnLoad(Verve.IReadOnlyFeatureDependencies dependencies)
         {
             m_DebuggerSubmodule = new GenericDebuggerSubmodule();
-            m_DebuggerSubmodule.OnModuleLoaded();
+            m_DebuggerSubmodule.OnModuleLoaded(dependencies);
         }
     }
 }

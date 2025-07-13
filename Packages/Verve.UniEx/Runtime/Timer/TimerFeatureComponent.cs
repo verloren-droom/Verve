@@ -13,9 +13,15 @@ namespace VerveUniEx.Timer
     /// </summary>
     public partial class TimerFeatureComponent : GameFeatureComponent
     {
-        [FeatureDependency] private Verve.Timer.TimerFeature m_TimerFeature;
+        private Verve.Timer.TimerFeature m_TimerFeature;
 
         
+        protected override void OnLoad(IReadOnlyFeatureDependencies dependencies)
+        {
+            base.OnLoad(dependencies);
+            m_TimerFeature = dependencies.Get<Verve.Timer.TimerFeature>();
+        }
+
         private void Update()
         {
             m_TimerFeature?.OnUpdate(Time.deltaTime);

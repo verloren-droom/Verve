@@ -13,6 +13,7 @@ namespace VerveUniEx.Loader
     /// <summary>
     /// 资源加载器子模块
     /// </summary>
+    [System.Serializable]
     public sealed partial class ResourcesLoader : VerveUniEx.Loader.AssetLoaderBase
     {
         public override string ModuleName => "Resources";
@@ -56,7 +57,7 @@ namespace VerveUniEx.Loader
             m_LoadedAssets.Clear();
             Resources.UnloadUnusedAssets();
         }
-        
+
         public override IEnumerator LoadAssetAsync<TObject>(string assetPath, Action<AssetLoaderCallbackContext<TObject>> onComplete)
         {
             if (string.IsNullOrEmpty(assetPath)) yield return null;

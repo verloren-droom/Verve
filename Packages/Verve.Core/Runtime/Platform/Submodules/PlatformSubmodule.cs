@@ -10,7 +10,7 @@ namespace Verve.Platform
     public abstract class PlatformSubmodule : IPlatformSubmodule
     {
         public abstract string ModuleName { get; }
-        public virtual void OnModuleLoaded() { }
+        public virtual void OnModuleLoaded(IReadOnlyFeatureDependencies dependencies) { }
         public virtual void OnModuleUnloaded() { }
         
         public virtual void OpenUrl(string url) => System.Diagnostics.Process.Start(url);

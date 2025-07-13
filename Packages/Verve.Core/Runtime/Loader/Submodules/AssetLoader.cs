@@ -16,7 +16,7 @@ namespace Verve.Loader
         public virtual void UnloadAllAsset() {}
         public virtual void Dispose() {}
         
-        public virtual void OnModuleLoaded() { }
+        public virtual void OnModuleLoaded(IReadOnlyFeatureDependencies dependencies) { }
         public virtual void OnModuleUnloaded() { }
     }
 }

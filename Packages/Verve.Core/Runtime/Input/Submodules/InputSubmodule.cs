@@ -75,7 +75,7 @@ namespace Verve.Input
         }
 
         public abstract string ModuleName { get; }
-        public virtual void OnModuleLoaded() { }
+        public virtual void OnModuleLoaded(IReadOnlyFeatureDependencies dependencies) { }
 
         public virtual void OnModuleUnloaded() { }
     }

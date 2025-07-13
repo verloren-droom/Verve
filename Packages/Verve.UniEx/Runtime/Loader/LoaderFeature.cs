@@ -15,15 +15,15 @@ namespace VerveUniEx.Loader
     [Serializable]
     public partial class LoaderFeature : Verve.Loader.LoaderFeature
     {
-        protected override void OnLoad()
+        protected override void OnLoad(Verve.IReadOnlyFeatureDependencies dependencies)
         {
-            base.OnLoad();
-            
             RegisterSubmodule(new AssetBundleLoader());
             RegisterSubmodule(new ResourcesLoader());
 #if UNITY_2018_3_OR_NEWER
             RegisterSubmodule(new AddressablesLoader());
 #endif
+            
+            base.OnLoad(dependencies);
         }
 
         public IEnumerator LoadAssetAsync<TLoaderType, TAssetType>(string assetPath, Action<AssetLoaderCallbackContext<TAssetType>> onComplete) where TLoaderType : class, VerveUniEx.Loader.IAssetLoader

@@ -1,4 +1,4 @@
-namespace Verve.Debugger
+namespace Verve.Debug
 {
     using System;
     

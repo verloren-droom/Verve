@@ -14,57 +14,22 @@ namespace Verve.Storage
     [Serializable]
     public class StorageFeature : ModularGameFeature
     {
-        [FeatureDependency] protected SerializableFeature m_Serializable;
-        [FeatureDependency] protected FileFeature m_File;
-        [FeatureDependency] protected PlatformFeature m_Platform;
+        protected SerializableFeature m_Serializable;
+        protected FileFeature m_File;
+        protected PlatformFeature m_Platform;
         
 
-        protected override void OnLoad()
+        protected override void OnLoad(IReadOnlyFeatureDependencies dependencies)
         {
-            base.OnLoad();
+            m_Serializable = dependencies.Get<SerializableFeature>();
+            m_File = dependencies.Get<FileFeature>();
+            m_Platform = dependencies.Get<PlatformFeature>();
             
             RegisterSubmodule(new BinaryStorageSubmodule(m_Serializable));
             RegisterSubmodule(new JsonStorageSubmodule(m_Serializable, m_File, m_Platform));
+            
+            base.OnLoad(dependencies);
         }
 
-        public void Write<TStorage, TData>(string key, TData data) where TStorage : class, IStorageSubmodule =>
-            Write<TStorage, TData>(null, key, data);
-        public void Write<TStorage, TData>(string fileName, string key, TData data) where TStorage : class, IStorageSubmodule
-        {
-            GetSubmodule<TStorage>()?.Write(fileName, key, data);
-        }
-
-        public bool TryRead<TStorage, TData>(string key, out TData outValue, TData defaultValue = default)
-            where TStorage : class, IStorageSubmodule => TryRead<TStorage, TData>(null, key, out outValue, defaultValue);
-        public bool TryRead<TStorage, TData>(string fileName, string key, out TData outValue, TData defaultValue = default) where TStorage : class, IStorageSubmodule
-        {
-            return GetSubmodule<TStorage>().TryRead(fileName, key, out outValue, defaultValue);
-        }
-        
-        public void Delete<TStorage>(string key) where TStorage : class, IStorageSubmodule => Delete<TStorage>(null, key);
-        public void Delete<TStorage>(string fileName, string key)where TStorage : class, IStorageSubmodule
-        {
-            GetSubmodule<TStorage>()?.Delete(fileName, key);
-        }
-
-        public void DeleteAll<TStorage>() where TStorage : class, IStorageSubmodule => DeleteAll<TStorage>(null);
-        public void DeleteAll<TStorage>(string fileName) where TStorage : class, IStorageSubmodule
-        {
-            GetSubmodule<TStorage>()?.DeleteAll(fileName);
-        }
-
-        public async Task WriteAsync<TStorage, TData>(string key, TData data) where TStorage : class, IStorageSubmodule =>
-            await WriteAsync<TStorage, TData>(null, key, data);
-        public async Task WriteAsync<TStorage, TData>(string fileName, string key, TData data) where TStorage : class, IStorageSubmodule
-        {
-            await GetSubmodule<TStorage>().WriteAsync(fileName, key, data);
-        }
-        
-        public async Task<TData> ReadAsync<TStorage, TData>(string key, TData defaultValue = default) where TStorage : class, IStorageSubmodule =>
-            await ReadAsync<TStorage, TData>(null, key, defaultValue);
-        public async Task<TData> ReadAsync<TStorage, TData>(string fileName, string key, TData defaultValue = default) where TStorage : class, IStorageSubmodule
-        {
-            return await GetSubmodule<TStorage>().ReadAsync(fileName, key, defaultValue);
-        }
     }
 }

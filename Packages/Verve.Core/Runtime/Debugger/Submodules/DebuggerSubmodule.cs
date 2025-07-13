@@ -1,4 +1,4 @@
-namespace Verve.Debugger
+namespace Verve.Debug
 {
     using System;
     using System.Diagnostics;
@@ -11,7 +11,7 @@ namespace Verve.Debugger
     public abstract class DebuggerSubmodule : IDebuggerSubmodule
     {
         public abstract string ModuleName { get; }
-        public virtual void OnModuleLoaded()
+        public virtual void OnModuleLoaded(IReadOnlyFeatureDependencies dependencies)
         {
             IsEnable = true;
         }

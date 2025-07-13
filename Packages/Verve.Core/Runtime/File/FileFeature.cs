@@ -14,16 +14,18 @@ namespace Verve.File
     public partial class FileFeature : GameFeature
     {
         protected IFileSubmodule m_FileSubmodule;
-        [FeatureDependency] protected SerializableFeature m_Serializable;
-        [FeatureDependency] protected PlatformFeature m_Platform;
+        protected SerializableFeature m_Serializable;
+        protected PlatformFeature m_Platform;
 
 
-        protected override void OnLoad()
+        protected override void OnLoad(IReadOnlyFeatureDependencies dependencies)
         {
-            base.OnLoad();
+            base.OnLoad(dependencies);
             
+            m_Serializable = dependencies.Get<SerializableFeature>();
+            m_Platform = dependencies.Get<PlatformFeature>();
             m_FileSubmodule = new GenericFileSubmodule();
-            m_FileSubmodule.OnModuleLoaded();
+            m_FileSubmodule.OnModuleLoaded(dependencies);
         }
         
         protected override void OnUnload()
@@ -59,7 +61,7 @@ namespace Verve.File
             }
             using (var fs = m_FileSubmodule?.OpenRead(fullPath))
             {
-                data = m_Serializable.DeserializeFromStream<TSerializable, TData>(fs);
+                data = m_Serializable.GetSubmodule<TSerializable>().DeserializeFromStream<TData>(fs);
             }
             return true;
         }
@@ -81,7 +83,7 @@ namespace Verve.File
                 {
                     using (FileStream fs = new FileStream(fullPath, FileMode.Append, FileAccess.Write))
                     {
-                        m_Serializable?.Serialize<TSerializable>(fs, data);
+                        m_Serializable.GetSubmodule<TSerializable>().Serialize(fs, data);
                     }
                 }
                 else
@@ -89,7 +91,7 @@ namespace Verve.File
                     string tempPath;
                     using (FileStream fs = CreateTemporaryFile(out tempPath))
                     {
-                        m_Serializable?.Serialize<TSerializable>(fs, data);
+                        m_Serializable?.GetSubmodule<TSerializable>().Serialize(fs, data);
                     }
 
                     if (fileExists)

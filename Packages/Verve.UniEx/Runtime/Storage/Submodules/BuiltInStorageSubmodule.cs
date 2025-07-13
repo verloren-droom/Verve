@@ -11,7 +11,7 @@ namespace VerveUniEx.Storage
     /// <summary>
     /// Unity内置存储子模块
     /// </summary>
-    public sealed partial class BuiltInStorageSubmodule : VerveUniEx.Storage.StorageSubmodule
+    public sealed partial class BuiltInStorageSubmodule : Verve.Storage.StorageSubmodule
     {
         public override string ModuleName => "BuiltInStorage";
         public override string DefaultFileExtension { get; set; } = ".json";
@@ -39,7 +39,10 @@ namespace VerveUniEx.Storage
                 outValue = (T)m_MemoryCache[key];
                 return true;
             }
-            outValue = m_Serializable.Deserialize<JsonSerializableSubmodule, T>(PlayerPrefs.GetString(key, m_Serializable.Serialize<JsonSerializableSubmodule>(defaultValue)));
+            outValue = m_Serializable.GetSubmodule<JsonSerializableSubmodule>().Deserialize<T>(
+                System.Text.Encoding.UTF8.GetBytes(PlayerPrefs.GetString(key,
+                    System.Text.Encoding.UTF8.GetString(m_Serializable.GetSubmodule<JsonSerializableSubmodule>()
+                        .Serialize(defaultValue)))));
             return outValue != null;
         }
 
@@ -48,7 +51,7 @@ namespace VerveUniEx.Storage
         {
             if (string.IsNullOrEmpty(key)) return;
             m_MemoryCache.AddOrUpdate(key, value, (s, _) => value);
-            PlayerPrefs.SetString(key, m_Serializable.Serialize<JsonSerializableSubmodule>(value));
+            PlayerPrefs.SetString(key, System.Text.Encoding.UTF8.GetString(m_Serializable.GetSubmodule<JsonSerializableSubmodule>().Serialize(value)));
         }
 
         public void Delete(string key) => Delete(null, key);

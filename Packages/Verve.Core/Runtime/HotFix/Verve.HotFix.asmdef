@@ -1,0 +1,21 @@
+{
+  "name": "Verve.HotFix",
+  "rootNamespace": "Verve",
+  "references": [
+    "Verve.Core",
+    "Verve.Net",
+    "Verve.Loader",
+    "Verve.Platform",
+    "Verve.Serializable",
+    "Verve.Application"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": true,
+  "overrideReferences": true,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

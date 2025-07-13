@@ -8,13 +8,14 @@ namespace VerveUniEx.Loader
     using System.Threading.Tasks;
     using UnityEngine;
     using UnityEngine.SceneManagement;
+    using Object = UnityEngine.Object;
 
 
     public abstract class AssetLoaderBase : Verve.Loader.AssetLoaderBase, VerveUniEx.Loader.IAssetLoader
     {
         public virtual IEnumerator LoadAssetAsync<TObject>(string assetPath, Action<AssetLoaderCallbackContext<TObject>> onComplete)
         {
-            if (string.IsNullOrEmpty(assetPath)) yield return null;
+            if (string.IsNullOrEmpty(assetPath)) yield break;
             var task = LoadAssetAsync<TObject>(assetPath);
             while (!task.IsCompleted)
             {

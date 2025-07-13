@@ -16,7 +16,7 @@ namespace VerveUniEx.Audio
     /// </summary>
     public partial class AudioFeatureComponent : GameFeatureComponent
     {
-        [FeatureDependency] private LoaderFeature m_Loader;
+        private LoaderFeature m_Loader;
         
         [SerializeField, Tooltip("音频混合器")] private AudioMixer m_Mixer;
         [SerializeField, Tooltip("音频分组-音效")] private AudioMixerGroup m_SfxGroup;
@@ -61,9 +61,10 @@ namespace VerveUniEx.Audio
         private ObjectPool<AudioAsset> m_AmbientAudioPool;
         
         
-        protected override void OnLoad()
+        protected override void OnLoad(Verve.IReadOnlyFeatureDependencies dependencies)
         {
-            base.OnLoad();
+            m_Loader = dependencies.Get<LoaderFeature>();
+            base.OnLoad(dependencies);
             
             if (!Application.isPlaying) return;
 

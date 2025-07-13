@@ -15,7 +15,7 @@ namespace VerveUniEx.Audio
         [SerializeField, Tooltip("功能名称（保证全局唯一）"), ReadOnly] private string m_FeatureName = "VerveUniEx.Audio";
         [SerializeField, Tooltip("声音预制体（可选）"), RequireComponentOnGameObject(typeof(AudioFeatureComponent))] private GameObject m_AudioPrefab;
 
-        public override IReadOnlyList<string> Dependencies => new string[] { "VerveUniEx.Loader" };
+        public override IReadOnlyCollection<string> Dependencies => new string[] { "VerveUniEx.Loader" };
 
         public override string FeatureName => m_FeatureName;
         

@@ -10,7 +10,7 @@ namespace Verve.Storage
     public abstract class StorageSubmodule : IStorageSubmodule
     {
         public abstract string ModuleName { get; }
-        public virtual void OnModuleLoaded() { }
+        public virtual void OnModuleLoaded(IReadOnlyFeatureDependencies dependencies) { }
         public virtual void OnModuleUnloaded() { }
         
         public abstract string DefaultFileExtension { get; set; }

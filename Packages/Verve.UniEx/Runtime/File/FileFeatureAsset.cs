@@ -14,7 +14,7 @@ namespace VerveUniEx.File
     {
         [SerializeField, Tooltip("功能名称（保证全局唯一）"), ReadOnly] private string m_FeatureName = "VerveUniEx.File";
 
-        public override IReadOnlyList<string> Dependencies => new string[] { "VerveUniEx.Serializable", "VerveUniEx.Platform" };
+        public override IReadOnlyCollection<string> Dependencies => new string[] { "VerveUniEx.Serializable", "VerveUniEx.Platform" };
 
         public override string FeatureName => m_FeatureName;
         

@@ -6,7 +6,7 @@ namespace Verve.Serializable
 
 
     /// <summary>
-    /// JSON序列化子模块
+    /// JSON序列化子模块 - 采用Newtonsoft.Json库
     /// </summary>
     public sealed partial class JsonSerializableSubmodule : SerializableSubmodule
     {
@@ -14,6 +14,14 @@ namespace Verve.Serializable
 
         public override T Deserialize<T>(byte[] value)
         {
+            // 移除UTF-8 BOM
+            if (value.Length >= 3 && value[0] == 0xEF && value[1] == 0xBB && value[2] == 0xBF)
+            {
+                byte[] newValue = new byte[value.Length - 3];
+                System.Buffer.BlockCopy(value, 3, newValue, 0, newValue.Length);
+                value = newValue;
+            }
+    
             return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(value));
         }
 

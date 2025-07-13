@@ -16,7 +16,7 @@ namespace Verve.Tests
         public void SetUp()
         {
             m_Timer = new TimerFeature();
-            ((IGameFeature)m_Timer).Load();
+            ((IGameFeature)m_Timer).Load(null);
             ((IGameFeature)m_Timer).Activate();
         }
         

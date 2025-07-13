@@ -17,7 +17,7 @@ namespace Verve.Tests
         public void SetUp()
         {
             m_AI = new AIFeature();
-            ((IGameFeature)m_AI).Load();
+            ((IGameFeature)m_AI).Load(null);
             ((IGameFeature)m_AI).Activate();
         }
                 

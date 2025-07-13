@@ -68,7 +68,7 @@ namespace VerveUniEx.Gameplay
                 if (Type.GetType("Cinemachine.CinemachineVirtualCamera, Cinemachine") != null)
                 {
                     cameraGO.name = "Virtual Camera";
-                    cameraGO.AddComponent<Cinemachine.CinemachineVirtualCamera>();
+                    cameraGO.AddComponent(Type.GetType("Cinemachine.CinemachineVirtualCamera, Cinemachine"));
                     pawn.PlayerCamera = Camera.main;
                 }
                 else

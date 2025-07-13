@@ -9,10 +9,10 @@ namespace Verve.Application
         protected IApplicationSubmodule m_Application;
         
         
-        protected override void OnLoad()
+        protected override void OnLoad(IReadOnlyFeatureDependencies dependencies)
         {
             m_Application = new GenericApplicationSubmodule();
-            m_Application.OnModuleLoaded();
+            m_Application.OnModuleLoaded(dependencies);
         }
         
         protected override void OnUnload()
