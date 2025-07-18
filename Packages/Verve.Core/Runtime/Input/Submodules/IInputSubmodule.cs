@@ -11,7 +11,7 @@ namespace Verve.Input
         /// <summary> 是否有效 </summary>
         bool IsValid { get; }
         /// <summary> 是否启用 </summary>
-        bool enabled { get; }
+        bool IsActive { get; }
         
         /// <summary>
         /// 启用

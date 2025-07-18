@@ -9,7 +9,7 @@ namespace Verve.Debug
     /// </summary>
     public interface IDebuggerSubmodule : IGameFeatureSubmodule
     {
-        bool IsEnable { get; set; }
+        bool IsActivate { get; set; }
         LastLogData LastLog { get; }
         [DebuggerHidden, DebuggerStepThrough]
         void Log(object msg);

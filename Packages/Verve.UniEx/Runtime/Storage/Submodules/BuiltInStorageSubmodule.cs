@@ -39,10 +39,10 @@ namespace VerveUniEx.Storage
                 outValue = (T)m_MemoryCache[key];
                 return true;
             }
-            outValue = m_Serializable.GetSubmodule<JsonSerializableSubmodule>().Deserialize<T>(
-                System.Text.Encoding.UTF8.GetBytes(PlayerPrefs.GetString(key,
-                    System.Text.Encoding.UTF8.GetString(m_Serializable.GetSubmodule<JsonSerializableSubmodule>()
-                        .Serialize(defaultValue)))));
+
+            outValue = m_Serializable.GetSubmodule<JsonSerializableSubmodule>().DeserializeFromString<T>(
+                PlayerPrefs.GetString(key, m_Serializable.GetSubmodule<JsonSerializableSubmodule>()
+                    .SerializeToString(defaultValue)));
             return outValue != null;
         }
 
@@ -51,7 +51,7 @@ namespace VerveUniEx.Storage
         {
             if (string.IsNullOrEmpty(key)) return;
             m_MemoryCache.AddOrUpdate(key, value, (s, _) => value);
-            PlayerPrefs.SetString(key, System.Text.Encoding.UTF8.GetString(m_Serializable.GetSubmodule<JsonSerializableSubmodule>().Serialize(value)));
+            PlayerPrefs.SetString(key, m_Serializable.GetSubmodule<JsonSerializableSubmodule>().SerializeToString(value));
         }
 
         public void Delete(string key) => Delete(null, key);

@@ -40,7 +40,7 @@ namespace VerveUniEx.HotFix
                     await ReplaceAssembly(assemblyName,
                         await m_Network.GetSubmodule<HttpClientSubmodule>().DownloadFileToMemoryAsync(
                             asset.Value.RemoteUrl,
-                            asset.Value.Checksum)
+                            expectedHash: asset.Value.Checksum)
                     );
                 }
             }
@@ -51,7 +51,12 @@ namespace VerveUniEx.HotFix
         /// </summary>
         private Task ReplaceAssembly(string assemblyName, byte[] bytes)
         {
-            RuntimeApi.LoadMetadataForAOTAssembly(bytes, HomologousImageMode.SuperSet);
+            var err = RuntimeApi.LoadMetadataForAOTAssembly(bytes, HomologousImageMode.SuperSet);
+            
+            if (err != 0)
+            {
+                throw new Exception($"Failed to load metadata for AOT assembly: {assemblyName}");
+            }
 
             var newAssembly = Assembly.Load(bytes);
 

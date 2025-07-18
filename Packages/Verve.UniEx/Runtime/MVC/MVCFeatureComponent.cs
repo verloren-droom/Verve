@@ -80,7 +80,7 @@ namespace VerveUniEx.MVC
         
         private IView LoadView(Type viewType, Type loaderType, string path, Transform parent = null)
         {
-            var prefab = m_Loader.LoadAsset<GameObject>(loaderType, path);
+            var prefab = m_Loader.GetSubmodule(loaderType).LoadAsset<GameObject>(path);
             var obj = UnityEngine.Object.Instantiate(prefab, parent ?? m_Root);
             return (IView)obj?.GetComponent(viewType) ?? throw new InvalidCastException($"Prefab at {path} doesn't contain {viewType.Name} component");
         }

@@ -35,17 +35,6 @@ namespace VerveUniEx.Loader
             return await TrackHandle(Addressables.LoadAssetAsync<TObject>(assetPath), assetPath).Task;
         }
 
-        public override IEnumerator LoadAssetAsync<TObject>(string assetPath, Action<AssetLoaderCallbackContext<TObject>> onComplete)
-        {
-            if (string.IsNullOrEmpty(assetPath)) yield break;
-            var handle = TrackHandle(Addressables.LoadAssetAsync<TObject>(assetPath), assetPath);
-            while (!handle.IsDone)
-            {
-                yield return null;
-            }
-            onComplete?.Invoke(new AssetLoaderCallbackContext<TObject>(handle.Result));
-        }
-
         public override void UnloadAsset(string assetPath)
         {
             if (string.IsNullOrEmpty(assetPath)) return;

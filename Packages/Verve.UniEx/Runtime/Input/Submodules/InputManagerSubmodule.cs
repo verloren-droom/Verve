@@ -56,7 +56,7 @@ namespace VerveUniEx.Input
 
         private IEnumerator Update()
         {
-            while (enabled)
+            while (IsActive)
             {
                 foreach (var actionName in m_ActionCallbacks.Keys)
                 {

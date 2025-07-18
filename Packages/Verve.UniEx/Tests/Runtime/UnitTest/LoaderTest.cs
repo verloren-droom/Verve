@@ -14,21 +14,21 @@ namespace VerveUniEx.Tests
     [TestFixture]
     public class LoaderTest
     {
-        private LoaderFeature m_LoaderUnit;
+        private LoaderFeature m_Loader;
 
         
         [SetUp]
         public void SetUp()
         {
-            m_LoaderUnit = new LoaderFeature();
-            ((IGameFeature)m_LoaderUnit).Load(null);
-            ((IGameFeature)m_LoaderUnit).Activate();
+            m_Loader = new LoaderFeature();
+            ((IGameFeature)m_Loader).Load(null);
+            ((IGameFeature)m_Loader).Activate();
         }
         
         [TearDown]
         public void Teardown()
         {
-            m_LoaderUnit = null;
+            m_Loader = null;
         }
 
         [Test]
@@ -36,7 +36,7 @@ namespace VerveUniEx.Tests
         {
             var testAssetPath = "Assets/Verve.UniEx/Tests/Art/test.txt";
 
-            var obj = m_LoaderUnit.LoadAsset<AddressablesLoader, TextAsset>(testAssetPath);
+            var obj = m_Loader.GetSubmodule<AddressablesLoader>().LoadAsset<TextAsset>(testAssetPath);
             
             Assert.IsNotNull(obj);
         }
@@ -46,7 +46,7 @@ namespace VerveUniEx.Tests
         {
             var testAssetPath = "Cube";
             
-            var obj = m_LoaderUnit.LoadAsset<ResourcesLoader, GameObject>(testAssetPath);
+            var obj = m_Loader.GetSubmodule<ResourcesLoader>().LoadAsset<GameObject>(testAssetPath);
             
             Assert.IsNotNull(obj);
         }

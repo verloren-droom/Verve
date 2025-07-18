@@ -29,20 +29,20 @@ namespace Verve.Tests
         [Test]
         public void LogLevelAndMessageTracking_ShouldWorkCorrectly()
         {
-            m_Debugger.Log("Test Log");
+            m_Debugger.Current.Log("Test Log");
             
-            Assert.AreEqual("Test Log", m_Debugger.GetLastLog().Message);
-            Assert.AreEqual(LogLevel.Log, m_Debugger.GetLastLog().Level);
+            Assert.AreEqual("Test Log", m_Debugger.Current.LastLog.Message);
+            Assert.AreEqual(LogLevel.Log, m_Debugger.Current.LastLog.Level);
             
-            m_Debugger.LogWarning("Test Warning");
+            m_Debugger.Current.LogWarning("Test Warning");
             
-            Assert.AreEqual("Test Warning", m_Debugger.GetLastLog().Message);
-            Assert.AreEqual(LogLevel.Warning, m_Debugger.GetLastLog().Level);
+            Assert.AreEqual("Test Warning", m_Debugger.Current.LastLog.Message);
+            Assert.AreEqual(LogLevel.Warning, m_Debugger.Current.LastLog.Level);
             
-            m_Debugger.LogError("Test Error");
+            m_Debugger.Current.LogError("Test Error");
             
-            Assert.AreEqual("Test Error", m_Debugger.GetLastLog().Message);
-            Assert.AreEqual(LogLevel.Error, m_Debugger.GetLastLog().Level);
+            Assert.AreEqual("Test Error", m_Debugger.Current.LastLog.Message);
+            Assert.AreEqual(LogLevel.Error, m_Debugger.Current.LastLog.Level);
         }
         
         [Test]
@@ -51,17 +51,17 @@ namespace Verve.Tests
             const string testMessage = "Should not be logged";
 
             ((IGameFeature)m_Debugger).Deactivate();
-            m_Debugger.Log(testMessage);
+            m_Debugger.Current.Log(testMessage);
             
-            Assert.AreNotEqual(testMessage, m_Debugger.GetLastLog().Message);
+            Assert.AreNotEqual(testMessage, m_Debugger.Current.LastLog.Message);
         }
         
         [Test]
         public void LogFormatting_ShouldWorkCorrectly()
         {
-            m_Debugger.Log("Formatted {0} {1}", "log", 1);
+            m_Debugger.Current.Log("Formatted {0} {1}", "log", 1);
             
-            Assert.AreEqual("Formatted log 1", m_Debugger.GetLastLog().Message);
+            Assert.AreEqual("Formatted log 1", m_Debugger.Current.LastLog.Message);
         }
     }
 }

@@ -1,10 +1,11 @@
 namespace Verve.Tests
 {
     using File;
-    using Unit;
+    using Platform;
     using System.IO;
     using Serializable;
     using NUnit.Framework;
+    using System.Collections.Generic;
     
     
     [TestFixture]
@@ -17,7 +18,15 @@ namespace Verve.Tests
         public void SetUp()
         {
             m_File = new FileFeature();
-            ((IGameFeature)m_File).Load(null);
+            var serializable = new SerializableFeature();
+            var platform = new PlatformFeature();
+            ((IGameFeature)serializable).Load(null);
+            ((IGameFeature)platform).Load(null);
+            ((IGameFeature)m_File).Load(new FeatureDependencies(new Dictionary<string, IGameFeature>()
+            {
+                { "Verve.Serializable", serializable },
+                { "Verve.Platform", platform },
+            }));
             ((IGameFeature)m_File).Activate();
         }
 

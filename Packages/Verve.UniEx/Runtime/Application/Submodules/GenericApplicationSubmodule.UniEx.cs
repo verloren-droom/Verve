@@ -3,7 +3,9 @@
 namespace VerveUniEx.Application
 {
     using UnityEngine;
-
+#if UNITY_EDITOR
+    using static UnityEditor.EditorApplication;
+#endif
 
     /// <summary>
     /// Unity通用应用子模块
@@ -37,7 +39,7 @@ namespace VerveUniEx.Application
         public override void QuitApplication()
         {
 #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
+            isPlaying = false;
 #else
             UnityEngine.Application.Quit();
 #endif
@@ -46,27 +48,30 @@ namespace VerveUniEx.Application
         public override void RestartApplication()
         {
 #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-            UnityEditor.EditorApplication.delayCall += () => 
+            isPlaying = false;
+            CallbackFunction callback = null;
+            callback = () => 
             {
-                UnityEditor.EditorApplication.isPlaying = true;
+                delayCall -= callback;
+                isPlaying = true;
             };
+            delayCall += callback;
 #endif
         }
 
         protected virtual void OnApplicationQuitting()
         {
-            
+            // TODO: 
         }
         
         protected virtual void OnApplicationFocusChanged(bool focus)
         {
-
+            // TODO:
         }
 
         protected virtual void OnApplicationLowMemory()
         {
-            
+            // TODO:
         }
     }
 }

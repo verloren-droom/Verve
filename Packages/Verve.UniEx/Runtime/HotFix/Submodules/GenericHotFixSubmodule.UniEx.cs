@@ -1,3 +1,5 @@
+using Verve.Serializable;
+
 #if UNITY_5_3_OR_NEWER
 
 namespace VerveUniEx.HotFix
@@ -33,12 +35,12 @@ namespace VerveUniEx.HotFix
                 throw new ArgumentNullException(nameof(checksum));
             }
             var data = await m_Network.GetSubmodule<VerveUniEx.Net.HttpClientSubmodule>().DownloadFileToMemoryAsync(manifestUrl);
-            var initialManifest = m_Serializable.GetSubmodule<Verve.Serializable.JsonSerializableSubmodule>().Deserialize<HotFixManifest>(data);
+            var initialManifest = m_Serializable.GetSubmodule<Verve.Serializable.JsonSerializableSubmodule>().DeserializeFromBytes<HotFixManifest>(data);
         
             if (!ValidateFile(data, checksum))
             {
                 data = await m_Network.GetSubmodule<VerveUniEx.Net.HttpClientSubmodule>().DownloadFileToMemoryAsync(manifestUrl);
-                initialManifest = m_Serializable.GetSubmodule<Verve.Serializable.JsonSerializableSubmodule>().Deserialize<HotFixManifest>(data);
+                initialManifest = m_Serializable.GetSubmodule<Verve.Serializable.JsonSerializableSubmodule>().DeserializeFromBytes<HotFixManifest>(data);
         
                 if (!ValidateFile(data, checksum))
                 {

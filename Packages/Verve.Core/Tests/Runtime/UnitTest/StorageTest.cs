@@ -1,3 +1,5 @@
+using Verve.Platform;
+
 namespace Verve.Tests
 {
     using Unit;
@@ -17,7 +19,18 @@ namespace Verve.Tests
         public void SetUp()
         {
             m_Storage = new StorageFeature();
-            ((IGameFeature)m_Storage).Load(null);
+            var serializable = new SerializableFeature();
+            var platform = new PlatformFeature();
+            var file = new FileFeature();
+            ((IGameFeature)serializable).Load(null);
+            ((IGameFeature)platform).Load(null);
+            ((IGameFeature)file).Load(null);
+            ((IGameFeature)m_Storage).Load(new FeatureDependencies(new System.Collections.Generic.Dictionary<string, IGameFeature>()
+            {
+                { "Verve.Serializable", serializable },
+                { "Verve.Platform", platform },
+                { "Verve.File", file },
+            }));
             ((IGameFeature)m_Storage).Activate();
         }
         

@@ -10,6 +10,9 @@ namespace Verve.Debug
     public class DebuggerFeature : GameFeature
     {
         protected IDebuggerSubmodule m_DebuggerSubmodule;
+
+        [DebuggerHidden]
+        public IDebuggerSubmodule Current => m_DebuggerSubmodule;
         
         
         protected override void OnLoad(IReadOnlyFeatureDependencies dependencies)
@@ -27,48 +30,13 @@ namespace Verve.Debug
         protected override void OnActivate()
         {
             base.OnActivate();
-            m_DebuggerSubmodule.IsEnable = true;
+            m_DebuggerSubmodule.IsActivate = true;
         }
 
         protected override void OnDeactivate()
         {
             base.OnDeactivate();
-            m_DebuggerSubmodule.IsEnable = false;
-        }
-
-        [DebuggerHidden, DebuggerStepThrough]
-        public void Log(object msg)
-        {
-            m_DebuggerSubmodule?.Log(msg);
-        }
-        
-        [DebuggerHidden, DebuggerStepThrough]
-        public void Log(string format, params object[] args)
-        {
-            m_DebuggerSubmodule?.Log(format, args);
-        }
-
-        [DebuggerHidden, DebuggerStepThrough]
-        public void LogWarning(object msg)
-        {
-            m_DebuggerSubmodule?.LogWarning(msg);
-        }
-
-        [DebuggerHidden, DebuggerStepThrough]
-        public void LogError(object msg)
-        {
-            m_DebuggerSubmodule?.LogError(msg);
-        }
-        
-        [DebuggerHidden, DebuggerStepThrough]
-        public void Assert(bool condition, object msg)
-        {
-            m_DebuggerSubmodule?.Assert(condition, msg);
-        }
-
-        public LastLogData GetLastLog()
-        {
-            return m_DebuggerSubmodule?.LastLog ?? default;
+            m_DebuggerSubmodule.IsActivate = false;
         }
     }
 }

@@ -62,7 +62,7 @@ namespace VerveUniEx.Input
 
             Action<InputAction.CallbackContext> Wrapper = ctx =>
             {
-                if (!enabled) return;
+                if (!IsActive) return;
                 
                 T value = default;
                 switch (value)

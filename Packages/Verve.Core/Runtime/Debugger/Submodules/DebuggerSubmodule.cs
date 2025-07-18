@@ -13,14 +13,14 @@ namespace Verve.Debug
         public abstract string ModuleName { get; }
         public virtual void OnModuleLoaded(IReadOnlyFeatureDependencies dependencies)
         {
-            IsEnable = true;
+            IsActivate = true;
         }
         public virtual void OnModuleUnloaded()
         {
-            IsEnable = false;
+            IsActivate = false;
         }
 
-        public bool IsEnable { get; set; } = true;
+        public bool IsActivate { get; set; } = true;
         
         public LastLogData LastLog { get; protected set; }
         
@@ -45,7 +45,7 @@ namespace Verve.Debug
         [DebuggerHidden, DebuggerStepThrough]
         protected virtual void Log_Implement(string msg, LogLevel level)
         {
-            if (!IsEnable || string.IsNullOrEmpty(msg)) return;
+            if (!IsActivate || string.IsNullOrEmpty(msg)) return;
 
             LastLog = new LastLogData()
             {

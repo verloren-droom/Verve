@@ -11,12 +11,11 @@ namespace Verve.Timer
     [System.Serializable]
     public class TimerFeature : ModularGameFeature
     {
-        protected override void OnLoad(IReadOnlyFeatureDependencies dependencies)
+        protected override void OnBeforeSubmodulesLoaded(IReadOnlyFeatureDependencies dependencies)
         {
-            base.OnLoad(dependencies);
             RegisterSubmodule(new SimpleTimerSubmodule());
         }
-
+        
         protected override void OnActivate()
         {
             base.OnActivate();

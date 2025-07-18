@@ -8,6 +8,7 @@ namespace Verve.Application
     {
         protected IApplicationSubmodule m_Application;
         
+        public IApplicationSubmodule Current => m_Application;
         
         protected override void OnLoad(IReadOnlyFeatureDependencies dependencies)
         {
@@ -22,17 +23,5 @@ namespace Verve.Application
         }
         
         public virtual string PlatformName => System.Runtime.InteropServices.RuntimeInformation.OSDescription;
-        public virtual string AppVersion => m_Application.Version;
-        public virtual string DeviceId => m_Application.DeviceId;
-        
-        public virtual void Quit()
-        {
-            m_Application.QuitApplication();
-        }
-        
-        public virtual void Restart()
-        {
-            m_Application.RestartApplication();
-        }
     }
 }

@@ -57,24 +57,6 @@ namespace VerveUniEx.Loader
             m_LoadedAssets.Clear();
             Resources.UnloadUnusedAssets();
         }
-
-        public override IEnumerator LoadAssetAsync<TObject>(string assetPath, Action<AssetLoaderCallbackContext<TObject>> onComplete)
-        {
-            if (string.IsNullOrEmpty(assetPath)) yield return null;
-            if (typeof(UnityEngine.Object).IsAssignableFrom(typeof(TObject)))
-            {
-                var res = Resources.LoadAsync<UnityEngine.Object>(assetPath);
-                res.completed += (_) =>
-                {
-                    m_LoadedAssets[assetPath] = res.asset;
-                    onComplete?.Invoke(new AssetLoaderCallbackContext<TObject>((TObject)Convert.ChangeType(res.asset, typeof(TObject))));
-                };
-            }
-            else
-            {
-                yield return null;
-            }
-        }
     }
 }
     

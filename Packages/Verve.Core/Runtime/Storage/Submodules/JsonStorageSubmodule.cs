@@ -27,7 +27,7 @@ namespace Verve.Storage
         public override string DefaultFileExtension { get; set; } = ".json";
 
         
-        protected internal JsonStorageSubmodule(SerializableFeature serializable, FileFeature file, PlatformFeature platform)
+        public JsonStorageSubmodule(SerializableFeature serializable, FileFeature file, PlatformFeature platform)
         {
             m_Platform = platform ?? throw new ArgumentNullException(nameof(platform));
             m_Serializable = serializable ?? throw new ArgumentNullException(nameof(serializable));
@@ -96,7 +96,7 @@ namespace Verve.Storage
             try
             {
                 using var fs = File.OpenRead(fullPath);
-                return m_Serializable.GetSubmodule<JsonSerializableSubmodule>().DeserializeFromStream<Dictionary<string, object>>(fs);
+                return m_Serializable.GetSubmodule<JsonSerializableSubmodule>().Deserialize<Dictionary<string, object>>(fs);
             }
             catch
             {

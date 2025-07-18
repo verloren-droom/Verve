@@ -33,7 +33,7 @@ namespace Verve.Tests
             Action onComplete = () => timerCompleted = true;
 
             m_Timer.AddTimer<SimpleTimerSubmodule>(1.0f, onComplete);
-            ((ITimerSubmodule)m_Timer).Update(1.0f);
+            m_Timer.OnUpdate(1.0f);
             
 
             Assert.IsTrue(timerCompleted);
@@ -48,7 +48,7 @@ namespace Verve.Tests
             m_Timer.AddTimer<SimpleTimerSubmodule>(1.0f, onComplete);
             m_Timer.RemoveTimer<SimpleTimerSubmodule>(onComplete);
             
-            ((ITimerSubmodule)m_Timer).Update(1.0f);
+            m_Timer.OnUpdate(1.0f);
 
             Assert.IsFalse(timerCompleted);
         }

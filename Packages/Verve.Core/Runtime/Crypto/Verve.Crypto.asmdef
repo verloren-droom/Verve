@@ -1,0 +1,19 @@
+{
+  "name": "Verve.Crypto",
+  "rootNamespace": "Verve",
+  "references": [
+    "Verve.Core",
+    "Verve.Serializable",
+    "Verve.Platform",
+    "Verve.Application"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": true,
+  "overrideReferences": true,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

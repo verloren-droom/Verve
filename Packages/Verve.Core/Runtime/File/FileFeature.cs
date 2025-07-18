@@ -61,7 +61,7 @@ namespace Verve.File
             }
             using (var fs = m_FileSubmodule?.OpenRead(fullPath))
             {
-                data = m_Serializable.GetSubmodule<TSerializable>().DeserializeFromStream<TData>(fs);
+                data = m_Serializable.GetSubmodule<TSerializable>().Deserialize<TData>(fs);
             }
             return true;
         }

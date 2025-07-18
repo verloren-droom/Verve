@@ -51,15 +51,15 @@ namespace VerveUniEx.Tests
             playerInput.actions = asset;
             
             
-            m_Input.Enable<InputSystemSubmodule>();
+            m_Input.GetSubmodule<InputSystemSubmodule>().Enable();
             
-            m_Input.AddListener<InputSystemSubmodule, float>($"{mapName}/{actionName}", ctx => {
+            m_Input.GetSubmodule<InputSystemSubmodule>().AddListener<float>($"{mapName}/{actionName}", ctx => {
                 isTriggered = true;
                 triggeredResult = ctx.value;
             });
 
             // TODO: Need to implement InputSystem Input simulation
-            m_Input.SimulateInputAction<InputSystemSubmodule, float>($"{mapName}/{actionName}", -1.0f);
+            m_Input.GetSubmodule<InputSystemSubmodule>().SimulateInputAction<float>($"{mapName}/{actionName}", -1.0f);
 
             Assert.IsTrue(isTriggered);
             Assert.AreEqual(-1.0f, triggeredResult);
@@ -75,19 +75,18 @@ namespace VerveUniEx.Tests
             float triggeredResult = 1.0f;
             const string actionName = "Horizontal";
             
-            m_Input.Enable<InputManagerSubmodule>();
-            m_Input.AddListener<InputManagerSubmodule, float>($"{actionName}", ctx =>
+            m_Input.GetSubmodule<InputManagerSubmodule>().Enable();
+            m_Input.GetSubmodule<InputManagerSubmodule>().AddListener<float>($"{actionName}", ctx =>
             {
                 isTriggered = true;
                 triggeredResult = ctx.value;
             });
             
-            m_Input.SimulateInputAction<InputManagerSubmodule, float>($"{actionName}", -1.0f);
+            m_Input.GetSubmodule<InputManagerSubmodule>().SimulateInputAction<float>($"{actionName}", -1.0f);
 
             Assert.IsTrue(isTriggered);
             Assert.AreEqual(-1.0f, triggeredResult);
         }
-        
     }
 }
 

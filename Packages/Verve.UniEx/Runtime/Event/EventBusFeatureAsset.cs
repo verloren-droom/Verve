@@ -12,7 +12,7 @@ namespace VerveUniEx.Event
     /// </summary>
     public partial class EventBusFeatureAsset : GameFeatureAsset
     {
-        [SerializeField, Tooltip("功能名称（保证全局唯一）"), ReadOnly] private string m_FeatureName = "VerveUniEx.File";
+        [SerializeField, Tooltip("功能名称（保证全局唯一）"), ReadOnly] private string m_FeatureName = "VerveUniEx.Event";
         
         public override string FeatureName => m_FeatureName;
         

@@ -10,17 +10,17 @@ namespace Verve.Input
     {
         public virtual bool IsValid => false;
 
-        public bool enabled { get; private set; }
+        public bool IsActive { get; private set; }
 
         public void Enable()
         {
-            enabled = true;
+            IsActive = true;
             OnEnable();
         }
         
         public void Disable()
         {
-            enabled = false;
+            IsActive = false;
             OnDisable();
         }
         
@@ -29,7 +29,7 @@ namespace Verve.Input
 
         public void AddListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Started) where T : struct
         {
-            if (!enabled || !IsValid || string.IsNullOrEmpty(actionName)) return;
+            if (!IsActive || !IsValid || string.IsNullOrEmpty(actionName)) return;
             OnAddListener(actionName, onAction, phase);
         }
         protected abstract void OnAddListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed)
@@ -37,21 +37,21 @@ namespace Verve.Input
         
         public void RemoveListener(string actionName, InputServicePhase phase = InputServicePhase.Started)
         {
-            if (!enabled || !IsValid || string.IsNullOrEmpty(actionName)) return;
+            if (!IsActive || !IsValid || string.IsNullOrEmpty(actionName)) return;
             OnRemoveListener(actionName, phase);
         }
         protected abstract void OnRemoveListener(string actionName, InputServicePhase phase = InputServicePhase.Performed);
         
         public void RemoveListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Started) where T : struct
         {
-            if (!enabled || !IsValid || string.IsNullOrEmpty(actionName)) return;
+            if (!IsActive || !IsValid || string.IsNullOrEmpty(actionName)) return;
             OnRemoveListener(actionName, phase);
         }
         protected virtual void OnRemoveListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed) where T : struct {}
         
         public void RemoveAllListener()
         {
-            if (!enabled || !IsValid) return;
+            if (!IsActive || !IsValid) return;
             OnRemoveAllListener();
         }
         protected virtual void OnRemoveAllListener() {}
@@ -62,7 +62,7 @@ namespace Verve.Input
         
         public void SimulateInputAction<T>(string actionName, T value) where T : struct
         {
-            if (!enabled || !IsValid || string.IsNullOrEmpty(actionName) || !typeof(T).IsValueType) return;
+            if (!IsActive || !IsValid || string.IsNullOrEmpty(actionName) || !typeof(T).IsValueType) return;
             OnSimulateInputAction(actionName, value);
         }
         
@@ -75,7 +75,7 @@ namespace Verve.Input
         }
 
         public abstract string ModuleName { get; }
-        public virtual void OnModuleLoaded(IReadOnlyFeatureDependencies dependencies) { }
+        public virtual void OnModuleLoaded(IReadOnlyFeatureDependencies dependencies) {}
 
         public virtual void OnModuleUnloaded() { }
     }

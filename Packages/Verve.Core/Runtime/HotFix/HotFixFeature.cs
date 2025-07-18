@@ -6,11 +6,9 @@ namespace Verve.HotFix
     [System.Serializable]
     public class HotFixFeature : ModularGameFeature
     {
-        protected override void OnLoad(IReadOnlyFeatureDependencies dependencies)
+        protected override void OnBeforeSubmodulesLoaded(IReadOnlyFeatureDependencies dependencies)
         {
             RegisterSubmodule(new GenericHotFixSubmodule());
-
-            base.OnLoad(dependencies);
         }
     }
 }

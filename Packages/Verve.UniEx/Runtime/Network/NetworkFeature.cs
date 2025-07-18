@@ -5,14 +5,15 @@ namespace VerveUniEx.Net
     using Verve;
     
     
+    /// <summary>
+    /// 网络功能
+    /// </summary>
     [System.Serializable]
     public partial class NetworkFeature : Verve.Net.NetworkFeature
     {
-        protected override void OnLoad(IReadOnlyFeatureDependencies dependencies)
+        protected override void OnBeforeSubmodulesLoaded(IReadOnlyFeatureDependencies dependencies)
         {
             RegisterSubmodule(new HttpClientSubmodule());
-            
-            base.OnLoad(dependencies);
         }
     }
 }

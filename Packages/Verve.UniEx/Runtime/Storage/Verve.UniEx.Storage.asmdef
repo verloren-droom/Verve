@@ -6,7 +6,11 @@
     "Verve.UniEx",
     "Verve.Storage",
     "Verve.Serializable",
-    "Verve.UniEx.Serializable"
+    "Verve.UniEx.Serializable",
+    "Verve.UniEx.File",
+    "Verve.File",
+    "Verve.Platform",
+    "Verve.UniEx.Platform"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

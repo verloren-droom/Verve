@@ -34,7 +34,7 @@ namespace VerveUniEx.Debugger
         [System.Diagnostics.DebuggerHidden, System.Diagnostics.DebuggerStepThrough]
         public override void Assert(bool condition, object msg)
         {
-            if (!IsEnable || msg == null) return;
+            if (!IsActivate || msg == null) return;
             Debug.Assert(condition, msg?.ToString());
         }
     }

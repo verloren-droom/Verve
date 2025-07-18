@@ -42,13 +42,13 @@ namespace Verve.HotFix
             string tempPath = Path.Combine(m_Platform.GetTemporaryCachePath(), "hotfix_manifest.json");
             await m_Network.GetSubmodule<HttpClientSubmodule>().DownloadFileAsync(manifestUrl, tempPath);
             string json = await File.ReadAllTextAsync(tempPath);
-            var initialManifest = m_Serializable.GetSubmodule<JsonSerializableSubmodule>().Deserialize<HotFixManifest>(System.Text.Encoding.UTF8.GetBytes(json));
+            var initialManifest = m_Serializable.GetSubmodule<JsonSerializableSubmodule>().DeserializeFromString<HotFixManifest>(json);
 
             if (!ValidateFile(tempPath, checksum))
             {
                 await m_Network.GetSubmodule<HttpClientSubmodule>().DownloadFileAsync(manifestUrl, tempPath);
                 json = await File.ReadAllTextAsync(tempPath);
-                initialManifest = m_Serializable.GetSubmodule<JsonSerializableSubmodule>().Deserialize<HotFixManifest>(System.Text.Encoding.UTF8.GetBytes(json));
+                initialManifest = m_Serializable.GetSubmodule<JsonSerializableSubmodule>().DeserializeFromString<HotFixManifest>(json);
         
                 if (!ValidateFile(tempPath, checksum))
                 {
@@ -65,8 +65,8 @@ namespace Verve.HotFix
             var manifest = await CheckForUpdatesAsync(checksum);
             if (targetVersion != null && manifest.Version != targetVersion)
                 throw new InvalidOperationException("Manifest version mismatch");
-            // if (manifest.Version <= Version.Parse(m_Application.AppVersion))
-            //     return;
+            if (manifest.Version.Revision <= Version.Parse(m_Application.Current.Version).Revision)
+                return;
             await ApplyManifestUpdate(manifest, targetVersion);
         }
 

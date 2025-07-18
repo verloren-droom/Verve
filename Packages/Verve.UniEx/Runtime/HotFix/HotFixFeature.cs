@@ -8,12 +8,10 @@ namespace VerveUniEx.HotFix
     [System.Serializable]
     public partial class HotFixFeature : Verve.HotFix.HotFixFeature
     {
-        protected override void OnLoad(IReadOnlyFeatureDependencies dependencies)
+        protected override void OnBeforeSubmodulesLoaded(IReadOnlyFeatureDependencies dependencies)
         {
             RegisterSubmodule(new GenericHotFixSubmodule());
             RegisterSubmodule(new HybridCLRHotFixSubmodule());
-
-            base.OnLoad(dependencies);
         }
     }
 }

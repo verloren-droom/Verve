@@ -18,8 +18,7 @@ namespace Verve.Storage
         protected FileFeature m_File;
         protected PlatformFeature m_Platform;
         
-
-        protected override void OnLoad(IReadOnlyFeatureDependencies dependencies)
+        protected override void OnBeforeSubmodulesLoaded(IReadOnlyFeatureDependencies dependencies)
         {
             m_Serializable = dependencies.Get<SerializableFeature>();
             m_File = dependencies.Get<FileFeature>();
@@ -27,9 +26,6 @@ namespace Verve.Storage
             
             RegisterSubmodule(new BinaryStorageSubmodule(m_Serializable));
             RegisterSubmodule(new JsonStorageSubmodule(m_Serializable, m_File, m_Platform));
-            
-            base.OnLoad(dependencies);
         }
-
     }
 }
