@@ -2,7 +2,8 @@
   "name": "Verve.Net",
   "rootNamespace": "Verve",
   "references": [
-    "Verve.Core"
+    "Verve.Core",
+    "Verve.File"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

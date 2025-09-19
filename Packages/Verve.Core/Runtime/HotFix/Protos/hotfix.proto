@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package verve.hotfix;
+
+message HotFixAssetInfo {
+  string remote_url = 1;
+  string checksum = 2;
+  int64 size = 3;
+}
+
+message HotFixManifest {
+  string version = 1;
+  string description = 2;
+  bool is_mandatory = 3;
+  map<string, HotFixAssetInfo> assets = 4;
+}
+
+message LatestVersionInfo {
+  string version = 1;
+  string manifest_file = 2;
+}

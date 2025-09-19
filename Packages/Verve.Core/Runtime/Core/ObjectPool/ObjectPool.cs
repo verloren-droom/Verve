@@ -1,4 +1,4 @@
-namespace Verve.Pool
+namespace Verve
 {
     using System;
     using System.Linq;

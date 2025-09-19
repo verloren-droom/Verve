@@ -1,6 +1,6 @@
 #if UNITY_5_3_OR_NEWER
 
-namespace VerveUniEx.AI
+namespace Verve.UniEx.AI
 {
     using System;
     using Verve.AI;

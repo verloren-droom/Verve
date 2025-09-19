@@ -7,7 +7,8 @@
     "Verve.Loader",
     "Verve.Platform",
     "Verve.Serializable",
-    "Verve.Application"
+    "Verve.Application",
+    "Verve.File"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

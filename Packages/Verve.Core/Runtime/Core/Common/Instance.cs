@@ -1,26 +1,24 @@
 namespace Verve
 {
+    using System;
+    using System.Threading;
+
+    
     /// <summary>
     /// 单例
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public abstract class InstanceBase<T> where T : class, new()
     {
-        private static T m_Instance;
+        public static T Instance => s_Lazy.Value;
 
-        public static T Instance
+        private static readonly Lazy<T> s_Lazy = new Lazy<T>(() =>
         {
-            get
-            {
-                if (m_Instance == null)
-                {
-                    m_Instance = new T();
-                    (m_Instance as InstanceBase<T>).OnInitialized();
-                }
-                return m_Instance;
-            }
-            private set => m_Instance = value;
-        }
+            var instance = new T();
+            (instance as InstanceBase<T>)?.OnInitialized();
+            return instance;
+        }, LazyThreadSafetyMode.ExecutionAndPublication);
+        
 
         protected InstanceBase() { }
         

@@ -1,6 +1,6 @@
 #if UNITY_5_3_OR_NEWER
 
-namespace VerveUniEx.AI
+namespace Verve.UniEx.AI
 {
     using Verve.AI;
 
@@ -21,7 +21,7 @@ namespace VerveUniEx.AI
     public struct BTNodeDebugContext
     {
         /// <summary> 关联黑板 </summary>
-        public Blackboard bb;
+        public IBlackboard bb;
     }
 }
 

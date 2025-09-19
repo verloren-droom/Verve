@@ -1,11 +1,12 @@
 #if UNITY_2019_4_OR_NEWER && ENABLE_INPUT_SYSTEM
     
-namespace VerveUniEx.Input
+namespace Verve.UniEx.Input
 {
     using System;
     using Verve.Input;
     using UnityEngine;
     using System.Linq;
+    using System.Collections;
     using UnityEngine.InputSystem;
     using System.Collections.Generic;
     using Object = UnityEngine.Object;
@@ -16,15 +17,14 @@ namespace VerveUniEx.Input
     
     
     /// <summary>
-    /// 新版输入系统子模块（Input System）
+    /// 新版输入系统（Input System）
     /// </summary>
-    [Serializable]
+    [Serializable, GameFeatureSubmodule(typeof(InputGameFeature), Description = "新版输入系统（Input System）")]
     public sealed partial class InputSystemSubmodule : InputSubmodule
     {
-        public override string ModuleName => "InputSystem";
         public override bool IsValid => m_PlayerInput != null;
         
-        private readonly PlayerInput m_PlayerInput;
+        private PlayerInput m_PlayerInput;
 
         private struct CallbackInfo
         {
@@ -37,18 +37,16 @@ namespace VerveUniEx.Input
         private readonly ConcurrentDictionary<string, List<CallbackInfo>> m_ActionCallbacks = 
             new ConcurrentDictionary<string, List<CallbackInfo>>();
 
-        public InputSystemSubmodule(PlayerInput input = null)
-        {
-            m_PlayerInput = input ?? Object.FindObjectOfType<PlayerInput>();
-        }
 
-        protected override void OnEnable()
+        protected override IEnumerator OnStartup()
         {
+            m_PlayerInput = Component.Input ?? Object.FindObjectOfType<PlayerInput>();
             m_PlayerInput?.actions?.Enable();
             m_PlayerInput?.ActivateInput();
+            return null;
         }
 
-        protected override void OnDisable()
+        protected override void OnShutdown()
         {
             m_PlayerInput?.DeactivateInput();
             m_PlayerInput?.actions?.Disable();
@@ -62,7 +60,7 @@ namespace VerveUniEx.Input
 
             Action<InputAction.CallbackContext> Wrapper = ctx =>
             {
-                if (!IsActive) return;
+                if (!IsEnabled) return;
                 
                 T value = default;
                 switch (value)
@@ -186,11 +184,6 @@ namespace VerveUniEx.Input
 
         protected override void OnRemoveAllListener()
         {
-            // for (var i = 0; i < m_ActionCallbacks.Count; i++)
-            // {
-            //     
-            // }
-
             foreach (var actionCallback in m_ActionCallbacks)
             {
                 RemoveListener(actionCallback.Key, actionCallback.Value[0].Phase);

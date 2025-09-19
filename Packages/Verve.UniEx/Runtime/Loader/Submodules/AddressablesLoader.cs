@@ -1,8 +1,9 @@
 #if UNITY_2018_3_OR_NEWER
     
-namespace VerveUniEx.Loader
+namespace Verve.UniEx.Loader
 {
     using System;
+    using System.Linq;
     using UnityEngine;
     using Verve.Loader;
     using System.Collections;
@@ -14,17 +15,60 @@ namespace VerveUniEx.Loader
 
 
     /// <summary>
-    /// 可寻址资源加载子模块
+    /// 可寻址资源加载器
     /// </summary>
-    [System.Serializable]
-    public sealed partial class AddressablesLoader : VerveUniEx.Loader.AssetLoaderBase
+    [System.Serializable, GameFeatureSubmodule(typeof(LoaderGameFeature), Description = "可寻址资源加载器")]
+    public sealed partial class AddressablesLoader : LoaderSubmodule
     {
-        public override string ModuleName => "Addressables";
-        
         private readonly Dictionary<string, AsyncOperationHandle> m_AssetHandles = new Dictionary<string, AsyncOperationHandle>();
         private readonly Dictionary<string, AsyncOperationHandle> m_SceneHandles = new Dictionary<string, AsyncOperationHandle>();
         
+
+        public async Task<IEnumerable<string>> CheckForUpdatesAsync()
+        {
+            var handle = Addressables.CheckForCatalogUpdates(false);
+            await handle.Task;
+            if (handle.Status == AsyncOperationStatus.Succeeded)
+            {
+                return handle.Result;
+            }
+            
+            Addressables.Release(handle);
+            return null;
+        }
+
+        public async Task ApplyUpdatesAsync()
+        {
+            var catalogs = await CheckForUpdatesAsync();
+            if (catalogs == null || !catalogs.Any()) return;
+            
+            var updateHandle = Addressables.UpdateCatalogs(catalogs);
+            await updateHandle.Task;
+    
+            if (updateHandle.Status != AsyncOperationStatus.Succeeded)
+            {
+                Addressables.Release(updateHandle);
+                return;
+            }
+            var resourceLocators = updateHandle.Result;
+            
+            var updateKeys = resourceLocators.SelectMany(x => x.Keys).Distinct();
+            
+            var sizeHandle = Addressables.GetDownloadSizeAsync(updateKeys);
+            var downloadSize = await sizeHandle.Task;
+            Addressables.Release(sizeHandle);
+            
+            if (downloadSize > 0)
+            {
+                var downloadHandle = Addressables.DownloadDependenciesAsync(updateKeys, Addressables.MergeMode.Union);
         
+                await downloadHandle.Task;
+
+                Addressables.Release(downloadHandle);
+            }
+            Addressables.Release(updateHandle);
+        }
+
         public override TObject LoadAsset<TObject>(string assetPath)
         {
             return TrackHandle(Addressables.LoadAssetAsync<TObject>(assetPath), assetPath).WaitForCompletion();

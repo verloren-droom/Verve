@@ -1,13 +1,13 @@
 #if UNITY_5_3_OR_NEWER && ENABLE_AUDIO
 
-namespace VerveUniEx.Audio
+namespace Verve.UniEx.Audio
 {
     using Verve;
     using System;
-    using Verve.Pool;
     using System.Linq;
     using UnityEngine;
     using UnityEngine.Audio;
+    using System.Collections;
     using System.Threading.Tasks;
     using System.Collections.Generic;
     using Object = UnityEngine.Object;
@@ -16,15 +16,14 @@ namespace VerveUniEx.Audio
     /// <summary>
     /// 音效子模块 - 提供操作反馈与环境代入感
     /// </summary>
-    [System.Serializable]
-    public partial class SoundEffectSubmodule : AudioSubmodule
+    [System.Serializable, GameFeatureSubmodule(typeof(AudioGameFeature), Description = "音效子模块 - 提供操作反馈与环境代入感")]
+    public sealed partial class SoundEffectSubmodule : AudioSubmodule
     {
         [SerializeField, Tooltip("音频总音量"), Range(0, 1)] private float m_Volume = 1.0f;
-
-        public override string ModuleName => "SoundEffect";
         
         private ObjectPool<AudioSource> m_Pool;
         [SerializeField, ReadOnly] private List<AudioSource> m_ActiveSources = new List<AudioSource>();
+        private readonly Dictionary<string, AudioClip> m_LoadedClips = new Dictionary<string, AudioClip>();
 
         public override float Volume
         {
@@ -39,38 +38,43 @@ namespace VerveUniEx.Audio
         public override bool Mute { get => m_ActiveSources.Any(source => source.mute); set => m_ActiveSources.ForEach(source => source.mute = value); }
         public override bool IsPlaying => m_ActiveSources.Any(source => source.isPlaying);
 
-        
-        public override void OnModuleLoaded(IReadOnlyFeatureDependencies dependencies)
+        protected override IEnumerator OnStartup()
         {
-            m_Pool = new ObjectPool<AudioSource>(() =>
+            if (UnityEngine.Application.isPlaying)
             {
-                var source = m_Prefab ? GameObject.Instantiate(m_Prefab).GetComponent<AudioSource>() : new GameObject($"[{ModuleName}]").AddComponent<AudioSource>();
-                source.outputAudioMixerGroup = m_Group;
-                source.gameObject.SetActive(false);
-                return source;
-            }, source =>
-            {
-                source.gameObject.SetActive(true);
-                m_ActiveSources.Add(source);
-            }, source =>
-            {
-                source.Stop();
-                source.clip = null;
-                source.transform.position = Vector3.zero;
-                source.transform.rotation = Quaternion.identity;
-                source.gameObject.name = $"[{ModuleName}]";
-                source.gameObject.SetActive(false);
-                m_ActiveSources.Remove(source);
-            }, source =>
-            {
-                m_ActiveSources.Remove(source);
-                GameObject.Destroy(source.gameObject);
-            });
+                m_Pool = new ObjectPool<AudioSource>(() =>
+                {
+                    var source = new GameObject($"[{nameof(SoundEffectSubmodule)}]").AddComponent<AudioSource>();
+                    source.outputAudioMixerGroup = Component.SoundEffectGroup;
+                    source.gameObject.SetActive(false);
+                    return source;
+                }, source =>
+                {
+                    source.gameObject.SetActive(true);
+                    m_ActiveSources.Add(source);
+                }, source =>
+                {
+                    source.Stop();
+                    source.clip = null;
+                    source.transform.position = Vector3.zero;
+                    source.transform.rotation = Quaternion.identity;
+                    source.gameObject.name = $"[{nameof(SoundEffectSubmodule)}]";
+                    source.gameObject.SetActive(false);
+                    m_ActiveSources.Remove(source);
+                }, source =>
+                {
+                    m_ActiveSources.Remove(source);
+                    GameObject.Destroy(source.gameObject);
+                });
+            }
+            yield return null;
         }
 
-        public override void OnModuleUnloaded()
+        protected override void OnShutdown()
         {
-            m_Pool.Clear();
+            m_Pool?.Clear();
+            m_LoadedClips?.Clear();
+            base.OnShutdown();
         }
 
         /// <summary>
@@ -81,7 +85,7 @@ namespace VerveUniEx.Audio
             if (!m_Pool.TryGet(out var audio) || clip == null) return;
             
             audio.clip = clip;
-            audio.gameObject.name = $"[{ModuleName}] {clip.name}";
+            audio.gameObject.name = $"[{nameof(SoundEffectSubmodule)}] {clip.name}";
             audio.spatialBlend = Mathf.Clamp01(spatialBlend);
             audio.minDistance = Mathf.Max(minDistance, 0);
             audio.maxDistance = maxDistance;
@@ -100,14 +104,44 @@ namespace VerveUniEx.Audio
             }
         }
 
+        public async Task Play(IAudio.LoadAudioAssetAsync loadAudioAsset, string path, float volume = 1.0f, Vector3? target = null, float pitch = 1.0f, float minDistance = 1.0f, float maxDistance = 500.0f, float spatialBlend = 1.0f, float panStereo = 0.0f)
+        {
+            if (m_LoadedClips.TryGetValue(path, out var clip))
+            {
+                await Play(clip, volume, target, pitch, minDistance, maxDistance, spatialBlend, panStereo);
+            }
+            else
+            {
+                var audio = await loadAudioAsset(path);
+                m_LoadedClips.Add(path, audio);
+                await Play(audio, volume, target, pitch, minDistance, maxDistance, spatialBlend, panStereo);
+            }
+        }
+
         public void Pause(AudioClip clip)
         {
             m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.Pause();
+        }
+
+        public void Pause(string path)
+        {
+            if (m_LoadedClips.TryGetValue(path, out var audio))
+            {
+                Pause(audio);
+            }
         }
         
         public void UnPause(AudioClip clip)
         {
             m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.UnPause();
+        }
+
+        public void UnPause(string path)
+        {
+            if (m_LoadedClips.TryGetValue(path, out var audio))
+            {
+                UnPause(audio);
+            }
         }
 
         public void PauseAll()
@@ -123,6 +157,14 @@ namespace VerveUniEx.Audio
         public void Stop(AudioClip clip)
         {
             m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.Stop();
+        }
+
+        public void Stop(string path)
+        {
+            if (m_LoadedClips.TryGetValue(path, out var clip))
+            {
+                Stop(clip);
+            }
         }
         
         public void StopAll()
@@ -142,10 +184,27 @@ namespace VerveUniEx.Audio
                 source.mute = mute;
             }
         }
+        
+        public void SetMute(string path, bool mute)
+        {
+            if (m_LoadedClips.TryGetValue(path, out var clip))
+            {
+                SetMute(clip, mute);
+            }
+        }
 
         public bool GetMute(AudioClip clip)
         {
             return m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.mute ?? false;
+        }
+        
+        public bool GetMute(string path)
+        {
+            if (m_LoadedClips.TryGetValue(path, out var clip))
+            {
+                return GetMute(clip);
+            }
+            return false;
         }
 
         public void SetVolume(AudioClip clip, float volume)
@@ -157,19 +216,57 @@ namespace VerveUniEx.Audio
             }
         }
         
+        public void SetVolume(string path, float volume)
+        {
+            if (m_LoadedClips.TryGetValue(path, out var clip))
+            {
+                SetVolume(clip, volume);
+            }
+        }
+        
         public float GetVolume(AudioClip clip)
         {
             return m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.volume ?? 0;
         }
         
-        public bool ContainActiveClip(AudioClip clip)
+        public float GetVolume(string path)
+        {
+            if (m_LoadedClips.TryGetValue(path, out var clip))
+            {
+                return GetVolume(clip);
+            }
+            
+            return 0;
+        }
+        
+        public bool HasActiveClip(AudioClip clip)
         {
             return m_ActiveSources.Any(source => source.clip == clip);
+        }
+        
+        public bool HasActiveClip(string path)
+        {
+            if (m_LoadedClips.TryGetValue(path, out var loadedClip))
+            {
+                return HasActiveClip(loadedClip);
+            }
+            
+            return false;
         }
 
         public bool IsClipPlaying(AudioClip clip)
         {
             return m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.isPlaying ?? false;
+        }
+        
+        public bool IsClipPlaying(string path)
+        {
+            if (m_LoadedClips.TryGetValue(path, out var loadedClip))
+            {
+                return IsClipPlaying(loadedClip);
+            }
+            
+            return false;
         }
     }
 }

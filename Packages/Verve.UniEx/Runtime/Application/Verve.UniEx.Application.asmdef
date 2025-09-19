@@ -1,10 +1,12 @@
 {
   "name": "Verve.UniEx.Application",
-  "rootNamespace": "VerveUniEx",
+  "rootNamespace": "Verve.UniEx",
   "references": [
     "Verve.Core",
     "Verve.UniEx",
-    "Verve.Application"
+    "Verve.Application",
+    "Verve.Platform",
+    "Verve.UniEx.Platform"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

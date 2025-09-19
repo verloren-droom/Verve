@@ -1,6 +1,6 @@
 {
   "name": "Verve.UniEx.Serializable",
-  "rootNamespace": "VerveUniEx",
+  "rootNamespace": "Verve.UniEx",
   "references": [
     "Verve.Core",
     "Verve.UniEx",
@@ -10,7 +10,11 @@
   "excludePlatforms": [],
   "allowUnsafeCode": true,
   "overrideReferences": true,
-  "precompiledReferences": [],
+  "precompiledReferences": [
+    "Newtonsoft.Json.dll",
+    "protobuf-net.Core.dll",
+    "protobuf-net.dll"
+  ],
   "autoReferenced": true,
   "defineConstraints": [],
   "versionDefines": [],

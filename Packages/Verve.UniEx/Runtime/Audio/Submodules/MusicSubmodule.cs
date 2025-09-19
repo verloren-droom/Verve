@@ -1,21 +1,20 @@
 #if UNITY_5_3_OR_NEWER && ENABLE_AUDIO
 
-namespace VerveUniEx.Audio
+namespace Verve.UniEx.Audio
 {
     using Verve;
     using UnityEngine;
     using UnityEngine.Audio;
+    using System.Collections;
     using System.Threading.Tasks;
     
     
     /// <summary>
     /// 音乐子模块
     /// </summary>
-    [System.Serializable]
-    public partial class MusicSubmodule : AudioSubmodule
+    [System.Serializable, GameFeatureSubmodule(typeof(AudioGameFeature), Description = "音乐子模块")]
+    public sealed partial class MusicSubmodule : AudioSubmodule
     {
-        public override string ModuleName => "Music";
-        
         private AudioSource m_Source;
 
         public override bool Mute { get => m_Source.mute; set => m_Source.mute = value; }
@@ -28,20 +27,26 @@ namespace VerveUniEx.Audio
 
         private float m_LastVolume = 1.0f;
 
-        public override void OnModuleLoaded(IReadOnlyFeatureDependencies dependencies)
+        protected override IEnumerator OnStartup()
         {
-            base.OnModuleLoaded(dependencies);
-            m_Source = m_Prefab != null ? GameObject.Instantiate(m_Prefab).GetComponent<AudioSource>() : new GameObject($"[{ModuleName}]").AddComponent<AudioSource>();
-            m_Source.outputAudioMixerGroup = m_Group;
-            m_Source.playOnAwake = false;
-            m_Source.loop = true;
-            GameObject.DontDestroyOnLoad(m_Source.gameObject);
+            if (UnityEngine.Application.isPlaying)
+            {
+                m_Source = new GameObject($"[{nameof(MusicSubmodule)}]").AddComponent<AudioSource>();
+                m_Source.outputAudioMixerGroup = Component.MusicGroup;
+                m_Source.playOnAwake = false;
+                m_Source.loop = true;
+                GameObject.DontDestroyOnLoad(m_Source.gameObject);
+            }
+
+            yield return null;
         }
 
-        public override void OnModuleUnloaded()
+        protected override void OnShutdown()
         {
-            base.OnModuleUnloaded();
-            GameObject.Destroy(m_Source.gameObject);
+            if (m_Source != null)
+            {
+                GameObject.Destroy(m_Source.gameObject);
+            }
         }
 
         public async Task Play(AudioClip clip, float fadeDuration = 0)
@@ -54,9 +59,17 @@ namespace VerveUniEx.Audio
             }
             
             m_Source.clip = clip;
-            m_Source.gameObject.name = $"[{ModuleName}] [{clip.name}]";
+            m_Source.gameObject.name = $"[{nameof(MusicSubmodule)}] [{clip.name}]";
             m_Source.Play();
             await FadeIn(fadeDuration);
+        }
+
+        public async Task Play(
+            string path,
+            [ModuleMethodBridge("LoaderGameFeature", "AddressablesLoader", "LoadAssetAsync")] IAudio.LoadAudioAssetAsync loadAssetAsync, 
+            float fadeDuration = 0)
+        {
+            await Play(await loadAssetAsync(path), fadeDuration);
         }
 
         public void Stop()

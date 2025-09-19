@@ -1,6 +1,6 @@
 {
   "name": "Verve.UniEx.Audio",
-  "rootNamespace": "VerveUniEx",
+  "rootNamespace": "Verve.UniEx",
   "references": [
     "Verve.Core",
     "Verve.UniEx",

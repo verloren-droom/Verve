@@ -1,6 +1,6 @@
 #if UNITY_5_3_OR_NEWER
 
-namespace VerveUniEx.AI
+namespace Verve.UniEx.AI
 {
     /// <summary>
     /// 节点调试可视化接口

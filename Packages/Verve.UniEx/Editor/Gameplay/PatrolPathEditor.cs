@@ -5,7 +5,7 @@ namespace VerveEditor.UniEx.Gameplay
     using System.Linq;
     using UnityEditor;
     using UnityEngine;
-    using VerveUniEx.Gameplay;
+    using Verve.UniEx.Gameplay;
     
     
     [CustomEditor(typeof(PatrolPath))]

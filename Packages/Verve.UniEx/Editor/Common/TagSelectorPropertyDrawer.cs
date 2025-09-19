@@ -3,7 +3,7 @@
 namespace VerveEditor.UniEx
 {
     using System;
-    using VerveUniEx;
+    using Verve.UniEx;
     using System.Linq;
     using UnityEditor;
     using UnityEngine;

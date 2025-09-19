@@ -1,6 +1,6 @@
 {
     "name": "Verve.UniEx",
-    "rootNamespace": "VerveUniEx",
+    "rootNamespace": "Verve.UniEx",
     "references": [
         "Unity.Addressables",
         "Unity.InputSystem",

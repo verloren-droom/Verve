@@ -1,23 +1,18 @@
 # if UNITY_5_3_OR_NEWER
     
-namespace VerveUniEx.Loader
+namespace Verve.UniEx.Loader
 {
     using System;
     using UnityEngine;
-    using Verve.Loader;
-    using System.Collections;
-    using System.Threading.Tasks;
     using System.Collections.Generic;
 
     
     /// <summary>
-    /// 资源加载器子模块
+    /// 资源加载器
     /// </summary>
-    [System.Serializable]
-    public sealed partial class ResourcesLoader : VerveUniEx.Loader.AssetLoaderBase
+    [System.Serializable, GameFeatureSubmodule(typeof(LoaderGameFeature), Description = "资源加载器")]
+    public sealed partial class ResourcesLoader : LoaderSubmodule
     {
-        public override string ModuleName => "Resources";
-
         private readonly Dictionary<string, UnityEngine.Object> m_LoadedAssets = new Dictionary<string, UnityEngine.Object>();
         
         

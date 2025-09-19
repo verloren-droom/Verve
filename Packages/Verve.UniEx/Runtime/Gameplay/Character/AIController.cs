@@ -1,9 +1,9 @@
 using System.Linq;
-using VerveUniEx.AI;
+using Verve.UniEx.AI;
 
 #if UNITY_5_3_OR_NEWER
 
-namespace VerveUniEx.Gameplay
+namespace Verve.UniEx.Gameplay
 {
     using Verve.AI;
     using UnityEngine;

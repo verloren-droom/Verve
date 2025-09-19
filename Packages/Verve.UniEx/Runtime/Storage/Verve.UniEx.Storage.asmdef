@@ -1,6 +1,6 @@
 {
   "name": "Verve.UniEx.Storage",
-  "rootNamespace": "VerveUniEx",
+  "rootNamespace": "Verve.UniEx",
   "references": [
     "Verve.Core",
     "Verve.UniEx",

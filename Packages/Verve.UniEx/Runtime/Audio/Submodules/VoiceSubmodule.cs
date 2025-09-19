@@ -1,14 +1,14 @@
 #if UNITY_5_3_OR_NEWER && ENABLE_AUDIO
 
-namespace VerveUniEx.Audio
+namespace Verve.UniEx.Audio
 {
     /// <summary>
     /// 语音子模块 - 用于叙事与玩家沟通
     /// </summary>
-    [System.Serializable]
-    public class VoiceSubmodule : AudioSubmodule
+    [System.Serializable, GameFeatureSubmodule(typeof(AudioGameFeature), Description = "语音子模块 - 用于叙事与玩家沟通")]
+    public sealed partial class VoiceSubmodule : AudioSubmodule
     {
-        public override string ModuleName => "Voice";
+        // TODO: 实现语音子模块
     }
 }
 

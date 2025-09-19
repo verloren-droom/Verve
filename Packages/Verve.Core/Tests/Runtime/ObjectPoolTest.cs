@@ -1,6 +1,5 @@
 namespace Verve.Tests
 {
-    using Pool;
     using NUnit.Framework;
     
 

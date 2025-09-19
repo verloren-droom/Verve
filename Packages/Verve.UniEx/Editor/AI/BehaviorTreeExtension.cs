@@ -6,7 +6,7 @@ namespace VerveEditor.UniEx.AI
     using Verve.AI;
     using UnityEngine;
     using System.Linq;
-    using VerveUniEx.AI;
+    using Verve.UniEx.AI;
     using System.Reflection;
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;

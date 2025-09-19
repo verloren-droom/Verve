@@ -1,0 +1,368 @@
+#if UNITY_EDITOR
+
+namespace VerveEditor.UniEx
+{
+    using System;
+    using Verve;
+    using System.Linq;
+    using Verve.UniEx;
+    using UnityEditor;
+    using UnityEngine;
+    using System.Reflection;
+    using System.Collections.Generic;
+    using Object = UnityEngine.Object;
+    
+    
+    /// <summary>
+    /// 编辑器工具类
+    /// </summary>
+    public static class CoreEditorUtility
+    {
+        public static GUIStyle VersionBadgeStyle
+        {
+            get
+            {
+                var style = new GUIStyle(EditorStyles.miniLabel)
+                {
+                    alignment = TextAnchor.MiddleRight,
+                    padding = new RectOffset(6, 6, 1, 1),
+                    margin = new RectOffset(2, 2, 2, 2),
+                    normal = { textColor = new Color(0.6f, 0.6f, 0.6f) },
+                    fixedHeight = 16
+                };
+                    
+                var tex = new Texture2D(1, 1);
+                tex.SetPixel(0, 0, new Color(0.1f, 0.1f, 0.1f, 0.0f));
+                tex.Apply();
+                style.normal.background = tex;
+                    
+                return style;
+            }
+        }
+
+        /// <summary>
+        /// 绘制分割线
+        /// </summary>
+        public static void DrawSplitter(bool isBoxed = false)
+        {
+            var rect = GUILayoutUtility.GetRect(1f, 1f);
+            float xMin = rect.xMin;
+
+            rect.xMin = 0f;
+            rect.width += 4f;
+
+            if (isBoxed)
+            {
+                rect.xMin = xMin == 7.0 ? 4.0f : EditorGUIUtility.singleLineHeight;
+                rect.width -= 1;
+            }
+
+            if (Event.current.type != EventType.Repaint)
+                return;
+
+            EditorGUI.DrawRect(rect, !EditorGUIUtility.isProSkin
+                ? new Color(0.6f, 0.6f, 0.6f, 1.333f)
+                : new Color(0.12f, 0.12f, 0.12f, 1.333f));
+        }
+        
+        
+        /// <summary>
+        /// 绘制带开关的头部
+        /// </summary>
+        public static bool DrawHeaderToggle(
+            GUIContent title, 
+            SerializedProperty property, 
+            SerializedProperty activeProperty = null,
+            GenericMenu.MenuFunction2 contextClickCallback = null,
+            string version = null
+            )
+        {
+            var backgroundRect = GUILayoutUtility.GetRect(1f, 17f);
+
+            var labelRect = backgroundRect;
+            labelRect.xMin += 32f;
+            labelRect.xMax -= 20f;
+
+            var foldoutRect = backgroundRect;
+            foldoutRect.y += 1f;
+            foldoutRect.width = 13f;
+            foldoutRect.height = 13f;
+
+            var toggleRect = backgroundRect;
+            toggleRect.x += 16f;
+            toggleRect.y += 2f;
+            toggleRect.width = 13f;
+            toggleRect.height = 13f;
+
+            backgroundRect.xMin = 0f;
+            backgroundRect.width += 4f;
+            
+            float backgroundTint = EditorGUIUtility.isProSkin ? 0.1f : 1f;
+            EditorGUI.DrawRect(backgroundRect, new Color(backgroundTint, backgroundTint, backgroundTint, 0.2f));
+
+            using (new EditorGUI.DisabledScope(activeProperty?.boolValue == false))
+                EditorGUI.LabelField(labelRect, title, EditorStyles.boldLabel);
+
+            property.serializedObject.Update();
+            property.isExpanded = GUI.Toggle(foldoutRect, property.isExpanded, GUIContent.none, EditorStyles.foldout);
+            property.serializedObject.ApplyModifiedProperties();
+
+            if (activeProperty != null)
+            {
+                activeProperty.serializedObject.Update();
+                activeProperty.boolValue = GUI.Toggle(toggleRect, activeProperty.boolValue, GUIContent.none, EditorStyles.toggle);
+                activeProperty.serializedObject.ApplyModifiedProperties();
+            }
+            
+            if (!string.IsNullOrEmpty(version))
+            {
+                GUIContent versionContent = new GUIContent($"v{version}");
+                Vector2 versionSize = VersionBadgeStyle.CalcSize(versionContent);
+                
+                Rect versionRect = new Rect(
+                    labelRect.x + EditorStyles.boldLabel.CalcSize(title).x + 5f,
+                    labelRect.y + (labelRect.height - versionSize.y) / 2f,
+                    versionSize.x,
+                    versionSize.y
+                );
+                
+                GUI.Label(versionRect, versionContent, VersionBadgeStyle);
+            }
+
+            var menuRect = new Rect(labelRect.xMax, labelRect.y, 16, labelRect.height);
+            if (GUI.Button(menuRect, EditorGUIUtility.IconContent("_Menu"), new GUIStyle("IconButton")))
+            {
+                if (contextClickCallback != null)
+                {
+                    contextClickCallback(menuRect.position);
+                }
+            }
+
+            var e = Event.current;
+
+            if (e.type == EventType.MouseDown)
+            {
+                if (backgroundRect.Contains(e.mousePosition))
+                {
+                    if (e.button == 0)
+                        property.isExpanded = !property.isExpanded;
+
+                    e.Use();
+                }
+            }
+
+            return property.isExpanded;
+        }
+        
+        /// <summary>
+        /// 创建上下文菜单
+        /// </summary>
+        public static GenericMenu CreateContextMenu(
+            (string, GenericMenu.MenuFunction2)[] menuItems)
+        {
+            var menu = new GenericMenu();
+            
+            for (int i = 0; i < menuItems.Length; i++)
+            {
+                var item = menuItems[i];
+                menu.AddItem(new GUIContent(item.Item1), false, item.Item2, item);
+            }
+            
+            return menu;
+        }
+        
+        /// <summary>
+        /// 创建上下文菜单
+        /// </summary>
+        public static GenericMenu CreateContextMenu(
+            (GUIContent, GenericMenu.MenuFunction2)[] menuItems)
+        {
+            var menu = new GenericMenu();
+            
+            for (int i = 0; i < menuItems.Length; i++)
+            {
+                var item = menuItems[i];
+                menu.AddItem(item.Item1, false, item.Item2, item);
+            }
+            
+            return menu;
+        }
+        
+        public static void MarkDirtyAndSave(Object obj)
+        {
+            EditorUtility.SetDirty(obj);
+
+            if (EditorUtility.IsPersistent(obj))
+            {
+                AssetDatabase.SaveAssets();
+            }
+        }
+        
+        /// <summary>
+        /// 获取游戏功能菜单路径
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public static string GetGameFeatureMenuPath(Type type)
+        {
+            var attr = type.GetCustomAttribute<GameFeatureAttribute>();
+            if (attr == null)
+                return null;
+            if (string.IsNullOrEmpty(attr.MenuPath))
+                return ObjectNames.NicifyVariableName(type.Name);
+            var path = attr.MenuPath.Trim();
+            if (path.EndsWith("/"))
+                return path + ObjectNames.NicifyVariableName(type.Name);
+            return path;
+        }
+        
+        private static GUIStyle m_MiniLabelButton;
+
+        public static GUIStyle MiniLabelButton
+        {
+            get
+            {
+                if (m_MiniLabelButton == null)
+                {
+                    m_MiniLabelButton = new GUIStyle(EditorStyles.miniLabel)
+                    {
+                        normal = new GUIStyleState
+                        {
+                            scaledBackgrounds = null,
+                            textColor = Color.grey
+                        }
+                    };
+                    var activeState = new GUIStyleState
+                    {
+                        scaledBackgrounds = null,
+                        textColor = Color.white
+                    };
+                    m_MiniLabelButton.active = activeState;
+                    m_MiniLabelButton.onNormal = activeState;
+                    m_MiniLabelButton.onActive = activeState;
+                    return m_MiniLabelButton;
+                }
+
+                return m_MiniLabelButton;
+            }
+        }
+        
+
+        /// <summary>
+        /// 获取指定模块中的所有子模块类型
+        /// </summary>
+        /// <param name="module">模块</param>
+        /// <returns></returns>
+        public static Type[] GetSubmoduleTypes(GameFeatureModule module)
+        {
+            var allSubmoduleTypes = TypeCache.GetTypesDerivedFrom<IGameFeatureSubmodule>()
+                .Where(t => !t.IsAbstract 
+                            && !t.IsInterface 
+                            && t.IsClass
+                            && t.GetCustomAttribute<GameFeatureSubmoduleAttribute>() != null);
+            
+            return allSubmoduleTypes
+                .Where(t =>
+                {
+                    var attr = t.GetCustomAttribute<GameFeatureSubmoduleAttribute>();
+
+                    if (attr.BelongsToModule != null && module != null)
+                    {
+                        return attr.BelongsToModule == module.GetType();
+                    }
+            
+                    if (!string.IsNullOrEmpty(attr.MenuPath) && module != null)
+                    {
+                        string moduleName = module.name;
+                        if (moduleName.Contains("/"))
+                        {
+                            moduleName = moduleName.Substring(moduleName.LastIndexOf('/') + 1);
+                        }
+                
+                        string submoduleMenuPath = attr.MenuPath;
+                        if (submoduleMenuPath.Contains("/"))
+                        {
+                            submoduleMenuPath = submoduleMenuPath.Substring(submoduleMenuPath.LastIndexOf('/') + 1);
+                        }
+                
+                        return moduleName.Equals(submoduleMenuPath, StringComparison.OrdinalIgnoreCase);
+                    }
+
+                    return false;
+                }).ToArray();
+        }
+        
+        /// <summary>
+        /// 获取所有可添加的模块类型（包括普通模块和子模块组合）
+        /// </summary>
+        public static Dictionary<string, List<Type>> GetAvailableModuleTypes(GameFeatureModuleProfile profile = null)
+        {
+            var result = new Dictionary<string, List<Type>>();
+
+            var moduleTypes = TypeCache.GetTypesDerivedFrom<GameFeatureModule>()
+                .Where(t => !t.IsAbstract && t.IsClass);
+
+            foreach (var type in moduleTypes)
+            {
+                var menuPath = GetGameFeatureMenuPath(type);
+                if (string.IsNullOrEmpty(menuPath)) continue;
+
+                if (!result.ContainsKey(menuPath))
+                {
+                    result[menuPath] = new List<Type>();
+                }
+                
+                result[menuPath].Add(type);
+            }
+
+            var allSubmoduleTypes = TypeCache.GetTypesDerivedFrom<IGameFeatureSubmodule>()
+                .Where(t => !t.IsAbstract && t.IsClass && 
+                           t.GetCustomAttribute<GameFeatureSubmoduleAttribute>() != null &&
+                           t.GetCustomAttribute<GameFeatureSubmoduleAttribute>().BelongsToModule == null);
+
+            var submoduleGroups = allSubmoduleTypes
+                .GroupBy(t => t.GetCustomAttribute<GameFeatureSubmoduleAttribute>().MenuPath)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            foreach (var group in submoduleGroups)
+            {
+                string menuPath = group.Key;
+                
+                if (profile != null)
+                {
+                    bool alreadyExists = profile.Modules.Any(m => 
+                    {
+                        if (m == null) return false;
+            
+                        var moduleMenuPath = GetGameFeatureMenuPath(m.GetType());
+                        if (!string.IsNullOrEmpty(moduleMenuPath) && moduleMenuPath == menuPath)
+                            return true;
+            
+                        if (m.Submodules != null && m.Submodules.Count > 0)
+                        {
+                            var firstSubmodule = m.Submodules.First();
+                            var submoduleAttr = firstSubmodule.GetType().GetCustomAttribute<GameFeatureSubmoduleAttribute>();
+                            if (submoduleAttr != null && submoduleAttr.MenuPath == menuPath)
+                                return true;
+                        }
+            
+                        return false;
+                    });
+                    
+                    if (alreadyExists) continue;
+                }
+                
+                if (!result.ContainsKey(menuPath))
+                {
+                    result[menuPath] = new List<Type>();
+                }
+                
+                result[menuPath].AddRange(group.Value);
+            }
+
+            return result;
+        }
+    }
+}
+
+#endif

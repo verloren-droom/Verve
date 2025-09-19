@@ -1,6 +1,6 @@
 #if UNITY_5_3_OR_NEWER
     
-namespace VerveUniEx.Loader
+namespace Verve.UniEx.Loader
 {
     using UnityEngine;
     using UnityEngine.SceneManagement;

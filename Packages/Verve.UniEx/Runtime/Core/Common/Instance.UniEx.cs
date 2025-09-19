@@ -1,10 +1,12 @@
 #if UNITY_5_3_OR_NEWER
     
-namespace VerveUniEx
+namespace Verve.UniEx
 {
+    using System;
     using UnityEngine;
-    
-    
+    using System.Threading;
+
+
     /// <summary>
     /// 组件单例
     /// </summary>
@@ -12,46 +14,54 @@ namespace VerveUniEx
     [DisallowMultipleComponent]
     public abstract class ComponentInstanceBase<T> : MonoBehaviour where T : MonoBehaviour
     {
-        private static T s_Instance;
         private static bool s_IsInitialized;
         
-        public static T Instance
+        private static readonly Lazy<T> s_Lazy = new Lazy<T>(() =>
         {
-            get
+            T instance = null;
+            bool isInitialized = false;
+            
+            T[] existingInstances = FindObjectsByType<T>(FindObjectsSortMode.None);
+            if (existingInstances.Length > 0)
             {
-                if (s_Instance == null)
+                instance = existingInstances[0];
+                            
+                for (int i = 1; i < existingInstances.Length; i++)
                 {
-                    T[] existingInstances = FindObjectsByType<T>(FindObjectsSortMode.None);
-                    if (existingInstances.Length > 0)
+                    if (Application.isPlaying)
                     {
-                        s_Instance = existingInstances[0];
-                                
-                        for (int i = 1; i < existingInstances.Length; i++)
-                        {
-                            Destroy(existingInstances[i].gameObject);
-                        }
-                    }
-                    else
-                    {
-                        var obj = new GameObject(typeof(T).Name);
-                        s_Instance = obj.AddComponent<T>();
+                        Destroy(existingInstances[i].gameObject);
                     }
                 }
-                if (!s_IsInitialized)
-                {
-                    s_IsInitialized = true;
-                    if (UnityEngine.Application.isPlaying)
-                    {
-                        DontDestroyOnLoad(s_Instance?.gameObject);
-                    }
-                    (s_Instance as ComponentInstanceBase<T>).OnInitialized();
-                }
-                return s_Instance;
             }
-            private set => s_Instance = value;
-        }
+            else
+            {
+                var obj = new GameObject(typeof(T).Name);
+                instance = obj.AddComponent<T>();
+            }
+            
+            if (!s_IsInitialized)
+            {
+                isInitialized = true;
+                if (UnityEngine.Application.isPlaying)
+                {
+                    DontDestroyOnLoad(instance?.gameObject);
+                }
+                
+                if (instance is ComponentInstanceBase<T> instanceBase)
+                {
+                    instanceBase.OnInitialized();
+                }
+            }
+            
+            s_IsInitialized = isInitialized;
+            
+            return instance;
+        }, LazyThreadSafetyMode.ExecutionAndPublication);
         
+        public static T Instance => s_Lazy.Value;
         
+
         /// <summary>
         /// 初始化（单例首次被创建后调用）
         /// </summary>

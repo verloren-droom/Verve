@@ -1,6 +1,6 @@
 #if UNITY_5_3_OR_NEWER
 
-namespace VerveUniEx.Gameplay
+namespace Verve.UniEx.Gameplay
 {
     using Verve;
     using UnityEngine;

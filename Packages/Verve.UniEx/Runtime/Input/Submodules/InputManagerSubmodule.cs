@@ -1,6 +1,6 @@
 #if UNITY_5_3_OR_NEWER && ENABLE_LEGACY_INPUT_MANAGER
     
-namespace VerveUniEx.Input
+namespace Verve.UniEx.Input
 {
     using System;
     using UnityEngine;
@@ -11,15 +11,12 @@ namespace VerveUniEx.Input
 
 
     /// <summary>
-    /// 旧版输入系统子模块（Input Manager） 
+    /// 旧版输入系统（Input Manager） 
     /// </summary>
-    [Serializable]
+    [Serializable, GameFeatureSubmodule(typeof(InputGameFeature), Description = "旧版输入系统（Input Manager）")]
     public sealed partial class InputManagerSubmodule : InputSubmodule
     {
-        public override string ModuleName => "InputManager";
-
         public override bool IsValid => true;
-        private Coroutine m_UpdateCoroutine;
         
         private readonly Dictionary<string, ActionState> m_ActionStates = new Dictionary<string, ActionState>();
         private readonly ConcurrentDictionary<string, List<Delegate>> m_ActionCallbacks = new ConcurrentDictionary<string, List<Delegate>>();
@@ -33,37 +30,13 @@ namespace VerveUniEx.Input
             public float LastValue;
             public InputServiceDeviceType LastDeviceType;
         }
-        
-        public InputManagerSubmodule() { }
 
-        protected override void OnEnable()
+        protected override void OnTick(in GameFeatureContext ctx)
         {
-            if (m_UpdateCoroutine != null)
+            foreach (var actionName in m_ActionCallbacks.Keys)
             {
-                InputManagerRunner.Instance.StopCoroutine(m_UpdateCoroutine);
-            }
-            m_UpdateCoroutine = InputManagerRunner.Instance.StartCoroutine(Update());
-        }
-
-        protected override void OnDisable()
-        {
-            if (m_UpdateCoroutine != null)
-            {
-                InputManagerRunner.Instance.StopCoroutine(m_UpdateCoroutine);
-                m_UpdateCoroutine = null;
-            }
-        }
-
-        private IEnumerator Update()
-        {
-            while (IsActive)
-            {
-                foreach (var actionName in m_ActionCallbacks.Keys)
-                {
-                    HandleButtonAction(actionName);
-                    HandleAxisAction(actionName);
-                }
-                yield return null;
+                HandleButtonAction(actionName);
+                HandleAxisAction(actionName);
             }
         }
 
@@ -212,16 +185,6 @@ namespace VerveUniEx.Input
             if (Input.touchCount > 0) return InputServiceDeviceType.Touch;
             if (Input.mousePresent) return InputServiceDeviceType.Mouse;
             return InputServiceDeviceType.Keyboard;
-        }
-    }
-
-    
-    internal class InputManagerRunner : ComponentInstanceBase<InputManagerRunner>
-    {
-        protected override void OnInitialized()
-        {
-            base.OnInitialized();
-            Instance.gameObject.hideFlags = HideFlags.HideAndDontSave;
         }
     }
 }

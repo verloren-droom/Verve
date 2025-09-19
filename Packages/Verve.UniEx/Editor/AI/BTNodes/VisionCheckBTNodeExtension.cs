@@ -4,7 +4,7 @@ namespace VerveEditor.UniEx.AI
 {
     using UnityEditor;
     using UnityEngine;
-    using VerveUniEx.AI;
+    using Verve.UniEx.AI;
 
     
     public static class VisionCheckBTNodeExtension

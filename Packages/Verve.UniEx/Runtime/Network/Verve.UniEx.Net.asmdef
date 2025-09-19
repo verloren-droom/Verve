@@ -1,10 +1,12 @@
 {
   "name": "Verve.UniEx.Net",
-  "rootNamespace": "VerveUniEx",
+  "rootNamespace": "Verve.UniEx",
   "references": [
     "Verve.Core",
     "Verve.UniEx",
-    "Verve.Net"
+    "Verve.Net",
+    "Verve.File",
+    "Verve.UniEx.File"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

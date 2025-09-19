@@ -8,11 +8,9 @@ namespace Verve.MVC
     public class ViewInfoAttribute : Attribute
     {
         public string ResourcePath { get; }
-        public Type LoaderType { get; }
 
-        public ViewInfoAttribute(string resourcePath, Type loaderType)
+        public ViewInfoAttribute(string resourcePath)
         {
-            LoaderType = loaderType ?? throw new ArgumentException($"{nameof(LoaderType)} must implement ${nameof(IAssetLoader)}");;
             ResourcePath = resourcePath;
         }
     }

@@ -1,8 +1,7 @@
 #if UNITY_5_3_OR_NEWER
 
-namespace VerveUniEx.Pool
+namespace Verve.UniEx
 {
-    using Verve.Pool;
     using UnityEngine;
     
     

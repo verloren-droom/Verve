@@ -1,6 +1,6 @@
 #if UNITY_5_3_OR_NEWER
 
-namespace VerveUniEx
+namespace Verve.UniEx
 {
     using System;
     using UnityEngine;

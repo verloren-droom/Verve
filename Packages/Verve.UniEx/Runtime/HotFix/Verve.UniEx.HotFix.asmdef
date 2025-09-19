@@ -1,6 +1,6 @@
 {
     "name": "Verve.UniEx.HotFix",
-    "rootNamespace": "VerveUniEx",
+    "rootNamespace": "Verve.UniEx",
     "references": [
         "Verve.Core",
         "Verve.UniEx",
@@ -15,7 +15,10 @@
         "Verve.UniEx.Net",
         "HybridCLR.Runtime",
         "Verve.Application",
-        "Verve.UniEx.Application"
+        "Verve.UniEx.Application",
+        "Verve.File",
+        "Verve.UniEx.File",
+        "HybridCLR.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

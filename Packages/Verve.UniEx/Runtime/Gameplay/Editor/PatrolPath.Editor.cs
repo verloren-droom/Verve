@@ -1,8 +1,6 @@
-using System;
-
 #if UNITY_EDITOR
 
-namespace VerveUniEx.Gameplay
+namespace Verve.UniEx.Gameplay
 {
     using UnityEditor;
     using UnityEngine;

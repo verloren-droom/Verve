@@ -57,7 +57,7 @@ namespace Verve.AI
     {
         /// <summary> 关联黑板 </summary>
         [FieldOffset(0)]
-        public Blackboard bb;
+        public IBlackboard bb;
         /// <summary> 时间增量 </summary>
         [FieldOffset(8)]
         public float deltaTime;
@@ -137,7 +137,7 @@ namespace Verve.AI
     {
         /// <summary> 关联黑板 </summary>
         [FieldOffset(0)]
-        public Blackboard bb;
+        public IBlackboard bb;
         /// <summary> 重置模式 </summary>
         [FieldOffset(8)]
         public BTNodeResetMode resetMode;

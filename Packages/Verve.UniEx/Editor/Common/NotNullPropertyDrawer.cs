@@ -2,7 +2,7 @@
 
 namespace VerveEditor.UniEx
 {
-    using VerveUniEx;
+    using Verve.UniEx;
     using UnityEngine;
     using UnityEditor;
     

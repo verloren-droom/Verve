@@ -4,7 +4,7 @@ namespace VerveEditor.UniEx.AI
 {
     using UnityEngine;
     using UnityEditor;
-    using VerveUniEx.AI;
+    using Verve.UniEx.AI;
     
     
     public static class NavMeshMoveBTNodeExtension

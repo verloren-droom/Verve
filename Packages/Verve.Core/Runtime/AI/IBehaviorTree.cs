@@ -12,7 +12,7 @@ namespace Verve.AI
         /// <summary> 树ID </summary>
         int ID { get; }
         /// <summary> 关联黑板 </summary>
-        Blackboard BB { get; set; }
+        IBlackboard BB { get; set; }
         /// <summary>
         /// 添加节点
         /// </summary>
