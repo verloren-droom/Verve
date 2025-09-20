@@ -1,6 +1,6 @@
 # `Verve.Core` ![Experimental](https://img.shields.io/badge/status-experimental-orange.svg)
 
-![version](https://img.shields.io/badge/version-0.0.1-blue)
+![version](https://img.shields.io/badge/version-0.0.1.0-blue)
 
 ## Quick Start
 
@@ -12,5 +12,3 @@
 ## Dependencies
 - [ProtoBuf](https://github.com/protobuf-net/protobuf-net)
 - [Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)
-- `Microsoft.Extensions.DependencyInjection`
-- `Microsoft.Extensions.DependencyInjection.Abstractions`
