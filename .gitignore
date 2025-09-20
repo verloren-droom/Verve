@@ -78,3 +78,4 @@ crashlytics-build.properties
 !Samples~
 /[Aa]ssets/.[Cc]ache/
 /[Aa]ssets/.[Tt]emp/
+/[Aa]ssets/[Pp]ackages/

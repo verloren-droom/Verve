@@ -15,7 +15,7 @@ namespace Verve.UniEx
     /// <summary>
     /// 游戏功能运行器 - 负责遍历已注册模块并调用功能模块其中的子模块的生命周期
     /// </summary>
-    [DisallowMultipleComponent, ExecuteAlways, DefaultExecutionOrder(-1000)]
+    [DisallowMultipleComponent, ExecuteAlways, DefaultExecutionOrder(-1000), AddComponentMenu("Verve/Game Features Runner")]
     public sealed class GameFeaturesRunner : ComponentInstanceBase<GameFeaturesRunner>
     {
         [SerializeField, Tooltip("需启动模块")] private List<GameFeatureModule> m_Modules = new List<GameFeatureModule>();

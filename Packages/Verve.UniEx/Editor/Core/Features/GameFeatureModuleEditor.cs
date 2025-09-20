@@ -27,6 +27,9 @@ namespace VerveEditor.UniEx
 
         private static class Styles
         {
+            public static string ModuleNotSupportMultiEditInfo { get; } = L10n.Tr("Modules cannot be edited in multi-editing mode.");
+            public static string NoSubmoduleInfo { get; } = L10n.Tr("No available submodules found.");
+            public static string SubmoduleLockedInfo { get; } = L10n.Tr("This module is locked and cannot be modified.");
             public static GUIContent AllText { get; } = EditorGUIUtility.TrTextContent("ALL", "Toggle all submodules on.");
             public static GUIContent NoneText { get; } = EditorGUIUtility.TrTextContent("NONE", "Toggle all submodules off.");
         }
@@ -49,7 +52,7 @@ namespace VerveEditor.UniEx
             
             if (serializedObject.isEditingMultipleObjects)
             {
-                EditorGUILayout.HelpBox("Submodules cannot be edited in multi-editing mode.", MessageType.Info);
+                EditorGUILayout.HelpBox(Styles.ModuleNotSupportMultiEditInfo, MessageType.Info);
             }
             else
             {
@@ -65,7 +68,7 @@ namespace VerveEditor.UniEx
         
             if (availableTypes.Length == 0)
             {
-                EditorGUILayout.HelpBox("No available submodules found.", MessageType.Info);
+                EditorGUILayout.HelpBox(Styles.NoSubmoduleInfo, MessageType.Info);
                 return;
             }
         
@@ -179,7 +182,7 @@ namespace VerveEditor.UniEx
 
         private void DrawLockedSelection(Type[] availableTypes, GameFeatureModule module)
         {
-            EditorGUILayout.HelpBox("This module is locked and cannot be modified.", MessageType.Info);
+            EditorGUILayout.HelpBox(Styles.SubmoduleLockedInfo, MessageType.Info);
             using (new EditorGUI.DisabledGroupScope(true))
             {
                 foreach (var type in availableTypes)

@@ -22,6 +22,12 @@ namespace VerveEditor.UniEx
             "m_Parameters"
         };
 
+        private static class Styles
+        {
+            public static string NoParametersInfo { get; } = L10n.Tr("No parameter found in this component.");
+            public static string ComponentNotSupportMultiEditInfo { get; } = L10n.Tr("Component cannot be edited in multi-editing mode.");
+        }
+
         
         private void OnEnable()
         {
@@ -49,7 +55,7 @@ namespace VerveEditor.UniEx
             
             if (serializedObject.isEditingMultipleObjects)
             {
-                EditorGUILayout.HelpBox("Parameters cannot be edited in multi-editing mode.", MessageType.Info);
+                EditorGUILayout.HelpBox(Styles.ComponentNotSupportMultiEditInfo, MessageType.Info);
             }
             else
             {
@@ -68,7 +74,7 @@ namespace VerveEditor.UniEx
             
             if (!fields.Any())
             {
-                EditorGUILayout.HelpBox("No parameter found in this component.", MessageType.Info);
+                EditorGUILayout.HelpBox(Styles.NoParametersInfo, MessageType.Info);
                 return;
             }
 
@@ -93,7 +99,6 @@ namespace VerveEditor.UniEx
                     }
                 }
             }
-
         }
     }
 }

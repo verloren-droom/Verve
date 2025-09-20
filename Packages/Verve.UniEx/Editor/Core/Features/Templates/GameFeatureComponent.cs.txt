@@ -1,0 +1,16 @@
+#if UNITY_5_3_OR_NEWER
+
+using System;
+using UnityEngine;
+using Verve.UniEx;
+
+
+    #ROOTNAMESPACEBEGIN#
+[Serializable, GameFeatureComponentMenu("#SCRIPTNAME#")]
+public sealed class #SCRIPTNAME# : GameFeatureComponent
+{
+    #NOTRIM#
+}
+#ROOTNAMESPACEEND#
+
+#endif

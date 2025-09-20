@@ -24,10 +24,10 @@ namespace VerveEditor.UniEx
         
         private static class Styles
         {
+            public static string NoModulesInfo { get; } = L10n.Tr("No modules added to this data.");
             public static GUIContent ModulesText { get; } = EditorGUIUtility.TrTextContent("Modules");
             public static GUIContent RemoveModule { get; } = EditorGUIUtility.TrTextContent("Remove");
-            public static GUIContent AddModule { get; } = EditorGUIUtility.TrTextContent("Add Game Feature Module");
-            public static GUIContent NoModulesInfo { get; } = EditorGUIUtility.TrTextContent("No modules added to this data.");
+            public static GUIContent AddModule { get; } = EditorGUIUtility.TrTextContent("Add Game Feature Module", "Adds a new module to this profile.");
         }
 
         
@@ -79,7 +79,7 @@ namespace VerveEditor.UniEx
             
             if (m_ModulesProperty.arraySize == 0)
             {
-                EditorGUILayout.HelpBox(Styles.NoModulesInfo.text, MessageType.Info);
+                EditorGUILayout.HelpBox(Styles.NoModulesInfo, MessageType.Info);
                 return;
             }
             

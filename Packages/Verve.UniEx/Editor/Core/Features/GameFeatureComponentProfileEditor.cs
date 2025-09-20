@@ -24,11 +24,11 @@ namespace VerveEditor.UniEx
         
         private static class Styles
         {
+            public static string NoComponentsInfo { get; } = L10n.Tr("No components added to this profile.");
             public static GUIContent ComponentsText { get; } = EditorGUIUtility.TrTextContent("Components");
             public static GUIContent RemoveComponent { get; } = EditorGUIUtility.TrTextContent("Remove");
             public static GUIContent ResetComponent { get; } = EditorGUIUtility.TrTextContent("Reset");
-            public static GUIContent AddComponent { get; } = EditorGUIUtility.TrTextContent("Add Game Feature Component");
-            public static GUIContent NoComponentsInfo { get; } = EditorGUIUtility.TrTextContent("No components added to this profile.");
+            public static GUIContent AddComponent { get; } = EditorGUIUtility.TrTextContent("Add Game Feature Component", "Adds a new component to this profile.");
         }
 
         
@@ -80,7 +80,7 @@ namespace VerveEditor.UniEx
             
             if (m_ComponentsProperty.arraySize == 0)
             {
-                EditorGUILayout.HelpBox(Styles.NoComponentsInfo.text, MessageType.Info);
+                EditorGUILayout.HelpBox(Styles.NoComponentsInfo, MessageType.Info);
                 return;
             }
             

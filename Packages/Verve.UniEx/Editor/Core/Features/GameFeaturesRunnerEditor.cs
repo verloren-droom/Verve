@@ -32,10 +32,9 @@ namespace VerveEditor.UniEx.Features
 
         private static class Styles
         {
-            public static GUIContent ModulesLabel { get; } = EditorGUIUtility.TrTextContent("Game Features", "Game Features that will be enabled at startup");
             public static GUIContent AddModuleButton { get; } = EditorGUIUtility.TrTextContent("Add Game Feature");
             public static GUIContent NoModulesInfo { get; } = EditorGUIUtility.TrTextContent("No modules available. Assign a Module profile asset first.");
-            public static GUIContent NoPreEnabledModulesInfo { get; } = EditorGUIUtility.TrTextContent("No modules. Click 'Add Game Feature' to add modules.");
+            public static string NoAddedModulesInfo { get; } = L10n.Tr("No modules. Click 'Add Game Feature' to add modules.");
         }
 
         public void OnEnable()
@@ -63,13 +62,11 @@ namespace VerveEditor.UniEx.Features
             
             DrawPropertiesExcluding(serializedObject, s_ExcludedFields);
 
-            EditorGUI.BeginDisabledGroup(true);
-            EditorGUILayout.PropertyField(m_ModuleProfileProperty);
-            EditorGUILayout.PropertyField(m_ComponentProfileProperty);
-            EditorGUI.EndDisabledGroup();
-            
-            // EditorGUILayout.Space();
-            // EditorGUILayout.LabelField(Styles.ModulesLabel, EditorStyles.boldLabel);
+            using (new EditorGUI.DisabledGroupScope(true))
+            {
+                EditorGUILayout.PropertyField(m_ModuleProfileProperty);
+                EditorGUILayout.PropertyField(m_ComponentProfileProperty);
+            }
 
             DrawModulesList();
             
@@ -80,7 +77,7 @@ namespace VerveEditor.UniEx.Features
         {
             if (m_Runner.ModuleProfile == null)
             {
-                EditorGUILayout.HelpBox("Assign a Modules Data asset to enable module selection.", MessageType.Info);
+                EditorGUILayout.HelpBox("Assign a Module Profile asset to enable module selection.", MessageType.Warning);
                 return;
             }
             
@@ -94,7 +91,7 @@ namespace VerveEditor.UniEx.Features
             
             if (m_ModulesProperty.arraySize == 0)
             {
-                EditorGUILayout.HelpBox(Styles.NoPreEnabledModulesInfo.text, MessageType.Info);
+                EditorGUILayout.HelpBox(Styles.NoAddedModulesInfo, MessageType.Info);
             }
             else
             {
