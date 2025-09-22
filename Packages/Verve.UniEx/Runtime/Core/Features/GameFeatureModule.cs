@@ -16,10 +16,9 @@ namespace Verve.UniEx
     public class GameFeatureModule : ScriptableObject, IGameFeatureModule
     {
         [SerializeField, Tooltip("功能子模块类型名列表")] private List<string> m_SubmoduleTypeNames = new List<string>();
-        
         [SerializeField, Tooltip("是否激活")] private bool m_IsActive = true;
         [NonSerialized, Tooltip("功能子模块列表")] private List<IGameFeatureSubmodule> m_Submodules;
-        [NonSerialized, Tooltip("是否为脏")] public bool IsDirty = true;
+        [NonSerialized, Tooltip("是否为脏")] public bool isDirty = true;
 
         public bool IsActive { get => m_IsActive; set => m_IsActive = value; }
 
@@ -27,26 +26,9 @@ namespace Verve.UniEx
         {
             get
             {
-                if (m_Submodules == null || IsDirty)
+                if (m_Submodules == null || isDirty)
                 {
-                    if (m_Submodules == null)
-                        m_Submodules = new List<IGameFeatureSubmodule>(m_SubmoduleTypeNames.Count);
-                    else
-                        m_Submodules.Clear();
-                        
-                    m_Submodules.Capacity = Math.Max(m_Submodules.Capacity, m_SubmoduleTypeNames.Count);
-
-                    for (int i = 0; i < m_SubmoduleTypeNames.Count; i++)
-                    {
-                        var typeName = m_SubmoduleTypeNames[i];
-                        var type = Type.GetType(typeName);
-                        if (type != null && typeof(IGameFeatureSubmodule).IsAssignableFrom(type))
-                        {
-                            var submodule = (IGameFeatureSubmodule)Activator.CreateInstance(type);
-                            m_Submodules.Add(submodule);
-                        }
-                    }
-                    IsDirty = false;
+                    RebuildSubmodules();
                 }
                 return m_Submodules.AsReadOnly();
             }
@@ -56,6 +38,36 @@ namespace Verve.UniEx
         protected virtual void OnEnable()
         {
             m_SubmoduleTypeNames.RemoveAll(string.IsNullOrEmpty);
+        }
+        
+        protected virtual void OnDisable()
+        {
+            m_Submodules?.Clear();
+        }
+
+        /// <summary>
+        /// 重新构建子模块实例列表
+        /// </summary>
+        private void RebuildSubmodules()
+        {
+            if (m_Submodules == null)
+                m_Submodules = new List<IGameFeatureSubmodule>(m_SubmoduleTypeNames.Count);
+            else
+                m_Submodules.Clear();
+                        
+            m_Submodules.Capacity = Math.Max(m_Submodules.Capacity, m_SubmoduleTypeNames.Count);
+
+            for (int i = 0; i < m_SubmoduleTypeNames.Count; i++)
+            {
+                var typeName = m_SubmoduleTypeNames[i];
+                var type = Type.GetType(typeName);
+                if (type != null && typeof(IGameFeatureSubmodule).IsAssignableFrom(type))
+                {
+                    var submodule = (IGameFeatureSubmodule)Activator.CreateInstance(type);
+                    m_Submodules.Add(submodule);
+                }
+            }
+            isDirty = false;
         }
 
         /// <summary>
@@ -77,7 +89,7 @@ namespace Verve.UniEx
             }
         
             m_SubmoduleTypeNames.Add(typeName);
-            IsDirty = true;
+            isDirty = true;
         }
 
         public void Add<T>(bool overrides = false)
@@ -97,7 +109,7 @@ namespace Verve.UniEx
             var removed = m_SubmoduleTypeNames.Remove(typeName);
             if (removed)
             {
-                IsDirty = true;
+                isDirty = true;
             }
         
             return removed;
@@ -157,7 +169,7 @@ namespace Verve.UniEx
         {
             m_SubmoduleTypeNames?.Clear();
             m_Submodules?.Clear();
-            IsDirty = true;
+            isDirty = true;
         }
 
         public void Dispose()
@@ -168,22 +180,6 @@ namespace Verve.UniEx
         }
 
         protected virtual void Dispose(bool disposing) { }
-    }
-    
-    public static class GameFeatureModuleExtensions
-    {
-        /// <summary>
-        /// 获取类型的依赖项
-        /// </summary>
-        public static Type[] GetDependencies(this IGameFeatureModule self)
-        {
-            return self.GetType().GetCustomAttribute<GameFeatureAttribute>()?.Dependencies ?? Array.Empty<Type>();
-        }
-        
-        public static Type[] GetDependencies(this IGameFeatureSubmodule self)
-        {
-            return self.GetType().GetCustomAttribute<GameFeatureAttribute>()?.Dependencies ?? Array.Empty<Type>();
-        }
     }
 }
 

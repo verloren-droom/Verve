@@ -16,7 +16,7 @@ namespace Verve.UniEx
     public sealed partial class GameFeatureComponentProfile : ScriptableObject, IGameFeatureComponentProfile
     {
         [SerializeField, HideInInspector, Tooltip("已加载游戏功能组件")] private List<GameFeatureComponent> m_Components = new List<GameFeatureComponent>();
-        [NonSerialized, Tooltip("是否为脏")] public bool IsDirty = true;
+        [NonSerialized, Tooltip("是否为脏")] public bool isDirty = true;
 
         public IReadOnlyCollection<IGameFeatureComponent> Components => m_Components.AsReadOnly();
 
@@ -60,7 +60,7 @@ namespace Verve.UniEx
             component.name = type.Name;
 #endif
             m_Components.Add(component);
-            IsDirty = true;
+            isDirty = true;
             
 #if UNITY_EDITOR
             if (UnityEditor.EditorUtility.IsPersistent(this))

@@ -10,6 +10,7 @@ namespace Verve.UniEx.MVC
     using UnityEngine.Assertions;
     using System.Threading.Tasks;
     using System.Collections.Generic;
+    using Object = UnityEngine.Object;
 
     
     /// <summary>
@@ -35,9 +36,14 @@ namespace Verve.UniEx.MVC
         protected override IEnumerator OnStartup()
         {
             Assert.IsNotNull(Component.ViewRoot);
-            if (UnityEngine.Application.isPlaying)
+            if (Application.isPlaying)
             {
-                m_ViewRoot ??= UnityEngine.Object.Instantiate(Component.ViewRoot);
+                if (m_ViewRoot != null)
+                {
+                    Object.Destroy(m_ViewRoot.gameObject);
+                    yield return null;
+                }
+                m_ViewRoot = Object.Instantiate(Component.ViewRoot);
             }
             yield return null;
         }
@@ -46,6 +52,10 @@ namespace Verve.UniEx.MVC
         {
             base.OnShutdown();
             CloseViewAll();
+            if (Application.isPlaying)
+            {
+                Object.Destroy(m_ViewRoot);
+            }
             m_CachedView?.Clear();
         }
 

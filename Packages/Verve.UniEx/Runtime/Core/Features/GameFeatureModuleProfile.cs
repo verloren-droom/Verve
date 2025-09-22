@@ -17,7 +17,7 @@ namespace Verve.UniEx
     {
         [SerializeField, HideInInspector, Tooltip("模块列表")] private List<GameFeatureModule> m_Modules = new List<GameFeatureModule>();
         [NonSerialized, Tooltip("菜单路径对照表")] private readonly Dictionary<string, GameFeatureModule> m_MenuPathLookup = new Dictionary<string, GameFeatureModule>();
-        [NonSerialized, Tooltip("是否为脏")] public bool IsDirty = true;
+        [NonSerialized, Tooltip("是否为脏")] public bool isDirty = true;
 
         public IReadOnlyCollection<IGameFeatureModule> Modules => m_Modules.AsReadOnly();
         /// <summary> 菜单路径对照表 </summary>
@@ -54,7 +54,7 @@ namespace Verve.UniEx
             {
                 m_MenuPathLookup[menuPath] = module;
             }
-            IsDirty = true;
+            isDirty = true;
         }
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace Verve.UniEx
                 m_MenuPathLookup.Remove(menuPath);
             }
             
-            IsDirty = true;
+            isDirty = true;
             bool removed = m_Modules.Remove(module);
             
 #if UNITY_EDITOR
@@ -156,7 +156,7 @@ namespace Verve.UniEx
         /// <param name="module"></param>
         private void InsertModuleWithDependencies(GameFeatureModule module)
         {
-            var dependencies = module.GetDependencies().ToList();
+            var dependencies = GetDependencies(module.GetType()).ToList();
             
             int insertIndex = 0;
             for (int i = 0; i < m_Modules.Count; i++)
@@ -177,7 +177,7 @@ namespace Verve.UniEx
             m_Modules.Insert(insertIndex, module);
         }
 
-        private void CheckModuleDependents(GameFeatureModule module)
+        internal void CheckModuleDependents(GameFeatureModule module)
         {
             var moduleType = module.GetType();
 
@@ -185,7 +185,7 @@ namespace Verve.UniEx
             {
                 if (m == null) continue;
                 
-                var dependencies = m.GetDependencies();
+                var dependencies = GetDependencies(moduleType);
                 if (dependencies.Contains(moduleType))
                 {
                     throw new InvalidOperationException($"Cannot unregister module {module.name} because it is required by {m.name}");
@@ -195,11 +195,7 @@ namespace Verve.UniEx
 
         public IEnumerable<Type> GetDependencies(Type moduleType)
         {
-            var attr = moduleType.GetCustomAttribute<GameFeatureAttribute>();
-            if (attr == null)
-                return Enumerable.Empty<Type>();
-        
-            return attr.Dependencies ?? Enumerable.Empty<Type>();
+            return moduleType?.GetCustomAttribute<GameFeatureAttribute>()?.Dependencies ?? Enumerable.Empty<Type>();
         }
         
         private string GetMenuPathForModule(GameFeatureModule module)

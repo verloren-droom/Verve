@@ -585,6 +585,22 @@ namespace VerveEditor.UniEx
             
             return type.Name;
         }
+        
+        static GameFeaturesSettingsEditor()
+        {
+            EditorApplication.update += OnEditorUpdate;
+        }
+
+        private static void OnEditorUpdate()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isUpdating) return;
+
+            if (GameFeaturesSettings.GetOrCreateSettings().ModuleProfile != null)
+            {
+                GameFeaturesRunner.Instance.ComponentProfile = GameFeaturesSettings.GetOrCreateSettings().ComponentProfile;
+                GameFeaturesRunner.Instance.ModuleProfile = GameFeaturesSettings.GetOrCreateSettings().ModuleProfile;
+            }
+        }
     }
 }
 

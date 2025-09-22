@@ -327,7 +327,7 @@ namespace VerveEditor.UniEx
                     EditorUtility.SetDirty(m_Profile);
                 }
                 
-                m_Profile.IsDirty = true;
+                m_Profile.isDirty = true;
                 
                 serializedObject.Update();
                 m_NeedsRefresh = true;
@@ -370,7 +370,7 @@ namespace VerveEditor.UniEx
                     EditorUtility.SetDirty(m_Profile);
                 }
         
-                m_Profile.IsDirty = true;
+                m_Profile.isDirty = true;
         
                 serializedObject.Update();
                 m_NeedsRefresh = true;

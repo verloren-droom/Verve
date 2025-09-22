@@ -10,6 +10,7 @@ namespace Verve.UniEx
     using UnityEngine.Profiling;
     using UnityEngine.Assertions;
     using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
     
     
     /// <summary>
@@ -19,7 +20,6 @@ namespace Verve.UniEx
     public sealed class GameFeaturesRunner : ComponentInstanceBase<GameFeaturesRunner>
     {
         [SerializeField, Tooltip("需启动模块")] private List<GameFeatureModule> m_Modules = new List<GameFeatureModule>();
-        [NonSerialized, Tooltip("菜单路径对照表")] private readonly Dictionary<string, GameFeatureModule> m_MenuPathLookup = new Dictionary<string, GameFeatureModule>();
 
         [Tooltip("功能模块管理")] public GameFeatureModuleProfile ModuleProfile;
         [Tooltip("功能组件管理")] public GameFeatureComponentProfile ComponentProfile;
@@ -28,42 +28,81 @@ namespace Verve.UniEx
 
         #region 存储子模块
 
-        private IGameFeatureSubmodule[] m_AllSubmodules = Array.Empty<IGameFeatureSubmodule>();
-        private ITickableGameFeatureSubmodule[] m_TickableSubmodules = Array.Empty<ITickableGameFeatureSubmodule>();
+        private readonly List<IGameFeatureSubmodule> m_AllSubmodules = new List<IGameFeatureSubmodule>();
+        private readonly List<ITickableGameFeatureSubmodule> m_ActiveTickableSubmodules = new List<ITickableGameFeatureSubmodule>();
+        private readonly List<IDrawableSubmodule> m_ActiveDrawableSubmodules = new List<IDrawableSubmodule>();
+        
+        private readonly Dictionary<GameFeatureModule, bool> m_ModuleActiveStates = new Dictionary<GameFeatureModule, bool>();
+        private readonly Dictionary<IGameFeatureSubmodule, bool> m_SubmoduleEnabledStates = new Dictionary<IGameFeatureSubmodule, bool>();
         
         public IReadOnlyCollection<IGameFeatureSubmodule> AllSubmodules => m_AllSubmodules;
 
         #endregion
 
-        #region 模块生命周期委托事件缓存
+        #region 子模块生命周期委托事件缓存
         
         private delegate void StartupDelegate(IGameFeatureSubmodule submodule);
         private delegate void ShutdownDelegate(IGameFeatureSubmodule submodule);
         private delegate void TickDelegate(ITickableGameFeatureSubmodule tickable, in IGameFeatureContext context);
+        private delegate void DrawGUIDelegate(IDrawableSubmodule drawable);
         
         private static readonly StartupDelegate s_StartupCache = static submodule => submodule?.Startup();
         private static readonly ShutdownDelegate s_ShutdownCache = static submodule => submodule?.Shutdown();
         private static readonly TickDelegate s_TickCache = static (ITickableGameFeatureSubmodule submodule, in IGameFeatureContext context) => submodule?.Tick(context);
+        private static readonly DrawGUIDelegate s_DrawGUIDelegate = static submodule => submodule?.DrawGUI();
+        private static readonly DrawGUIDelegate s_DrawGizmosDelegate = static submodule => submodule?.DrawGizmos();
 
         #endregion
 
-        private Coroutine m_StartupCoroutine;
-        private bool m_IsRunning;
-        private readonly HashSet<GameFeatureModule> m_PendingModulesToAdd = new HashSet<GameFeatureModule>();
-        private readonly HashSet<GameFeatureModule> m_PendingModulesToRemove = new HashSet<GameFeatureModule>();
-        
+        #region 数据缓存
+
+        private static readonly Dictionary<Type, Type[]> s_DependencyCache = new Dictionary<Type, Type[]>();
+        private static readonly Dictionary<Type, GameFeatureAttribute> s_AttributeCache = new Dictionary<Type, GameFeatureAttribute>();
+        private static readonly Dictionary<Type, MethodInfo[]> s_ModuleSubmoduleMethodsCache = new Dictionary<Type, MethodInfo[]>();
+
+        #endregion
+
+        #region 模块事件
+
         public Action<GameFeatureModule> OnModuleAdded;
         public Action<GameFeatureModule> OnModuleRemoved;
 
+        #endregion
+
+        #region 性能分析
+        
+        private static readonly CustomSampler s_StartupSampler = CustomSampler.Create("GameFeaturesRunner.Startup");
+        private static readonly CustomSampler s_TickSampler = CustomSampler.Create("GameFeaturesRunner.Tick");
+        private static readonly CustomSampler s_DrawGUISampler = CustomSampler.Create("GameFeaturesRunner.DrawGUI");
+        private static readonly CustomSampler s_DrawGizmosSampler = CustomSampler.Create("GameFeaturesRunner.DrawGizmos");
+        private static readonly CustomSampler s_ShutdownSampler = CustomSampler.Create("GameFeaturesRunner.Shutdown");
+        private static readonly CustomSampler s_RebuildSampler = CustomSampler.Create("GameFeaturesRunner.Rebuild");
+        
+        #endregion
+        
+        private readonly HashSet<GameFeatureModule> m_PendingModulesToAdd = new HashSet<GameFeatureModule>();
+        private readonly HashSet<GameFeatureModule> m_PendingModulesToRemove = new HashSet<GameFeatureModule>();
+        private Coroutine m_StartupCoroutine;
+        private bool m_IsRunning;
+        private bool m_NeedsRebuild;
+        private int m_LastModuleCount;
+        private int m_LastSubmoduleCount;
+        
+        
         private void Awake()
         {
-            Assert.IsNotNull(ModuleProfile, "Game feature modules data is null.");
-            // m_Modules = ModuleProfile.Modules.OfType<GameFeatureModule>().ToList();
             m_Modules.RemoveAll(module => module == null);
+            m_LastModuleCount = m_Modules.Count;
+            
+            int estimatedSubmodules = m_Modules.Sum(m => m.Submodules.Count);
+            m_AllSubmodules.Capacity = Math.Max(m_AllSubmodules.Capacity, estimatedSubmodules);
+            m_ActiveTickableSubmodules.Capacity = Math.Max(m_ActiveTickableSubmodules.Capacity, estimatedSubmodules / 2);
+            m_ActiveDrawableSubmodules.Capacity = Math.Max(m_ActiveDrawableSubmodules.Capacity, estimatedSubmodules / 3);
         }
         
         private void OnEnable()
         {
+            Assert.IsNotNull(ModuleProfile, "Game feature modules profile is null!");
             if (m_StartupCoroutine != null)
             {
                 StopCoroutine(m_StartupCoroutine);
@@ -76,40 +115,43 @@ namespace Verve.UniEx
         {
             m_Context = GameFeatureContext.Default;
             
-            if (m_PendingModulesToAdd.Count > 0)
+            if (m_Modules.Count != m_LastModuleCount)
             {
-                foreach (var module in m_PendingModulesToAdd)
-                {
-                    if (module != null && !m_Modules.Contains(module) && ModuleProfile.Has(module))
-                    {
-                        m_Modules.Add(module);
-                        StartupModule(module);
-                    }
-                }
-                m_PendingModulesToAdd.Clear();
+                m_NeedsRebuild = true;
+                m_LastModuleCount = m_Modules.Count;
             }
             
-            if (m_PendingModulesToRemove.Count > 0)
+            CheckModuleActiveStateChanges();
+
+            if (m_PendingModulesToAdd.Count > 0 || m_PendingModulesToRemove.Count > 0)
             {
-                foreach (var module in m_PendingModulesToRemove)
-                {
-                    if (module != null && m_Modules.Contains(module))
-                    {
-                        m_Modules.Remove(module);
-                        ShutdownModule(module);
-                    }
-                }
-                m_PendingModulesToRemove.Clear();
+                ProcessPendingModules();
             }
             
-            if (ModuleProfile.IsDirty || ComponentProfile.IsDirty)
+            if (ModuleProfile.isDirty || ComponentProfile.isDirty)
             {
                 RefreshAllModules();
-                ModuleProfile.IsDirty = false;
-                ComponentProfile.IsDirty = false;
+                ModuleProfile.isDirty = false;
+                ComponentProfile.isDirty = false;
+            }
+            
+            if (m_NeedsRebuild)
+            {
+                RebuildSubmodules();
+                m_NeedsRebuild = false;
             }
             
             TickAllModules();
+        }
+
+        private void OnGUI()
+        {
+            DrawGUIAllModules();
+        }
+
+        private void OnDrawGizmos()
+        {
+            DrawGizmosAllModules();
         }
 
         private void OnDisable()
@@ -119,20 +161,223 @@ namespace Verve.UniEx
             OnModuleRemoved = null;
             ShutdownAllModules();
         }
-
-        private IEnumerator StartupAllModules()
+        
+        /// <summary>
+        /// 处理待添加/移除的模块
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ProcessPendingModules()
         {
-            Profiler.BeginSample("GameFeaturesRunner.StartupAllModules");
+            if (m_PendingModulesToRemove.Count > 0)
+            {
+                foreach (var module in m_PendingModulesToRemove)
+                {
+                    if (module != null && m_Modules.Contains(module))
+                    {
+                        m_Modules.Remove(module);
+                        ShutdownModule(module);
+                        OnModuleRemoved?.Invoke(module);
+                    }
+                }
+                m_PendingModulesToRemove.Clear();
+                m_NeedsRebuild = true;
+            }
             
-            var tickableList = new List<ITickableGameFeatureSubmodule>();
-            var asyncStartups = new List<IEnumerator>();
-            var allSubmodulesList = new List<IGameFeatureSubmodule>();
-            
-            var initializedModules = new HashSet<Type>();
-            var modulesToInitialize = new Queue<IGameFeatureModule>();
+            if (m_PendingModulesToAdd.Count > 0)
+            {
+                AddModulesWithDependencies();
+                m_PendingModulesToAdd.Clear();
+                m_NeedsRebuild = true;
+            }
+        }
+        
+        /// <summary>
+        /// 检查模块激活状态变化
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CheckModuleActiveStateChanges()
+        {
+            bool needsUpdate = false;
             
             foreach (var module in m_Modules)
             {
+                if (module == null) continue;
+                
+                bool wasActive = m_ModuleActiveStates.TryGetValue(module, out var active) && active;
+                bool isActive = module.IsActive;
+                
+                if (wasActive != isActive)
+                {
+                    m_ModuleActiveStates[module] = isActive;
+                    needsUpdate = true;
+                    
+                    if (isActive)
+                    {
+                        StartupModule(module);
+                    }
+                    else
+                    {
+                        ShutdownModule(module);
+                    }
+                }
+            }
+            
+            if (!needsUpdate)
+            {
+                foreach (var submodule in m_AllSubmodules)
+                {
+                    if (submodule == null) continue;
+                    
+                    bool wasEnabled = m_SubmoduleEnabledStates.TryGetValue(submodule, out var enabled) && enabled;
+                    bool isEnabled = submodule.IsEnabled;
+                    
+                    if (wasEnabled != isEnabled)
+                    {
+                        m_SubmoduleEnabledStates[submodule] = isEnabled;
+                        needsUpdate = true;
+                        
+                        if (isEnabled)
+                        {
+                            s_StartupCache(submodule);
+                        }
+                        else
+                        {
+                            s_ShutdownCache(submodule);
+                        }
+                    }
+                }
+            }
+            
+            if (needsUpdate)
+            {
+                m_NeedsRebuild = true;
+            }
+        }
+
+        /// <summary>
+        /// 重新构建子模块列表
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void RebuildSubmodules()
+        {
+            s_RebuildSampler.Begin();
+            
+            m_ActiveTickableSubmodules.Clear();
+            m_ActiveDrawableSubmodules.Clear();
+            
+            foreach (var module in m_Modules)
+            {
+                if (module != null)
+                {
+                    m_ModuleActiveStates[module] = module.IsActive;
+                }
+            }
+            
+            foreach (var submodule in m_AllSubmodules)
+            {
+                if (submodule == null) continue;
+                
+                m_SubmoduleEnabledStates[submodule] = submodule.IsEnabled;
+                
+                if (submodule.IsEnabled && IsParentModuleActive(submodule))
+                {
+                    if (submodule is ITickableGameFeatureSubmodule tickable)
+                        m_ActiveTickableSubmodules.Add(tickable);
+                    
+                    if (submodule is IDrawableSubmodule drawable)
+                        m_ActiveDrawableSubmodules.Add(drawable);
+                }
+            }
+            
+            s_RebuildSampler.End();
+        }
+        
+        /// <summary>
+        /// 检查子模块的父模块是否激活
+        /// </summary>
+        private bool IsParentModuleActive(IGameFeatureSubmodule submodule)
+        {
+            foreach (var module in m_Modules)
+            {
+                if (module != null && module.IsActive && module.Submodules.Contains(submodule))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void AddModulesWithDependencies()
+        {
+            if (ModuleProfile.Modules == null) return;
+            
+            foreach (var module in ModuleProfile.Modules)
+            {
+                if (module is GameFeatureModule m && 
+                    m_PendingModulesToAdd.Contains(m) && 
+                    !m_Modules.Contains(m))
+                {
+                    AddDependenciesIfNeeded(m);
+                    
+                    m_Modules.Add(m);
+                    StartupModule(m);
+                    OnModuleAdded?.Invoke(m);
+                }
+            }
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void AddDependenciesIfNeeded(GameFeatureModule module)
+        {
+            var dependencies = ModuleProfile.GetDependencies(module.GetType());
+            foreach (var dependencyType in dependencies)
+            {
+                bool dependencyExists = m_Modules.Any(existingModule => 
+                    existingModule != null && existingModule.GetType() == dependencyType);
+                
+                if (!dependencyExists)
+                {
+                    var dependencyModule = ModuleProfile.Modules.FirstOrDefault(
+                        m => m is GameFeatureModule gameModule && 
+                             gameModule.GetType() == dependencyType) as GameFeatureModule;
+                    
+                    if (dependencyModule != null && !m_Modules.Contains(dependencyModule))
+                    {
+                        AddDependenciesIfNeeded(dependencyModule);
+                        m_Modules.Add(dependencyModule);
+                        StartupModule(dependencyModule);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 启动所有模块
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private IEnumerator StartupAllModules()
+        {
+            s_StartupSampler.Begin();
+            
+            m_AllSubmodules.Clear();
+            m_ActiveTickableSubmodules.Clear();
+            m_ActiveDrawableSubmodules.Clear();
+            m_ModuleActiveStates.Clear();
+            m_SubmoduleEnabledStates.Clear();
+            
+            var asyncStartups = new List<IEnumerator>();
+            
+            // 按依赖顺序初始化模块
+            var initializedModules = new HashSet<Type>();
+            var modulesToInitialize = new Queue<GameFeatureModule>();
+            
+            foreach (var module in m_Modules)
+            {
+                if (module == null) continue;
+                
+                m_ModuleActiveStates[module] = module.IsActive;
+                
                 if (module.IsActive && CheckDependencies(module))
                 {
                     modulesToInitialize.Enqueue(module);
@@ -144,17 +389,8 @@ namespace Verve.UniEx
                 var module = modulesToInitialize.Dequeue();
                 var moduleType = module.GetType();
                 
-                var dependencies = module.GetDependencies();
-                bool allDependenciesInitialized = true;
-                
-                foreach (var dep in dependencies)
-                {
-                    if (!initializedModules.Contains(dep))
-                    {
-                        allDependenciesInitialized = false;
-                        break;
-                    }
-                }
+                var dependencies = ModuleProfile.GetDependencies(moduleType);
+                bool allDependenciesInitialized = dependencies.All(initializedModules.Contains);
                 
                 if (!allDependenciesInitialized)
                 {
@@ -162,26 +398,37 @@ namespace Verve.UniEx
                     continue;
                 }
                 
-                foreach (var sub in module.Submodules)
+                foreach (var submodule in module.Submodules)
                 {
-                    if (!sub.IsEnabled || !CheckDependencies(sub))
+                    if (submodule == null || !submodule.IsEnabled || !CheckDependencies(submodule))
                         continue;
                     
-                    BindComponentToSubmodule(sub);
-                    if (sub is GameFeatureSubmodule featureSubmodule)
+                    BindComponentToSubmodule(submodule);
+                    
+                    if (submodule is GameFeatureSubmodule featureSubmodule)
                     {
                         var startupCoroutine = featureSubmodule.StartupCoroutine();
-                        asyncStartups.Add(startupCoroutine);
+                        if (startupCoroutine != null)
+                        {
+                            asyncStartups.Add(startupCoroutine);
+                        }
+                        else
+                        {
+                            s_StartupCache(submodule);
+                        }
                     }
                     else
                     {
-                        s_StartupCache(sub);
+                        s_StartupCache(submodule);
                     }
                     
-                    allSubmodulesList.Add(sub);
+                    m_AllSubmodules.Add(submodule);
+                    m_SubmoduleEnabledStates[submodule] = submodule.IsEnabled;
                     
-                    if (sub is ITickableGameFeatureSubmodule tickable)
-                        tickableList.Add(tickable);
+                    if (submodule is ITickableGameFeatureSubmodule tickable && submodule.IsEnabled)
+                        m_ActiveTickableSubmodules.Add(tickable);
+                    if (submodule is IDrawableSubmodule drawable && submodule.IsEnabled)
+                        m_ActiveDrawableSubmodules.Add(drawable);
                 }
                 
                 initializedModules.Add(moduleType);
@@ -195,51 +442,89 @@ namespace Verve.UniEx
                 }
             }
             
-            m_AllSubmodules = allSubmodulesList.ToArray();
-            m_TickableSubmodules = tickableList.ToArray();
-            
-            Profiler.EndSample();
+            s_StartupSampler.End();
         }
 
+        /// <summary>
+        /// 更新所有模块
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void TickAllModules()
         {
-            if (m_TickableSubmodules.Length == 0) return;
+            if (m_ActiveTickableSubmodules.Count == 0) return;
             
-            Profiler.BeginSample("GameFeaturesRunner.TickAllModules");
+            s_TickSampler.Begin();
             
             var context = m_Context;
             
-            for (int i = 0; i < m_TickableSubmodules.Length; i++)
+            for (int i = 0; i < m_ActiveTickableSubmodules.Count; i++)
             {
-                if (m_TickableSubmodules[i].IsEnabled)
-                    s_TickCache(m_TickableSubmodules[i], context);
+                s_TickCache(m_ActiveTickableSubmodules[i], context);
             }
             
-            Profiler.EndSample();
+            s_TickSampler.End();
         }
 
+        /// <summary>
+        /// 绘制所有模块GUI
+        /// </summary>
+        private void DrawGUIAllModules()
+        {
+            if (m_ActiveDrawableSubmodules.Count == 0) return;
+            
+            s_DrawGUISampler.Begin();
+            for (int i = 0; i < m_ActiveDrawableSubmodules.Count; i++)
+            {
+                s_DrawGUIDelegate(m_ActiveDrawableSubmodules[i]);
+            }
+            s_DrawGUISampler.End();
+        }
+        
+        /// <summary>
+        /// 绘制所有模块Gizmos
+        /// </summary>
+        private void DrawGizmosAllModules()
+        {
+            if (m_ActiveDrawableSubmodules.Count == 0) return;
+            
+            s_DrawGizmosSampler.Begin();
+            for (int i = 0; i < m_ActiveDrawableSubmodules.Count; i++)
+            {
+                s_DrawGizmosDelegate(m_ActiveDrawableSubmodules[i]);
+            }
+            s_DrawGizmosSampler.End();
+        }
+        
+        /// <summary>
+        /// 关闭所有模块
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ShutdownAllModules()
         {
-            if (m_AllSubmodules.Length == 0) return;
+            if (m_AllSubmodules.Count == 0) return;
             
-            Profiler.BeginSample("GameFeaturesRunner.ShutdownAllModules");
+            s_ShutdownSampler.Begin();
             
-            for (int i = m_AllSubmodules.Length - 1; i >= 0; i--)
+            for (int i = m_AllSubmodules.Count - 1; i >= 0; i--)
             {
                 var sub = m_AllSubmodules[i];
                 if (sub?.IsEnabled == true)
                     s_ShutdownCache(sub);
             }
             
-            m_TickableSubmodules = Array.Empty<ITickableGameFeatureSubmodule>();
-            m_AllSubmodules = Array.Empty<IGameFeatureSubmodule>();
+            m_AllSubmodules.Clear();
+            m_ActiveTickableSubmodules.Clear();
+            m_ActiveDrawableSubmodules.Clear();
+            m_ModuleActiveStates.Clear();
+            m_SubmoduleEnabledStates.Clear();
             
-            Profiler.EndSample();
+            s_ShutdownSampler.End();
         }
               
         /// <summary>
         /// 刷新所有模块
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RefreshAllModules()
         {
             ShutdownAllModules();
@@ -253,52 +538,58 @@ namespace Verve.UniEx
         /// <summary>
         /// 启动单个模块及其子模块
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StartupModule(GameFeatureModule module)
         {
             if (module == null || !module.IsActive || !CheckDependencies(module)) return;
             
-            Profiler.BeginSample("GameFeaturesRunner.StartupModule");
+            s_StartupSampler.Begin();
             
-            var allSubmodulesList = m_AllSubmodules.ToList();
-            var tickableList = m_TickableSubmodules.ToList();
             var asyncStartups = new List<IEnumerator>();
             
             foreach (var sub in module.Submodules)
             {
-                if (!sub.IsEnabled || !CheckDependencies(sub))
+                if (sub == null || !sub.IsEnabled || !CheckDependencies(sub))
                     continue;
                 
                 BindComponentToSubmodule(sub);
+                
                 if (sub is GameFeatureSubmodule m)
                 {
                     var startupCoroutine = m.StartupCoroutine();
-                    asyncStartups.Add(startupCoroutine);
+                    if (startupCoroutine != null)
+                    {
+                        asyncStartups.Add(startupCoroutine);
+                    }
+                    else
+                    {
+                        s_StartupCache(sub);
+                    }
                 }
                 else
                 {
                     s_StartupCache(sub);
                 }
                 
-                allSubmodulesList.Add(sub);
+                m_AllSubmodules.Add(sub);
+                m_SubmoduleEnabledStates[sub] = sub.IsEnabled;
                 
-                if (sub is ITickableGameFeatureSubmodule tickable)
-                    tickableList.Add(tickable);
+                if (sub is ITickableGameFeatureSubmodule tickable && sub.IsEnabled)
+                    m_ActiveTickableSubmodules.Add(tickable);
+                if (sub is IDrawableSubmodule drawable && sub.IsEnabled)
+                    m_ActiveDrawableSubmodules.Add(drawable);
             }
             
             if (m_IsRunning && asyncStartups.Count > 0)
             {
-                StartCoroutine(WaitForAsyncStartups(asyncStartups, allSubmodulesList, tickableList));
-            }
-            else
-            {
-                m_AllSubmodules = allSubmodulesList.ToArray();
-                m_TickableSubmodules = tickableList.ToArray();
+                StartCoroutine(WaitForAsyncStartups(asyncStartups));
             }
             
-            Profiler.EndSample();
+            s_StartupSampler.End();
         }
         
-        private IEnumerator WaitForAsyncStartups(List<IEnumerator> asyncStartups, List<IGameFeatureSubmodule> allSubmodulesList, List<ITickableGameFeatureSubmodule> tickableList)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private IEnumerator WaitForAsyncStartups(List<IEnumerator> asyncStartups)
         {
             foreach (var startup in asyncStartups)
             {
@@ -308,46 +599,50 @@ namespace Verve.UniEx
                 }
             }
             
-            m_AllSubmodules = allSubmodulesList.ToArray();
-            m_TickableSubmodules = tickableList.ToArray();
+            RebuildSubmodules();
         }
 
         /// <summary>
         /// 关闭单个模块及其子模块
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ShutdownModule(GameFeatureModule module)
         {
             if (module == null) return;
             
-            Profiler.BeginSample("GameFeaturesRunner.ShutdownModule");
+            s_ShutdownSampler.Begin();
             
-            var allSubmodulesList = m_AllSubmodules.ToList();
-            var tickableList = m_TickableSubmodules.ToList();
-            
-            foreach (var sub in module.Submodules)
+            for (int i = m_AllSubmodules.Count - 1; i >= 0; i--)
             {
-                if (sub?.IsEnabled == true)
+                var sub = m_AllSubmodules[i];
+                if (sub != null && module.Submodules.Contains(sub))
                 {
-                    s_ShutdownCache(sub);
+                    if (sub.IsEnabled)
+                    {
+                        s_ShutdownCache(sub);
+                    }
                     
-                    allSubmodulesList.Remove(sub);
+                    m_AllSubmodules.RemoveAt(i);
+                    m_SubmoduleEnabledStates.Remove(sub);
                     
                     if (sub is ITickableGameFeatureSubmodule tickable)
                     {
-                        tickableList.Remove(tickable);
+                        m_ActiveTickableSubmodules.Remove(tickable);
+                    }
+                    if (sub is IDrawableSubmodule drawable)
+                    {
+                        m_ActiveDrawableSubmodules.Remove(drawable);
                     }
                 }
             }
             
-            m_AllSubmodules = allSubmodulesList.ToArray();
-            m_TickableSubmodules = tickableList.ToArray();
-            
-            Profiler.EndSample();
+            s_ShutdownSampler.End();
         }
 
         /// <summary>
         /// 绑定组件到子模块中
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void BindComponentToSubmodule(IGameFeatureSubmodule sub)
         {
             if (ComponentProfile == null) return;
@@ -365,6 +660,7 @@ namespace Verve.UniEx
         /// <summary>
         /// 检查依赖是否满足
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool CheckDependencies(object target)
         {
 #if !UNITY_EDITOR
@@ -372,11 +668,24 @@ namespace Verve.UniEx
                 return true;
 #endif
             
-            var attr = target.GetType().GetCustomAttribute<GameFeatureAttribute>();
+            Type targetType = target.GetType();
+            
+            if (!s_AttributeCache.TryGetValue(targetType, out GameFeatureAttribute attr))
+            {
+                attr = targetType.GetCustomAttribute<GameFeatureAttribute>();
+                s_AttributeCache[targetType] = attr;
+            }
+            
             if (attr == null || attr.Dependencies.Length == 0)
                 return true;
 
-            foreach (Type requiredType in attr.Dependencies)
+            if (!s_DependencyCache.TryGetValue(targetType, out Type[] dependencies))
+            {
+                dependencies = attr.Dependencies;
+                s_DependencyCache[targetType] = dependencies;
+            }
+
+            foreach (Type requiredType in dependencies)
             {
                 bool found = false;
                 
@@ -384,7 +693,7 @@ namespace Verve.UniEx
                 {
                     foreach (var module in m_Modules)
                     {
-                        if (requiredType.IsInstanceOfType(module) && module.IsActive)
+                        if (module != null && requiredType.IsInstanceOfType(module) && module.IsActive)
                         {
                             found = true;
                             break;
@@ -401,6 +710,7 @@ namespace Verve.UniEx
             return true;
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void AddModule(GameFeatureModule module)
         {
             if (module == null || m_Modules.Contains(module) || !ModuleProfile.Has(module)) return;
@@ -413,12 +723,12 @@ namespace Verve.UniEx
         /// <summary>
         /// 添加模块
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool AddModule(string menuPath)
         {
             if (string.IsNullOrEmpty(menuPath) || ModuleProfile == null)
                 return false;
             
-
             if (ModuleProfile.MenuPathLookup.TryGetValue(menuPath, out var module))
             {
                 AddModule(module);
@@ -428,6 +738,7 @@ namespace Verve.UniEx
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RemoveModule(GameFeatureModule module)
         {
             if (module == null || !m_Modules.Contains(module)) return;
@@ -440,10 +751,10 @@ namespace Verve.UniEx
         /// <summary>
         /// 移除模块
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool RemoveModule(string menuPath)
         {
-            if (string.IsNullOrEmpty(menuPath))
-                return false;
+            if (string.IsNullOrEmpty(menuPath)) return false;
             
             if (ModuleProfile.MenuPathLookup.TryGetValue(menuPath, out var module))
             {
@@ -454,16 +765,22 @@ namespace Verve.UniEx
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SetModuleActive(GameFeatureModule module, bool isActive)
         {
             if (module == null || !m_Modules.Contains(module)) return;
             
-            module.IsActive = isActive;
+            if (module.IsActive != isActive)
+            {
+                module.IsActive = isActive;
+                m_NeedsRebuild = true;
+            }
         }
 
         /// <summary>
         /// 激活或禁用功能模块
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool SetModuleActive(string menuPath, bool isActive)
         {
             if (string.IsNullOrEmpty(menuPath))
@@ -478,6 +795,7 @@ namespace Verve.UniEx
             return false;
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool GetModuleActive(GameFeatureModule module)
         {
             if (module == null || !m_Modules.Contains(module)) return false;
@@ -488,6 +806,7 @@ namespace Verve.UniEx
         /// <summary>
         /// 获取模块是否激活
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool GetModuleActive(string menuPath)
         {
             if (string.IsNullOrEmpty(menuPath))

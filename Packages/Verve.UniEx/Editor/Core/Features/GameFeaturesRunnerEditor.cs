@@ -35,6 +35,7 @@ namespace VerveEditor.UniEx.Features
             public static GUIContent AddModuleButton { get; } = EditorGUIUtility.TrTextContent("Add Game Feature");
             public static GUIContent NoModulesInfo { get; } = EditorGUIUtility.TrTextContent("No modules available. Assign a Module profile asset first.");
             public static string NoAddedModulesInfo { get; } = L10n.Tr("No modules. Click 'Add Game Feature' to add modules.");
+            public static string RunnerInfo { get; } = L10n.Tr("Game Features Runner is responsible for managing and running game feature modules.");
         }
 
         public void OnEnable()
@@ -62,11 +63,13 @@ namespace VerveEditor.UniEx.Features
             
             DrawPropertiesExcluding(serializedObject, s_ExcludedFields);
 
-            using (new EditorGUI.DisabledGroupScope(true))
-            {
-                EditorGUILayout.PropertyField(m_ModuleProfileProperty);
-                EditorGUILayout.PropertyField(m_ComponentProfileProperty);
-            }
+            // using (new EditorGUI.DisabledGroupScope(true))
+            // {
+            //     EditorGUILayout.PropertyField(m_ModuleProfileProperty);
+            //     EditorGUILayout.PropertyField(m_ComponentProfileProperty);
+            // }
+            
+            EditorGUILayout.HelpBox(Styles.RunnerInfo, MessageType.Info);
 
             DrawModulesList();
             
@@ -305,22 +308,6 @@ namespace VerveEditor.UniEx.Features
                 editor?.OnDisable();
             }
             m_Editors.Clear();
-        }
-        
-        static GameFeaturesRunnerEditor()
-        {
-            EditorApplication.update += OnEditorUpdate;
-        }
-
-        private static void OnEditorUpdate()
-        {
-            if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isUpdating) return;
-
-            if (GameFeaturesSettings.GetOrCreateSettings().ModuleProfile != null)
-            {
-                GameFeaturesRunner.Instance.ComponentProfile = GameFeaturesSettings.GetOrCreateSettings().ComponentProfile;
-                GameFeaturesRunner.Instance.ModuleProfile = GameFeaturesSettings.GetOrCreateSettings().ModuleProfile;
-            }
         }
     }
 }

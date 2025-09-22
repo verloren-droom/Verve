@@ -11,7 +11,7 @@ namespace Verve.UniEx.Debug
     /// 调试器子模块基类
     /// </summary>
     [Serializable, SkipInStackTrace("Debugger")]
-    public abstract class DebuggerSubmodule : GameFeatureSubmodule, IDebugger
+    public abstract class DebuggerSubmodule : TickableGameFeatureSubmodule<DebuggerGameFeatureComponent>, IDebugger
     {
         public LastLogData LastLog { get; protected set; }
         
