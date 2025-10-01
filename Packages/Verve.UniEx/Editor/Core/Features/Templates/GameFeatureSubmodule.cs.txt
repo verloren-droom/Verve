@@ -9,23 +9,23 @@ using System.Collections;
 [Serializable, GameFeatureSubmodule(typeof(#MODULE#))]
 public sealed partial class #SCRIPTNAME# : TickableGameFeatureSubmodule#COMPONENT#
 {
-        // 启动子模块
-        protected override IEnumerator OnStartup()
-        {
-            yield return base.OnStartup();
-        }
-
-        // 每帧执行
-        protected override void OnTick(in GameFeatureContext ctx)
-        {
-            #NOTRIM#
-        }
-        
-        // 关闭子模块
-        protected override void OnShutdown()
-        {
-            #NOTRIM#
-        }
+    // 启动子模块
+    protected override IEnumerator OnStartup()
+    {
+        yield return base.OnStartup();
+    }
+    
+    // 每帧执行
+    protected override void OnTick(in GameFeatureContext ctx)
+    {
+        #NOTRIM#
+    }
+    
+    // 关闭子模块
+    protected override void OnShutdown()
+    {
+        #NOTRIM#
+    }
 }
 #ROOTNAMESPACEEND#
     

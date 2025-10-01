@@ -1,14 +1,18 @@
 namespace Verve.MVC
 {
     using System;
-    using Loader;
     
     
+    /// <summary>
+    /// 视图信息
+    /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    public class ViewInfoAttribute : Attribute
+    public sealed class ViewInfoAttribute : Attribute
     {
+        /// <summary> 资源路径 </summary>
         public string ResourcePath { get; }
 
+        
         public ViewInfoAttribute(string resourcePath)
         {
             ResourcePath = resourcePath;

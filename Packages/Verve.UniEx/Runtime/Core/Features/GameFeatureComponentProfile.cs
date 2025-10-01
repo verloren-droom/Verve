@@ -41,19 +41,41 @@ namespace Verve.UniEx
         {
             return (T)Add(typeof(T), overrides);
         }
+
+        /// <summary>
+        /// 添加组件
+        /// </summary>
+        public void Add(GameFeatureComponent component, bool overrides = false)
+        {
+            if (component == null || (Has(component.GetType()) && !overrides))
+                throw new InvalidOperationException("Game Feature already exists in the profile");
+            
+            if (overrides && Has(component.GetType()))
+            {
+                Remove(component.GetType());
+            }
+            
+            m_Components.Add(component);
+            isDirty = true;
+        }
         
         /// <summary>
         /// 添加组件
         /// </summary>
-        /// <param name="type"></param>
-        /// <param name="overrides"></param>
+        /// <param name="type">组件类型</param>
+        /// <param name="overrides">是否覆盖</param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
         public GameFeatureComponent Add(Type type, bool overrides = false)
         {
-            if (Has(type))
+            if (Has(type) && !overrides)
                 throw new InvalidOperationException("Game Feature already exists in the profile");
 
+            if (overrides && Has(type))
+            {
+                Remove(type);
+            }
+            
             var component = CreateInstance(type) as GameFeatureComponent;
 #if UNITY_EDITOR
             component.hideFlags = HideFlags.HideInInspector | HideFlags.HideInHierarchy;
@@ -86,7 +108,7 @@ namespace Verve.UniEx
         /// <returns></returns>
         public bool Has(Type type)
         {
-            if (!typeof(GameFeatureComponent).IsAssignableFrom(type) || m_Components == null) return false;
+            if (!typeof(GameFeatureComponent).IsAssignableFrom(type) || m_Components == null || type == null) return false;
             
             for (int i = 0; i < m_Components.Count; i++)
             {

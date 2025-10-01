@@ -19,10 +19,14 @@ namespace Verve.UniEx.MVC
     [Serializable, GameFeatureSubmodule(typeof(MVCGameFeature), Description = "View子模块")]
     public sealed partial class ViewSubmodule : GameFeatureSubmodule<MVCGameFeatureComponent>
     {
-        private Transform m_ViewRoot;
-        private readonly Dictionary<Type, WeakReference<IView>> m_CachedView = 
+        [Tooltip("View根节点")] private Transform m_ViewRoot;
+        [Tooltip("View缓存")] private readonly Dictionary<Type, WeakReference<IView>> m_CachedView = 
             new Dictionary<Type, WeakReference<IView>>();
+        [Tooltip("View堆栈")] private readonly Stack<WeakReference<IView>> m_ViewStack = 
+            new Stack<WeakReference<IView>>();
         
+        internal Stack<IView> GetViewStack() => new Stack<IView>(m_ViewStack.Select(x => x.TryGetTarget(out var view) ? view : null).Where(x => x != null));
+
         
         /// <summary>
         /// 异步资源加载委托
@@ -45,18 +49,16 @@ namespace Verve.UniEx.MVC
                 }
                 m_ViewRoot = Object.Instantiate(Component.ViewRoot);
             }
-            yield return null;
         }
 
         protected override void OnShutdown()
         {
             base.OnShutdown();
             CloseViewAll();
-            if (Application.isPlaying)
+            if (Application.isPlaying && m_ViewRoot != null)
             {
-                Object.Destroy(m_ViewRoot);
+                Object.Destroy(m_ViewRoot.gameObject);
             }
-            m_CachedView?.Clear();
         }
 
         /// <summary>
@@ -65,7 +67,7 @@ namespace Verve.UniEx.MVC
         /// <param name="resourcePath">资源路径</param>
         /// <param name="loadAssetAsync">资源加载回调</param>
         /// <param name="isCloseAllOther">是否关闭其他页面</param>
-        /// <param name="parent">夫物体</param>
+        /// <param name="parent">父物体</param>
         /// <param name="onOpened">打开回调</param>
         /// <param name="args">参数</param>
         /// <returns></returns>
@@ -80,16 +82,22 @@ namespace Verve.UniEx.MVC
             if (string.IsNullOrEmpty(resourcePath)) return false;
             
             var viewObj = UnityEngine.Object.Instantiate(await loadAssetAsync(resourcePath), parent ?? m_ViewRoot);
-            if (viewObj.TryGetComponent(out ViewBase viewInstance))
+            if (!viewObj.TryGetComponent(out ViewBase viewInstance))
             {
-                if (isCloseAllOther) CloseViewAll();
-                viewInstance.OnClosed += UnregisterView;
-                ((IView)viewInstance).Open(args);
-                onOpened?.Invoke(viewInstance);
-                m_CachedView[viewInstance.GetType()] = new WeakReference<IView>(viewInstance);
-                return true;
+                return false;
             }
-            return false;
+            if (m_CachedView.TryGetValue(viewInstance.GetType(), out var weakRef) && 
+                weakRef.TryGetTarget(out var existingView))
+            {
+                existingView.Close();
+            }
+            if (isCloseAllOther) CloseViewAll();
+            viewInstance.OnClosed += UnregisterView;
+            ((IView)viewInstance).Open(args);
+            onOpened?.Invoke(viewInstance);
+            m_CachedView[viewInstance.GetType()] = new WeakReference<IView>(viewInstance);
+            m_ViewStack.Push(new WeakReference<IView>(viewInstance));
+            return true;
         }
 
         public async Task<bool> OpenView<TView>(
@@ -103,6 +111,22 @@ namespace Verve.UniEx.MVC
             var viewType = typeof(TView);
             var info = GetViewInfo(viewType);
             return await OpenView(info.ResourcePath, loadAssetAsync, isCloseAllOther, parent, onOpened, args);
+        }
+        
+        /// <summary>
+        /// 返回上一个视图
+        /// </summary>
+        public void GoBackView()
+        {
+            if (m_ViewStack.Count <= 1) return;
+        
+            m_ViewStack.Pop();
+        
+            if (m_ViewStack.Count > 0 && 
+                m_ViewStack.Peek().TryGetTarget(out var view))
+            {
+                view.Close();
+            }
         }
 
         private void UnregisterView(IView view)
@@ -138,13 +162,18 @@ namespace Verve.UniEx.MVC
 
         public void CloseViewAll()
         {
-            foreach (var kvp in m_CachedView.ToArray())
+            var viewsToClose = m_CachedView
+                .Where(kvp => kvp.Value.TryGetTarget(out _))
+                .Select(kvp => (kvp.Key, kvp.Value))
+                .ToList();
+    
+            m_CachedView.Clear();
+            m_ViewStack.Clear();
+    
+            foreach (var (key, weakRef) in viewsToClose)
             {
-                if (kvp.Value.TryGetTarget(out var view))
-                {
-                    view?.Close();
-                }
-                m_CachedView.Remove(kvp.Key);
+                if (!weakRef.TryGetTarget(out var view) || view == null) continue;
+                view.Close();
             }
         }
         

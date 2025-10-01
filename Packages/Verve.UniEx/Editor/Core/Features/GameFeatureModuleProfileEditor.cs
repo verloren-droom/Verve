@@ -399,9 +399,22 @@ namespace VerveEditor.UniEx
                 try
                 {
                     Undo.RecordObject(m_Profile, Styles.RemoveModule.text);
-                    m_Profile.Remove(module);
-                    m_NeedsRefresh = true;
-                    Repaint();
+                    if (m_Profile.Remove(module))
+                    {
+                        m_ModulesProperty.DeleteArrayElementAtIndex(index);
+
+                        if (EditorUtility.IsPersistent(module) && AssetDatabase.Contains(module))
+                        {
+                            AssetDatabase.RemoveObjectFromAsset(module);
+                            DestroyImmediate(module, true);
+                            EditorUtility.UnloadUnusedAssetsImmediate();
+                        }
+
+                        AssetDatabase.SaveAssets();
+                        EditorUtility.SetDirty(m_Profile);
+                        m_NeedsRefresh = true;
+                        Repaint();
+                    }
                 }
                 catch (Exception e)
                 {

@@ -16,8 +16,8 @@ namespace VerveEditor.UniEx.Features
     {
         private GameFeaturesRunner m_Runner;
         
-        private SerializedProperty m_ModuleProfileProperty;
-        private SerializedProperty m_ComponentProfileProperty;
+        // private SerializedProperty m_ModuleProfileProperty;
+        // private SerializedProperty m_ComponentProfileProperty;
         private SerializedProperty m_ModulesProperty;
         
         private readonly List<GameFeatureModuleProfileEditor.ModuleEditor> m_Editors = new List<GameFeatureModuleProfileEditor.ModuleEditor>();
@@ -25,8 +25,8 @@ namespace VerveEditor.UniEx.Features
         private static readonly string[] s_ExcludedFields =
         {
             "m_Script",
-            "ModuleProfile",
-            "ComponentProfile",
+            "m_ModuleProfile",
+            "m_ComponentProfile",
             "m_Modules",
         };
 
@@ -44,8 +44,8 @@ namespace VerveEditor.UniEx.Features
             if (m_Runner == null || target == null) return;
 
             m_ModulesProperty = serializedObject.FindProperty("m_Modules");
-            m_ModuleProfileProperty = serializedObject.FindProperty("ModuleProfile");
-            m_ComponentProfileProperty = serializedObject.FindProperty("ComponentProfile");
+            // m_ModuleProfileProperty = serializedObject.FindProperty("m_ModuleProfile");
+            // m_ComponentProfileProperty = serializedObject.FindProperty("m_ComponentProfile");
             
             RefreshEditors();
         }

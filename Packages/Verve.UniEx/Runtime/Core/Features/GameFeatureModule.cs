@@ -20,9 +20,9 @@ namespace Verve.UniEx
         [NonSerialized, Tooltip("功能子模块列表")] private List<IGameFeatureSubmodule> m_Submodules;
         [NonSerialized, Tooltip("是否为脏")] public bool isDirty = true;
 
-        public bool IsActive { get => m_IsActive; set => m_IsActive = value; }
+        public virtual bool IsActive { get => m_IsActive; set => m_IsActive = value; }
 
-        public IReadOnlyCollection<IGameFeatureSubmodule> Submodules
+        public virtual IReadOnlyCollection<IGameFeatureSubmodule> Submodules
         {
             get
             {

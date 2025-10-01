@@ -27,6 +27,12 @@ namespace Verve.UniEx
         private void OnEnable()
         {
             m_Modules.RemoveAll(module => module == null);
+            RebuildMenuPathLookup();
+        }
+        
+        private void RebuildMenuPathLookup()
+        {
+            m_MenuPathLookup.Clear();
             for (int i = 0; i < m_Modules.Count; i++)
             {
                 var module = m_Modules[i];
@@ -44,14 +50,23 @@ namespace Verve.UniEx
         /// 添加游戏功能模块
         /// </summary>
         /// <param name="module">要添加的游戏功能模块实例</param>
-        public void Add(GameFeatureModule module)
+        /// <param name="overrides">是否覆盖模块</param>
+        public void Add(GameFeatureModule module, bool overrides = false)
         {
-            if (module == null || m_Modules.Contains(module)) return;
+            if (module == null || (!overrides && Has(module))) return;
+            if (overrides && Has(module))
+            {
+                Remove(module);
+            }
             ValidateDependencies(module);
             InsertModuleWithDependencies(module);
             string menuPath = GetMenuPathForModule(module);
-            if (!string.IsNullOrEmpty(menuPath) && m_MenuPathLookup != null)
+            if (!string.IsNullOrEmpty(menuPath))
             {
+                if (m_MenuPathLookup.ContainsKey(menuPath))
+                {
+                    m_MenuPathLookup.Remove(menuPath);
+                }
                 m_MenuPathLookup[menuPath] = module;
             }
             isDirty = true;
@@ -69,30 +84,14 @@ namespace Verve.UniEx
             CheckModuleDependents(module);
             
             string menuPath = GetMenuPathForModule(module);
-            if (!string.IsNullOrEmpty(menuPath) && m_MenuPathLookup != null)
+            if (!string.IsNullOrEmpty(menuPath))
             {
                 m_MenuPathLookup.Remove(menuPath);
             }
             
             isDirty = true;
             bool removed = m_Modules.Remove(module);
-            
-#if UNITY_EDITOR
-            if (removed && !Application.isPlaying)
-            {
-                if (UnityEditor.EditorUtility.IsPersistent(module) && UnityEditor.AssetDatabase.Contains(module))
-                {
-                    UnityEditor.AssetDatabase.RemoveObjectFromAsset(module);
-                }
 
-                UnityEngine.Object.DestroyImmediate(module, true);
-
-                UnityEditor.EditorUtility.UnloadUnusedAssetsImmediate();
-                UnityEditor.AssetDatabase.SaveAssets();
-                UnityEditor.EditorUtility.SetDirty(this);
-            }
-#endif
-            
             return removed;
         }
 
@@ -113,9 +112,7 @@ namespace Verve.UniEx
         /// <returns>是否包含</returns>
         public bool Has(Type type)
         {
-            if (type == null || !typeof(GameFeatureModule).IsAssignableFrom(type))
-                return false;
-            
+            if (type == null || m_Modules == null || !typeof(GameFeatureModule).IsAssignableFrom(type)) return false;
             return m_Modules.Any(m => m?.GetType() == type);
         }
 

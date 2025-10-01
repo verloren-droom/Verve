@@ -1,44 +1,50 @@
-#pragma comment(linker, "/framework:AppKit")
-
-#import <AppKit/AppKit.h>
-#import <Foundation/Foundation.h>
-#include <string>
+#include <CoreFoundation/CoreFoundation.h>
+#include <ApplicationServices/ApplicationServices.h>
 
 extern "C" {
-    void _ShowDialog(const char* title, const char* message, const char* okButton, const char* cancelButton, void (*callback)(bool)) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            @autoreleasepool {
-                [NSApplication sharedApplication];
-                
-                NSAlert *alert = [[NSAlert alloc] init];
-                
-                if (title != nullptr) {
-                    [alert setMessageText:[NSString stringWithUTF8String:title]];
-                }
-                
-                if (message != nullptr) {
-                    [alert setInformativeText:[NSString stringWithUTF8String:message]];
-                }
-                
-                if (okButton != nullptr) {
-                    [alert addButtonWithTitle:[NSString stringWithUTF8String:okButton]];
-                } else {
-                    [alert addButtonWithTitle:@"OK"];
-                }
-                
-                if (cancelButton != nullptr && strlen(cancelButton) > 0) {
-                    [alert addButtonWithTitle:[NSString stringWithUTF8String:cancelButton]];
-                }
-                
-                [alert setAlertStyle:NSAlertStyleWarning];
-                
-                [alert beginSheetModalForWindow:nil completionHandler:^(NSModalResponse response) {
-                    bool result = (response == NSAlertFirstButtonReturn);
-                    if (callback != nullptr) {
-                        callback(result);
-                    }
-                }];
-            }
-        });
+    int _ShowDialog(const char* title, const char* message, const char* defaultButton, const char* alternateButton) {
+        const char* safeTitle = (title != NULL) ? title : "Dialog";
+        const char* safeMessage = (message != NULL) ? message : "";
+        const char* safeDefaultButton = (defaultButton != NULL) ? defaultButton : "OK";
+        const char* safeAlternateButton = (alternateButton != NULL) ? alternateButton : NULL;
+        
+        CFStringRef titleStr = NULL;
+        CFStringRef messageStr = NULL;
+        CFStringRef defaultButtonStr = NULL;
+        CFStringRef alternateButtonStr = NULL;
+        
+        titleStr = CFStringCreateWithCString(kCFAllocatorDefault, safeTitle, kCFStringEncodingUTF8);
+        messageStr = CFStringCreateWithCString(kCFAllocatorDefault, safeMessage, kCFStringEncodingUTF8);
+        defaultButtonStr = CFStringCreateWithCString(kCFAllocatorDefault, safeDefaultButton, kCFStringEncodingUTF8);
+        
+        if (safeAlternateButton != NULL) {
+            alternateButtonStr = CFStringCreateWithCString(kCFAllocatorDefault, safeAlternateButton, kCFStringEncodingUTF8);
+        }
+        
+        CFOptionFlags response = 0;
+        CFOptionFlags result = CFUserNotificationDisplayAlert(
+            0,
+            kCFUserNotificationNoteAlertLevel,
+            NULL,
+            NULL,
+            NULL,
+            titleStr,
+            messageStr,
+            defaultButtonStr,
+            alternateButtonStr,
+            NULL,
+            &response
+        );
+        
+        if (titleStr) CFRelease(titleStr);
+        if (messageStr) CFRelease(messageStr);
+        if (defaultButtonStr) CFRelease(defaultButtonStr);
+        if (alternateButtonStr) CFRelease(alternateButtonStr);
+        
+        if (result != 0) {
+            return -1;
+        }
+        
+        return (response == kCFUserNotificationDefaultResponse) ? 0 : 1;
     }
 }

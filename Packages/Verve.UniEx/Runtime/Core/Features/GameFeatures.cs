@@ -37,12 +37,36 @@ namespace Verve.UniEx
         {
             component = null;
             var runner = GameFeaturesRunner.Instance;
-            if (runner?.ComponentProfile == null) return false;
+            if (runner.ComponentProfile == null) return false;
             
             var type = typeof(T);
             if (s_ComponentCache.TryGetValue(type, out var cachedComponent) && cachedComponent is T typedComponent)
             {
                 component = typedComponent;
+                return true;
+            }
+            
+            if (runner.ComponentProfile.TryGet(out component))
+            {
+                s_ComponentCache[type] = component;
+                return true;
+            }
+            
+            return false;
+        }
+        
+        public static bool TryGetComponent(Type type, out GameFeatureComponent component)
+        {
+            if (type == null) throw new ArgumentNullException(nameof(type));
+            if (!typeof(GameFeatureComponent).IsAssignableFrom(type)) throw new ArgumentException($"Type {type} is not a GameFeatureComponent");
+            
+            component = null;
+            var runner = GameFeaturesRunner.Instance;
+            if (runner.ComponentProfile == null) return false;
+            
+            if (s_ComponentCache.TryGetValue(type, out var cachedComponent))
+            {
+                component = cachedComponent;
                 return true;
             }
             
@@ -65,6 +89,15 @@ namespace Verve.UniEx
             return component;
         }
         
+        public static GameFeatureComponent GetComponent(Type type)
+        {
+            if (type == null) throw new ArgumentNullException(nameof(type));
+            if (!typeof(GameFeatureComponent).IsAssignableFrom(type)) throw new ArgumentException($"Type {type} is not a GameFeatureComponent");
+
+            TryGetComponent(type, out var component);
+            return component;
+        }
+        
         /// <summary>
         /// 尝试获取游戏功能子模块
         /// </summary>
@@ -78,28 +111,57 @@ namespace Verve.UniEx
         /// <summary>
         /// 获取游戏功能子模块
         /// </summary>
-        public static T GetSubmodule<T>()
-            where T : class, IGameFeatureSubmodule
+        /// <param name="typeName">类型名 [命名空间.类名, 程序集名]</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentException"></exception>
+        public static IGameFeatureSubmodule GetSubmodule(string typeName)
         {
-            var type = typeof(T);
-            if (s_SubmoduleCache.TryGetValue(type, out var cachedSubmodule) && cachedSubmodule is T typedSubmodule)
+            if (string.IsNullOrEmpty(typeName)) throw new ArgumentNullException(nameof(typeName));
+            var type = Type.GetType(typeName);
+            if (type == null) throw new ArgumentException($"Type {typeName} not found");
+            return GetSubmodule(type);
+        }
+
+        public static IGameFeatureSubmodule GetSubmodule(Type type)
+        {
+            if (type == null) throw new ArgumentNullException(nameof(type));
+            if (!typeof(IGameFeatureSubmodule).IsAssignableFrom(type)) throw new ArgumentException($"Type {type} is not a IGameFeatureSubmodule");
+            
+            if (s_SubmoduleCache.TryGetValue(type, out var cachedSubmodule))
             {
-                return typedSubmodule;
+                return cachedSubmodule;
             }
             
             var runner = GameFeaturesRunner.Instance;
             if (runner?.AllSubmodules == null) return null;
-                
+            
             foreach (var sub in runner.AllSubmodules)
             {
-                if (sub is T typedSub)
+                if (sub.GetType() == type)
                 {
-                    s_SubmoduleCache[type] = typedSub;
-                    return typedSub;
+                    s_SubmoduleCache[type] = sub;
+                    return sub;
                 }
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// 获取游戏功能子模块
+        /// </summary>
+        public static T GetSubmodule<T>()
+            where T : class, IGameFeatureSubmodule
+        {
+            var type = typeof(T);
+            return GetSubmodule(type) as T;
+        }
+
+        public static void AddModule(GameFeatureModule module)
+        {
+            if (module == null) throw new ArgumentNullException(nameof(module));
+            GameFeaturesRunner.Instance.AddModule(module);
         }
         
         /// <summary>
@@ -109,6 +171,12 @@ namespace Verve.UniEx
         /// <returns></returns>
         public static bool AddModule(string menuPath)
             => GameFeaturesRunner.Instance.AddModule(menuPath);
+        
+        public static void RemoveModule(GameFeatureModule module)
+        {
+            if (module == null) throw new ArgumentNullException(nameof(module));
+            GameFeaturesRunner.Instance.RemoveModule(module);
+        }
         
         /// <summary>
         /// 移除模块（需要等一帧调用）

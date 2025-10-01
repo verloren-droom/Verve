@@ -4,29 +4,32 @@ namespace VerveEditor.UniEx
 {
     using System;
     using Verve.UniEx;
-    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Reflection;
     using System.Text;
     using UnityEditor;
     using UnityEngine;
+    using System.Reflection;
+    using System.Collections.Generic;
     using Object = UnityEngine.Object;
     
 
     [CustomEditor(typeof(GameFeaturesSettings))]
-    internal class GameFeaturesSettingsEditor : Editor
+    internal sealed class GameFeaturesSettingsEditor : Editor
     {
         private GameFeaturesSettings m_Settings;
         private SerializedProperty m_ComponentProfileProperty;
         private SerializedProperty m_ModuleProfileProperty;
         
+        private readonly TabPagerBox m_TabPagerBox = new TabPagerBox(0);
+
         private static readonly string[] s_ExcludedFields =
         {
             "m_Script",
             "m_ModuleProfile",
             "m_ComponentProfile",
-            "ExtensionOutputDir",
+            "extensionOutputDir",
+            "m_Drawers",
         };
 
         private static class Styles
@@ -41,7 +44,7 @@ namespace VerveEditor.UniEx
             public static GUIContent BrowseButton { get; } = EditorGUIUtility.TrTextContent("Browse", "Select a directory to save generated files.");
             public static GUIContent ExtensionGeneratorTitle { get; } = EditorGUIUtility.TrTextContent("Extension Generator", "Generate extension methods for modules.");
         }
-        
+
         private void OnEnable()
         {
             m_Settings = target as GameFeaturesSettings;
@@ -56,77 +59,28 @@ namespace VerveEditor.UniEx
             if (m_Settings == null || target == null) return;
             
             serializedObject.Update();
+            EditorGUI.BeginChangeCheck();
             
             DrawPropertiesExcluding(serializedObject, s_ExcludedFields);
 
-            EditorGUILayout.Space();
-            
-            bool assetHasChanged = false;
-            
-            int buttonWidth = 60;
-            Rect moduleDataLineRect = EditorGUILayout.GetControlRect();
-            var moduleDataLabelRect = new Rect(moduleDataLineRect.x, moduleDataLineRect.y, EditorGUIUtility.labelWidth - 3, moduleDataLineRect.height);
-            var moduleDataFieldRect = new Rect(moduleDataLabelRect.xMax + 5, moduleDataLineRect.y, moduleDataLineRect.width - moduleDataLabelRect.width - buttonWidth - 5, moduleDataLineRect.height);
-            var moduleDataButtonNewRect = new Rect(moduleDataFieldRect.xMax, moduleDataLineRect.y, buttonWidth, moduleDataLineRect.height);
-            
-            EditorGUI.PrefixLabel(moduleDataLabelRect, Styles.ModuleProfile);
-            
-            using (new EditorGUI.PropertyScope(moduleDataFieldRect, GUIContent.none, m_ModuleProfileProperty))
-            using (var scope = new EditorGUI.ChangeCheckScope())
+            using (new EditorGUILayout.HorizontalScope())
             {
-                Object editedModuleData = EditorGUI.ObjectField(moduleDataFieldRect, m_ModuleProfileProperty.objectReferenceValue, typeof(Verve.UniEx.GameFeatureModuleProfile), false);
-                if (scope.changed)
-                {
-                    assetHasChanged = true;
-                    m_ModuleProfileProperty.objectReferenceValue = editedModuleData;
-                }
-            }
-            
-            if (GUI.Button(moduleDataButtonNewRect, Styles.NewModuleDataLabel, EditorStyles.miniButton))
-            {
-                string defaultPath = "Assets/Resources";
-                if (!AssetDatabase.IsValidFolder(defaultPath))
-                {
-                    defaultPath = "Assets";
-                }
+                EditorGUILayout.PrefixLabel(Styles.ModuleProfile);
                 
-                string moduleDataPath = EditorUtility.SaveFilePanelInProject("Save Game Feature Module Profile", "GameFeatureModuleProfile", "asset", "Save the Game Feature Module Profile asset");
-                if (!string.IsNullOrEmpty(moduleDataPath))
+                using (var changeCheckScope = new EditorGUI.ChangeCheckScope())
                 {
-                    var moduleData = CreateInstance<GameFeatureModuleProfile>();
-                    moduleData.name = "Game Feature Module Profile";
-                    AssetDatabase.CreateAsset(moduleData, moduleDataPath);
-                    AssetDatabase.SaveAssets();
-                    AssetDatabase.Refresh();
-                    
-                    m_ModuleProfileProperty.objectReferenceValue = moduleData;
-                    assetHasChanged = true;
-                }
-            }
+                    var newModuleProfile = EditorGUILayout.ObjectField(
+                        m_ModuleProfileProperty.objectReferenceValue, 
+                        typeof(GameFeatureModuleProfile), 
+                        false) as GameFeatureModuleProfile;
             
-            EditorGUILayout.Space();
-            
-            if (m_ModuleProfileProperty.objectReferenceValue != null)
-            {
-                Rect lineRect = EditorGUILayout.GetControlRect();
-                var labelRect = new Rect(lineRect.x, lineRect.y, EditorGUIUtility.labelWidth - 3, lineRect.height);
-                var fieldRect = new Rect(labelRect.xMax + 5, lineRect.y, lineRect.width - labelRect.width - buttonWidth - 5, lineRect.height);
-                var buttonNewRect = new Rect(fieldRect.xMax, lineRect.y, buttonWidth, lineRect.height);
-                
-                EditorGUI.PrefixLabel(labelRect, Styles.ComponentProfile);
-                
-                using (new EditorGUI.PropertyScope(fieldRect, GUIContent.none, m_ComponentProfileProperty))
-                using (var scope = new EditorGUI.ChangeCheckScope())
-                {
-                    Object editedProfile = EditorGUI.ObjectField(fieldRect, m_ComponentProfileProperty.objectReferenceValue, typeof(GameFeatureComponentProfile), false);
-                    if (scope.changed)
+                    if (changeCheckScope.changed)
                     {
-                        assetHasChanged = true;
-                        m_ComponentProfileProperty.objectReferenceValue = editedProfile;
+                        m_ModuleProfileProperty.objectReferenceValue = newModuleProfile;
                     }
                 }
-                
-                if (GUI.Button(buttonNewRect, Styles.NewLabel, EditorStyles.miniButton))
+        
+                if (GUILayout.Button(Styles.NewModuleDataLabel, EditorStyles.miniButton, GUILayout.Width(60)))
                 {
                     string defaultPath = "Assets/Resources";
                     if (!AssetDatabase.IsValidFolder(defaultPath))
@@ -134,20 +88,61 @@ namespace VerveEditor.UniEx
                         defaultPath = "Assets";
                     }
                     
-                    string profilePath = EditorUtility.SaveFilePanelInProject("Save Game Feature Component Profile", "GameFeatureComponentProfile", "asset", "Save the Game Feature Component Profile asset");
+                    string profilePath = EditorUtility.SaveFilePanelInProject("Save Game Feature Module Profile", "GameFeatureModuleProfile", "asset", "Save the Game Feature Module Profile asset");
                     if (!string.IsNullOrEmpty(profilePath))
                     {
-                        var profile = ScriptableObject.CreateInstance<GameFeatureComponentProfile>();
-                        profile.name = "Game Feature Component Profile";
+                        var profile = ScriptableObject.CreateInstance<GameFeatureModuleProfile>();
+                        profile.name = "Game Feature Module Profile";
                         AssetDatabase.CreateAsset(profile, profilePath);
                         AssetDatabase.SaveAssets();
                         AssetDatabase.Refresh();
                         
-                        m_ComponentProfileProperty.objectReferenceValue = profile;
-                        assetHasChanged = true;
+                        m_ModuleProfileProperty.objectReferenceValue = profile;
                     }
                 }
-                
+            }
+            
+            if (m_ModuleProfileProperty.objectReferenceValue != null)
+            {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.PrefixLabel(Styles.ComponentProfile);
+                    
+                    using (var changeCheckScope = new EditorGUI.ChangeCheckScope())
+                    {
+                        var newComponentProfile = EditorGUILayout.ObjectField(
+                            m_ComponentProfileProperty.objectReferenceValue, 
+                            typeof(GameFeatureComponentProfile), 
+                            false) as GameFeatureComponentProfile;
+            
+                        if (changeCheckScope.changed)
+                        {
+                            m_ComponentProfileProperty.objectReferenceValue = newComponentProfile;
+                        }
+                    }
+        
+                    if (GUILayout.Button(Styles.NewLabel, EditorStyles.miniButton, GUILayout.Width(60)))
+                    {
+                        string defaultPath = "Assets/Resources";
+                        if (!AssetDatabase.IsValidFolder(defaultPath))
+                        {
+                            defaultPath = "Assets";
+                        }
+                    
+                        string profilePath = EditorUtility.SaveFilePanelInProject("Save Game Feature Component Profile", "GameFeatureComponentProfile", "asset", "Save the Game Feature Component Profile asset");
+                        if (!string.IsNullOrEmpty(profilePath))
+                        {
+                            var profile = ScriptableObject.CreateInstance<GameFeatureComponentProfile>();
+                            profile.name = "Game Feature Component Profile";
+                            AssetDatabase.CreateAsset(profile, profilePath);
+                            AssetDatabase.SaveAssets();
+                            AssetDatabase.Refresh();
+                        
+                            m_ComponentProfileProperty.objectReferenceValue = profile;
+                        }
+                    }
+                }
+
                 EditorGUILayout.Space();
                 
                 if (m_ComponentProfileProperty.objectReferenceValue == null)
@@ -157,44 +152,146 @@ namespace VerveEditor.UniEx
                 
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    EditorGUILayout.LabelField(Styles.ExtensionGeneratorTitle, GUILayout.Width(120));
-                    m_Settings.ExtensionOutputDir = EditorGUILayout.TextField(m_Settings.ExtensionOutputDir, GUILayout.ExpandWidth(true));
-                    if (GUILayout.Button(Styles.BrowseButton, GUILayout.Width(60)))
+                    EditorGUILayout.PrefixLabel(Styles.ExtensionGeneratorTitle);
+                    m_Settings.extensionOutputDir = EditorGUILayout.TextField(m_Settings.extensionOutputDir, GUILayout.ExpandWidth(true));
+                    if (GUILayout.Button(Styles.BrowseButton, EditorStyles.miniButton, GUILayout.Width(80)))
                     {
-                        string selectedPath = EditorUtility.SaveFolderPanel("Select Save Directory", m_Settings.ExtensionOutputDir, "");
+                        string selectedPath = EditorUtility.SaveFolderPanel("Select Save Directory", m_Settings.extensionOutputDir, "");
                         if (!string.IsNullOrEmpty(selectedPath))
                         {
-                            m_Settings.ExtensionOutputDir = "Assets" + selectedPath.Substring(Application.dataPath.Length);
+                            m_Settings.extensionOutputDir = "Assets" + selectedPath.Substring(Application.dataPath.Length);
                         }
                     }
-                    if (GUILayout.Button(Styles.GenerateButton, GUILayout.Width(120)))
+                    if (GUILayout.Button(Styles.GenerateButton, EditorStyles.miniButton, GUILayout.Width(80)))
                     {
                         GenerateAllExtensions();
                     }
                 }
-
+                
+                DrawModuleEditorSettings();
             }
             else
             {
                 EditorGUILayout.HelpBox(Styles.NoModuleDataMessage, MessageType.Warning);
             }
 
-            serializedObject.ApplyModifiedProperties();
             
-            if (assetHasChanged)
+            if (EditorGUI.EndChangeCheck())
             {
-                GameFeaturesSettings.Save();
+                GameFeaturesRunner.Instance.SetProfiles(GameFeaturesSettings.instance.ModuleProfile, GameFeaturesSettings.instance.ComponentProfile);
+                GameFeaturesRunner.Instance.skipRuntimeDependencyChecks = GameFeaturesSettings.instance.SkipRuntimeDependencyChecks;
+                serializedObject.ApplyModifiedProperties();
+                GameFeaturesSettings.instance.Save();
             }
         }
         
+        /// <summary>
+        /// 绘制模块编辑器设置
+        /// </summary>
+        private void DrawModuleEditorSettings()
+        {
+            var drawerTypes = TypeCache.GetTypesDerivedFrom<ModuleEditorDrawer>().Where(t => !t.IsAbstract && t.GetCustomAttribute<ModuleEditorDrawerAttribute>() != null);
+            foreach (var drawerType in drawerTypes)
+            {
+                m_Settings.GetOrCreateModuleEditor(drawerType);
+            }
+            
+            if (m_Settings.Drawers == null || m_Settings.Drawers.Count == 0)
+            {
+                EditorGUILayout.HelpBox("No module editor settings available.", MessageType.Info);
+                return;
+            }
+            
+            var tabTitles = new List<string>();
+            var drawersList = m_Settings.Drawers.ToList();
+            
+            var activeModuleTypes = new HashSet<Type>();
+            if (m_Settings.ModuleProfile != null && m_Settings.ModuleProfile.Modules != null)
+            {
+                foreach (var module in m_Settings.ModuleProfile.Modules)
+                {
+                    if (module != null)
+                    {
+                        activeModuleTypes.Add(module.GetType());
+                    }
+                }
+            }
+            
+            var moduleTypeToDrawer = new Dictionary<Type, ModuleEditorDrawer>();
+            foreach (var drawer in drawersList)
+            {
+                if (drawer != null)
+                {
+                    var attr = drawer.GetType().GetCustomAttribute<ModuleEditorDrawerAttribute>();
+                    if (attr != null)
+                    {
+                        moduleTypeToDrawer[attr.moduleType] = drawer;
+                    }
+                }
+            }
+            
+            var drawerActivationStatus = new List<bool>();
+            foreach (var drawer in drawersList)
+            {
+                if (drawer != null)
+                {
+                    var drawerType = drawer.GetType();
+                    var attr = drawerType.GetCustomAttribute<ModuleEditorDrawerAttribute>();
+                    bool isActive = attr != null && activeModuleTypes.Contains(attr.moduleType);
+                    drawerActivationStatus.Add(isActive);
+                    
+                    var moduleName = ObjectNames.NicifyVariableName(drawerType.Name);
+                    const string suffix = "Module";
+                    if (moduleName.EndsWith(suffix))
+                        moduleName = moduleName.Substring(0, moduleName.Length - suffix.Length);
+                        
+                    if (moduleName.Length > 20)
+                    {
+                        moduleName = $"{moduleName.Substring(0, 17)}...{moduleName.Substring(moduleName.Length - 3)}";
+                    }
+
+                    tabTitles.Add(moduleName);
+                }
+                else
+                {
+                    drawerActivationStatus.Add(false);
+                    tabTitles.Add("Unknown");
+                }
+            }
+            
+            int selectedIndex = m_TabPagerBox.Begin(tabTitles.ToArray());
+            
+            if (selectedIndex >= 0 && selectedIndex < drawersList.Count)
+            {
+                var selectedDrawer = drawersList[selectedIndex];
+                bool isDrawerActive = drawerActivationStatus[selectedIndex];
+                
+                if (selectedDrawer != null)
+                {
+                    using (new EditorGUI.DisabledGroupScope(!isDrawerActive))
+                    {
+                        EditorGUI.BeginChangeCheck();
+                        selectedDrawer.OnGUI();
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            EditorUtility.SetDirty(m_Settings);
+                            serializedObject.ApplyModifiedProperties();
+                        }
+                    }
+                }
+            }
+        
+            m_TabPagerBox.End();
+        }
+
         /// <summary>
         /// 生成所有扩展方法
         /// </summary>
         private void GenerateAllExtensions()
         {
-            if (!Directory.Exists(m_Settings.ExtensionOutputDir))
+            if (!Directory.Exists(m_Settings.extensionOutputDir))
             {
-                Directory.CreateDirectory(m_Settings.ExtensionOutputDir);
+                Directory.CreateDirectory(m_Settings.extensionOutputDir);
             }
 
             string tempFolder = Path.Combine(Application.temporaryCachePath, "GameFeaturesExtensionsTemp");
@@ -227,7 +324,7 @@ namespace VerveEditor.UniEx
                             {
                                 string fileName = $"{moduleType.Name}Extensions.cs";
                                 string tempFilePath = Path.Combine(tempFolder, fileName);
-                                string targetFilePath = Path.Combine(m_Settings.ExtensionOutputDir, fileName);
+                                string targetFilePath = Path.Combine(m_Settings.extensionOutputDir, fileName);
                                 
                                 File.WriteAllText(tempFilePath, extensionCode);
                                 
@@ -244,7 +341,7 @@ namespace VerveEditor.UniEx
                 }
                 
                 AssetDatabase.Refresh();
-                Debug.Log($"Generated {generatedCount} extension classes, updated {updatedCount} files in {m_Settings.ExtensionOutputDir}");
+                Debug.Log($"Generated {generatedCount} extension classes, updated {updatedCount} files in {m_Settings.extensionOutputDir}");
             }
             catch (Exception ex)
             {
@@ -586,21 +683,21 @@ namespace VerveEditor.UniEx
             return type.Name;
         }
         
-        static GameFeaturesSettingsEditor()
-        {
-            EditorApplication.update += OnEditorUpdate;
-        }
-
-        private static void OnEditorUpdate()
-        {
-            if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isUpdating) return;
-
-            if (GameFeaturesSettings.GetOrCreateSettings().ModuleProfile != null)
-            {
-                GameFeaturesRunner.Instance.ComponentProfile = GameFeaturesSettings.GetOrCreateSettings().ComponentProfile;
-                GameFeaturesRunner.Instance.ModuleProfile = GameFeaturesSettings.GetOrCreateSettings().ModuleProfile;
-            }
-        }
+        // static GameFeaturesSettingsEditor()
+        // {
+        //     EditorApplication.update += OnEditorUpdate;
+        // }
+        //
+        // private static void OnEditorUpdate()
+        // {
+        //     if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isUpdating) return;
+        //
+        //     if (GameFeaturesSettings.GetOrCreateSettings().ModuleProfile != null)
+        //     {
+        //         GameFeaturesRunner.Instance.SetProfiles(GameFeaturesSettings.GetOrCreateSettings().ModuleProfile, GameFeaturesSettings.GetOrCreateSettings().ComponentProfile);
+        //         GameFeaturesRunner.Instance.skipRuntimeDependencyChecks = GameFeaturesSettings.GetOrCreateSettings().SkipRuntimeDependencyChecks;
+        //     }
+        // }
     }
 }
 

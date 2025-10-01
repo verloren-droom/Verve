@@ -1,0 +1,30 @@
+{
+    "name": "Verve.UniEx.ScriptRuntime",
+    "rootNamespace": "Verve.UniEx",
+    "references": [
+        "Verve.Core",
+        "Verve.UniEx",
+        "Verve.Loader",
+        "Verve.UniEx.Loader",
+        "Verve.Platform",
+        "Verve.UniEx.Platform",
+        "Verve.Serializable",
+        "Verve.UniEx.Serializable",
+        "Verve.Net",
+        "Verve.UniEx.Net",
+        "HybridCLR.Runtime",
+        "Verve.Application",
+        "Verve.UniEx.Application",
+        "Verve.File",
+        "Verve.UniEx.File"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

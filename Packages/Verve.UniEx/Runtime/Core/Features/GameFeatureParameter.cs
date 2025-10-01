@@ -37,7 +37,7 @@ namespace Verve.UniEx
     [Serializable]
     public class GameFeatureParameter<T> : GameFeatureParameter, IEquatable<GameFeatureParameter<T>>
     {
-        [SerializeField, HideInInspector] protected T m_Value;
+        [SerializeField] protected T m_Value;
         
         public virtual T Value
         {
@@ -86,15 +86,15 @@ namespace Verve.UniEx
             }
         }
         
-        public static implicit operator T(GameFeatureParameter<T> parameter) => parameter.m_Value;
+        public static implicit operator T(GameFeatureParameter<T> parameter) => parameter.Value;
     }
     
     
     [Serializable]
     public class ClampedFloatParameter : GameFeatureParameter<float>
     {
-        [NonSerialized] public float maxValue;
-        [NonSerialized] public float minValue;
+        [NonSerialized] public readonly float minValue;
+        [NonSerialized] public readonly float maxValue;
         
         public override float Value
         {
@@ -102,11 +102,69 @@ namespace Verve.UniEx
             set => m_Value = Mathf.Clamp(value, minValue, maxValue);
         }
 
-        public ClampedFloatParameter(float value, float min, float max, bool overrideState = false) 
+        public ClampedFloatParameter(float value, float min, float max) 
             : base(value)
         {
             minValue = min;
             maxValue = max;
+        }
+    }
+    
+    
+    [Serializable]
+    public class ClampedIntParameter : GameFeatureParameter<int>
+    {
+        [NonSerialized] public readonly int minValue;
+        [NonSerialized] public readonly int maxValue;
+        
+        public override int Value
+        {
+            get => m_Value;
+            set => m_Value = Mathf.Clamp(value, minValue, maxValue);
+        }
+
+        public ClampedIntParameter(int value, int min, int max) 
+            : base(value)
+        {
+            minValue = min;
+            maxValue = max;
+        }
+    }
+
+    
+    [Serializable]
+    public class PathParameter : GameFeatureParameter<string>
+    {
+        /// <summary> 路径前缀 </summary>
+        public string prefix = "";
+        
+        public override string Value
+        {
+            get
+            {
+                if (!m_Value.StartsWith(prefix))
+                {
+                    return System.IO.Path.Combine(prefix, m_Value).Replace("\\", "/");
+                }
+                return m_Value;
+            }
+            set
+            {
+                if (value.StartsWith(prefix))
+                {
+                    m_Value = value.Replace("\\", "/");
+                }
+                else
+                {
+                    m_Value = System.IO.Path.Combine(prefix, value).Replace("\\", "/");
+                }
+            }
+        }
+
+        public PathParameter(string defaultPath = "") 
+            : base(defaultPath)
+        {
+
         }
     }
 }

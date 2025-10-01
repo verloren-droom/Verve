@@ -16,7 +16,9 @@
         "Verve.MVC",
         "Verve.Debug"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,

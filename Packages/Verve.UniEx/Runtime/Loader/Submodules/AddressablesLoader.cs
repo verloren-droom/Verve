@@ -6,6 +6,7 @@ namespace Verve.UniEx.Loader
     using System.Linq;
     using UnityEngine;
     using Verve.Loader;
+    using System.Threading;
     using System.Collections;
     using System.Threading.Tasks;
     using System.Collections.Generic;
@@ -18,13 +19,22 @@ namespace Verve.UniEx.Loader
     /// 可寻址资源加载器
     /// </summary>
     [System.Serializable, GameFeatureSubmodule(typeof(LoaderGameFeature), Description = "可寻址资源加载器")]
-    public sealed partial class AddressablesLoader : LoaderSubmodule
+    public sealed partial class AddressablesLoader : LoaderSubmodule, IHotUpdateUpdater
     {
         private readonly Dictionary<string, AsyncOperationHandle> m_AssetHandles = new Dictionary<string, AsyncOperationHandle>();
         private readonly Dictionary<string, AsyncOperationHandle> m_SceneHandles = new Dictionary<string, AsyncOperationHandle>();
-        
 
-        public async Task<IEnumerable<string>> CheckForUpdatesAsync()
+        protected override IEnumerator OnStartup()
+        {
+            return base.OnStartup();
+        }
+
+        /// <summary>
+        /// 检查更新
+        /// </summary>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        public async Task<IEnumerable<string>> CheckForUpdatesAsync(CancellationToken ct = default)
         {
             var handle = Addressables.CheckForCatalogUpdates(false);
             await handle.Task;
@@ -37,35 +47,81 @@ namespace Verve.UniEx.Loader
             return null;
         }
 
-        public async Task ApplyUpdatesAsync()
+        /// <summary>
+        /// 应用更新
+        /// </summary>
+        /// <param name="catalogs">要更新的目录列表</param>
+        /// <param name="onProgress">进度回调函数，参数为进度百分比</param>
+        /// <param name="ct">取消令牌</param>
+        public async Task ApplyUpdatesAsync(IEnumerable<string> catalogs, Action<float> onProgress = null, CancellationToken ct = default)
         {
-            var catalogs = await CheckForUpdatesAsync();
-            if (catalogs == null || !catalogs.Any()) return;
-            
-            var updateHandle = Addressables.UpdateCatalogs(catalogs);
-            await updateHandle.Task;
-    
-            if (updateHandle.Status != AsyncOperationStatus.Succeeded)
+            if (catalogs == null || !catalogs.Any()) 
             {
-                Addressables.Release(updateHandle);
                 return;
             }
-            var resourceLocators = updateHandle.Result;
             
+            var updateHandle = Addressables.UpdateCatalogs(catalogs);
+            while (!updateHandle.IsDone && !ct.IsCancellationRequested)
+            {
+                onProgress?.Invoke(updateHandle.PercentComplete * 0.3f);
+                await Task.Yield();
+            }
+            
+            if (ct.IsCancellationRequested || updateHandle.Status != AsyncOperationStatus.Succeeded)
+            {
+                Addressables.Release(updateHandle);
+                onProgress?.Invoke(0f);
+                return;
+            }
+            
+            var resourceLocators = updateHandle.Result;
             var updateKeys = resourceLocators.SelectMany(x => x.Keys).Distinct();
             
             var sizeHandle = Addressables.GetDownloadSizeAsync(updateKeys);
+            while (!sizeHandle.IsDone && !ct.IsCancellationRequested)
+            {
+                onProgress?.Invoke(0.3f + sizeHandle.PercentComplete * 0.1f);
+                await Task.Yield();
+            }
+            
+            if (ct.IsCancellationRequested)
+            {
+                Addressables.Release(sizeHandle);
+                Addressables.Release(updateHandle);
+                onProgress?.Invoke(0f);
+                return;
+            }
+            
             var downloadSize = await sizeHandle.Task;
             Addressables.Release(sizeHandle);
             
             if (downloadSize > 0)
             {
                 var downloadHandle = Addressables.DownloadDependenciesAsync(updateKeys, Addressables.MergeMode.Union);
-        
+                
+                while (!downloadHandle.IsDone && !ct.IsCancellationRequested)
+                {
+                    onProgress?.Invoke(0.4f + downloadHandle.PercentComplete * 0.6f);
+                    await Task.Yield();
+                }
+                
+                if (ct.IsCancellationRequested)
+                {
+                    Addressables.Release(downloadHandle);
+                    Addressables.Release(updateHandle);
+                    onProgress?.Invoke(0f);
+                    return;
+                }
+                
                 await downloadHandle.Task;
-
                 Addressables.Release(downloadHandle);
+                onProgress?.Invoke(1f);
             }
+            else
+            {
+                onProgress?.Invoke(1f);
+            }
+            
             Addressables.Release(updateHandle);
         }
 

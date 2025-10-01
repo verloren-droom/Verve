@@ -19,12 +19,15 @@ namespace Verve.UniEx
     [DisallowMultipleComponent, ExecuteAlways, DefaultExecutionOrder(-1000), AddComponentMenu("Verve/Game Features Runner")]
     public sealed class GameFeaturesRunner : ComponentInstanceBase<GameFeaturesRunner>
     {
-        [SerializeField, Tooltip("需启动模块")] private List<GameFeatureModule> m_Modules = new List<GameFeatureModule>();
-
-        [Tooltip("功能模块管理")] public GameFeatureModuleProfile ModuleProfile;
-        [Tooltip("功能组件管理")] public GameFeatureComponentProfile ComponentProfile;
+        [SerializeField, HideInInspector, Tooltip("需启动模块")] private List<GameFeatureModule> m_Modules = new List<GameFeatureModule>();
+        [SerializeField, HideInInspector, Tooltip("功能模块管理")] private GameFeatureModuleProfile m_ModuleProfile;
+        [SerializeField, HideInInspector, Tooltip("功能组件管理")] private GameFeatureComponentProfile m_ComponentProfile;
+        [SerializeField, HideInInspector, Tooltip("是否在运行时跳过依赖检查")] public bool skipRuntimeDependencyChecks;
         
         private IGameFeatureContext m_Context;
+        
+        public GameFeatureComponentProfile ComponentProfile => m_ComponentProfile;
+        public GameFeatureModuleProfile ModuleProfile => m_ModuleProfile;
 
         #region 存储子模块
 
@@ -102,7 +105,7 @@ namespace Verve.UniEx
         
         private void OnEnable()
         {
-            Assert.IsNotNull(ModuleProfile, "Game feature modules profile is null!");
+            // Assert.IsNotNull(m_ModuleProfile, "Game feature modules profile is null!");
             if (m_StartupCoroutine != null)
             {
                 StopCoroutine(m_StartupCoroutine);
@@ -113,6 +116,8 @@ namespace Verve.UniEx
 
         private void Update()
         {
+            if (m_ModuleProfile == null || m_ComponentProfile == null) return;
+            // Assert.IsNotNull(m_ModuleProfile, "Game feature modules profile is null!");
             m_Context = GameFeatureContext.Default;
             
             if (m_Modules.Count != m_LastModuleCount)
@@ -128,11 +133,11 @@ namespace Verve.UniEx
                 ProcessPendingModules();
             }
             
-            if (ModuleProfile.isDirty || ComponentProfile.isDirty)
+            if (m_ModuleProfile.isDirty || m_ComponentProfile.isDirty)
             {
                 RefreshAllModules();
-                ModuleProfile.isDirty = false;
-                ComponentProfile.isDirty = false;
+                m_ModuleProfile.isDirty = false;
+                m_ComponentProfile.isDirty = false;
             }
             
             if (m_NeedsRebuild)
@@ -160,6 +165,27 @@ namespace Verve.UniEx
             OnModuleAdded = null;
             OnModuleRemoved = null;
             ShutdownAllModules();
+            if (m_StartupCoroutine != null)
+            {
+                StopCoroutine(m_StartupCoroutine);
+                m_StartupCoroutine = null;
+            }
+        }
+        
+        /// <summary>
+        /// 设置配置文件
+        /// </summary>
+        /// <param name="moduleProfile">模块配置</param>
+        /// <param name="componentProfile">组件配置</param>
+        public void SetProfiles(GameFeatureModuleProfile moduleProfile, GameFeatureComponentProfile componentProfile)
+        {
+            m_ModuleProfile = moduleProfile;
+            m_ComponentProfile = componentProfile;
+            
+            if (moduleProfile != null && componentProfile != null)
+            {
+                RefreshAllModules();
+            }
         }
         
         /// <summary>
@@ -186,6 +212,19 @@ namespace Verve.UniEx
             if (m_PendingModulesToAdd.Count > 0)
             {
                 AddModulesWithDependencies();
+                
+                // BUG: 这里暂时移除对依赖关系的处理
+                // foreach (var module in m_PendingModulesToAdd)
+                // {
+                //     if (m_PendingModulesToAdd.Contains(module) && 
+                //         !m_Modules.Contains(module))
+                //     {
+                //         m_Modules.Add(module);
+                //         StartupModule(module);
+                //         OnModuleAdded?.Invoke(module);
+                //     }
+                // }
+
                 m_PendingModulesToAdd.Clear();
                 m_NeedsRebuild = true;
             }
@@ -310,19 +349,18 @@ namespace Verve.UniEx
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void AddModulesWithDependencies()
         {
-            if (ModuleProfile.Modules == null) return;
+            if (m_ModuleProfile.Modules == null) return;
             
-            foreach (var module in ModuleProfile.Modules)
+            foreach (GameFeatureModule module in m_ModuleProfile.Modules)
             {
-                if (module is GameFeatureModule m && 
-                    m_PendingModulesToAdd.Contains(m) && 
-                    !m_Modules.Contains(m))
+                if (m_PendingModulesToAdd.Contains(module) && 
+                    !m_Modules.Contains(module))
                 {
-                    AddDependenciesIfNeeded(m);
+                    AddDependenciesIfNeeded(module);
                     
-                    m_Modules.Add(m);
-                    StartupModule(m);
-                    OnModuleAdded?.Invoke(m);
+                    m_Modules.Add(module);
+                    StartupModule(module);
+                    OnModuleAdded?.Invoke(module);
                 }
             }
         }
@@ -330,7 +368,7 @@ namespace Verve.UniEx
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void AddDependenciesIfNeeded(GameFeatureModule module)
         {
-            var dependencies = ModuleProfile.GetDependencies(module.GetType());
+            var dependencies = m_ModuleProfile.GetDependencies(module.GetType());
             foreach (var dependencyType in dependencies)
             {
                 bool dependencyExists = m_Modules.Any(existingModule => 
@@ -338,7 +376,7 @@ namespace Verve.UniEx
                 
                 if (!dependencyExists)
                 {
-                    var dependencyModule = ModuleProfile.Modules.FirstOrDefault(
+                    var dependencyModule = m_ModuleProfile.Modules.FirstOrDefault(
                         m => m is GameFeatureModule gameModule && 
                              gameModule.GetType() == dependencyType) as GameFeatureModule;
                     
@@ -368,7 +406,6 @@ namespace Verve.UniEx
             
             var asyncStartups = new List<IEnumerator>();
             
-            // 按依赖顺序初始化模块
             var initializedModules = new HashSet<Type>();
             var modulesToInitialize = new Queue<GameFeatureModule>();
             
@@ -389,7 +426,7 @@ namespace Verve.UniEx
                 var module = modulesToInitialize.Dequeue();
                 var moduleType = module.GetType();
                 
-                var dependencies = ModuleProfile.GetDependencies(moduleType);
+                var dependencies = m_ModuleProfile.GetDependencies(moduleType);
                 bool allDependenciesInitialized = dependencies.All(initializedModules.Contains);
                 
                 if (!allDependenciesInitialized)
@@ -645,12 +682,12 @@ namespace Verve.UniEx
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void BindComponentToSubmodule(IGameFeatureSubmodule sub)
         {
-            if (ComponentProfile == null) return;
+            if (m_ComponentProfile == null) return;
             
             if (sub is IComponentGameFeatureSubmodule componentSub)
             {
                 var componentType = componentSub.ComponentType;
-                if (componentType != null && ComponentProfile.TryGet(componentType, out var component))
+                if (componentType != null && m_ComponentProfile.TryGet(componentType, out var component))
                 {
                     componentSub.SetComponent(component);
                 }
@@ -664,7 +701,7 @@ namespace Verve.UniEx
         private bool CheckDependencies(object target)
         {
 #if !UNITY_EDITOR
-            if (GameFeaturesSettings.GetOrCreateSettings().SkipRuntimeDependencyChecks) 
+            if (skipRuntimeDependencyChecks) 
                 return true;
 #endif
             
@@ -711,13 +748,13 @@ namespace Verve.UniEx
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void AddModule(GameFeatureModule module)
+        internal void AddModule(GameFeatureModule module)
         {
-            if (module == null || m_Modules.Contains(module) || !ModuleProfile.Has(module)) return;
+            if (module == null || m_Modules.Contains(module)) return;
+            // if (!m_ModuleProfile.Has(module)) return;
             
             m_PendingModulesToAdd.Add(module);
             m_PendingModulesToRemove.Remove(module);
-            OnModuleAdded?.Invoke(module);
         }
         
         /// <summary>
@@ -726,10 +763,10 @@ namespace Verve.UniEx
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool AddModule(string menuPath)
         {
-            if (string.IsNullOrEmpty(menuPath) || ModuleProfile == null)
+            if (string.IsNullOrEmpty(menuPath) || m_ModuleProfile == null)
                 return false;
             
-            if (ModuleProfile.MenuPathLookup.TryGetValue(menuPath, out var module))
+            if (m_ModuleProfile.MenuPathLookup.TryGetValue(menuPath, out var module))
             {
                 AddModule(module);
                 return true;
@@ -739,13 +776,12 @@ namespace Verve.UniEx
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void RemoveModule(GameFeatureModule module)
+        internal void RemoveModule(GameFeatureModule module)
         {
             if (module == null || !m_Modules.Contains(module)) return;
             
             m_PendingModulesToRemove.Add(module);
             m_PendingModulesToAdd.Remove(module);
-            OnModuleRemoved?.Invoke(module);
         }
         
         /// <summary>
@@ -756,7 +792,7 @@ namespace Verve.UniEx
         {
             if (string.IsNullOrEmpty(menuPath)) return false;
             
-            if (ModuleProfile.MenuPathLookup.TryGetValue(menuPath, out var module))
+            if (m_ModuleProfile.MenuPathLookup.TryGetValue(menuPath, out var module))
             {
                 RemoveModule(module);
                 return true;
@@ -766,7 +802,7 @@ namespace Verve.UniEx
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetModuleActive(GameFeatureModule module, bool isActive)
+        internal void SetModuleActive(GameFeatureModule module, bool isActive)
         {
             if (module == null || !m_Modules.Contains(module)) return;
             
@@ -786,7 +822,7 @@ namespace Verve.UniEx
             if (string.IsNullOrEmpty(menuPath))
                 return false;
             
-            if (ModuleProfile.MenuPathLookup.TryGetValue(menuPath, out var module))
+            if (m_ModuleProfile.MenuPathLookup.TryGetValue(menuPath, out var module))
             {
                 SetModuleActive(module, isActive);
                 return true;
@@ -796,7 +832,7 @@ namespace Verve.UniEx
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool GetModuleActive(GameFeatureModule module)
+        internal bool GetModuleActive(GameFeatureModule module)
         {
             if (module == null || !m_Modules.Contains(module)) return false;
             
@@ -812,7 +848,7 @@ namespace Verve.UniEx
             if (string.IsNullOrEmpty(menuPath))
                 return false;
             
-            if (ModuleProfile.MenuPathLookup.TryGetValue(menuPath, out var module))
+            if (m_ModuleProfile.MenuPathLookup.TryGetValue(menuPath, out var module))
             {
                 return GetModuleActive(module);
             }

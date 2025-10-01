@@ -8,8 +8,9 @@ namespace Verve.UniEx.File
     [System.Serializable, GameFeatureComponentMenu("Verve/File")]
     public sealed class FileGameComponent : GameFeatureComponent
     {
-        [SerializeField, Tooltip("文件根目录")] private GameFeatureParameter<string> m_RootPath = new GameFeatureParameter<string>("/");
-        public string RootPath => m_RootPath.Value;
+        [SerializeField, Tooltip("根文件夹")] private PathParameter m_RootFolder = new PathParameter();
+        /// <summary> 根文件夹 </summary>
+        public string RootFolder => m_RootFolder.Value;
     }
 }
 

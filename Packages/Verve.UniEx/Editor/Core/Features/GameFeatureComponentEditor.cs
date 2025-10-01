@@ -3,11 +3,14 @@
 namespace VerveEditor.UniEx
 {
     using Verve;
+    using System;
     using Verve.UniEx;
     using UnityEditor;
     using UnityEngine;
     using System.Linq;
     using System.Reflection;
+    using System.Collections.Generic;
+    using UnityEditorInternal;
 
     
     [CustomEditor(typeof(GameFeatureComponent), true), CanEditMultipleObjects]
@@ -27,13 +30,32 @@ namespace VerveEditor.UniEx
             public static string NoParametersInfo { get; } = L10n.Tr("No parameter found in this component.");
             public static string ComponentNotSupportMultiEditInfo { get; } = L10n.Tr("Component cannot be edited in multi-editing mode.");
         }
+        
+        private static readonly Dictionary<Type, GameFeatureParameterDrawer> s_ParameterDrawers = new Dictionary<Type, GameFeatureParameterDrawer>();
+        
+        
+        static GameFeatureComponentEditor()
+        {
+            var drawerTypes = TypeCache.GetTypesDerivedFrom<GameFeatureParameterDrawer>().Where(type => type.IsClass && !type.IsAbstract).ToArray();
 
+            foreach (var drawerType in drawerTypes)
+            {
+                var attribute = drawerType.GetCustomAttribute<GameFeatureParameterDrawerAttribute>();
+                if (attribute != null && !s_ParameterDrawers.ContainsKey(attribute.parameterType))
+                {
+                    if (Activator.CreateInstance(drawerType) is GameFeatureParameterDrawer drawerInstance)
+                    {
+                        s_ParameterDrawers[attribute.parameterType] = drawerInstance;
+                    }
+                }
+            }
+        }
         
         private void OnEnable()
         {
             m_Component = target as GameFeatureComponent;
             
-            var parameterFields = m_Component.GetType()
+            var parameterFields = m_Component?.GetType()
                 .GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 .Where(f => typeof(IGameFeatureParameter).IsAssignableFrom(f.FieldType))
                 .Select(f => f.Name)
@@ -86,16 +108,29 @@ namespace VerveEditor.UniEx
                 
                 if (parameterProperty != null)
                 {
-                    SerializedProperty valueProperty = parameterProperty.FindPropertyRelative("m_Value");
+                    EditorGUI.BeginChangeCheck();
                     
+                    SerializedProperty valueProperty = parameterProperty.FindPropertyRelative("m_Value");
+
                     if (valueProperty != null)
                     {
-                        EditorGUI.BeginChangeCheck();
-                        EditorGUILayout.PropertyField(valueProperty, new GUIContent(fieldName), true);
-                        if (EditorGUI.EndChangeCheck())
+                        if (s_ParameterDrawers.TryGetValue(field.FieldType, out var drawer))
                         {
-                            parameterProperty.serializedObject.ApplyModifiedProperties();
+                            drawer.OnGUI(new SerializedDataParameter(parameterProperty), new GUIContent(fieldName, parameterProperty.tooltip));
                         }
+                        else
+                        {
+                            EditorGUILayout.PropertyField(valueProperty, new GUIContent(fieldName, parameterProperty.tooltip), true);
+                        }
+                    }
+                    else
+                    {
+                        EditorGUILayout.PropertyField(parameterProperty, new GUIContent(fieldName, parameterProperty.tooltip), true);
+                    }
+                    
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        parameterProperty.serializedObject.ApplyModifiedProperties();
                     }
                 }
             }

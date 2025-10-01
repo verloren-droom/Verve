@@ -23,7 +23,7 @@ namespace Verve.UniEx.File
             {
                 if (string.IsNullOrEmpty(m_rootPath))
                 {
-                    m_rootPath = Component.RootPath;
+                    m_rootPath = Component.RootFolder;
                 }
                 return m_rootPath;
             }

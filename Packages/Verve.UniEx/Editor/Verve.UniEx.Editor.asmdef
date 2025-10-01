@@ -20,7 +20,9 @@
         "Verve.UniEx.Loader",
         "Verve.UniEx.Gameplay",
         "Verve.Debug",
-        "Verve.UniEx.Debug"
+        "Verve.UniEx.Debug",
+        "Verve.UniEx.ScriptRuntime",
+        "HybridCLR.Editor"
     ],
     "includePlatforms": [
         "Editor"

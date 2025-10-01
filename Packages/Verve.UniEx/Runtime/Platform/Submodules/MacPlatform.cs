@@ -4,6 +4,7 @@ namespace Verve.UniEx.Platform
 {
     using System;
     using UnityEngine;
+    using System.Text;
     using System.Runtime.InteropServices;
     
     
@@ -13,82 +14,124 @@ namespace Verve.UniEx.Platform
     [Serializable, GameFeatureSubmodule(typeof(PlatformGameFeature), Description = "Mac平台")]
     public sealed class MacPlatform : GenericPlatform
     {
-        private delegate void DialogCallback(bool result);
-        private static DialogCallback s_currentCallback;
-        
-        [DllImport("__Internal", EntryPoint = "_ShowDialog")]
-        private static extern void _ShowDialog(
+        [DllImport("__Internal")]
+        private static extern int _ShowDialog(
             IntPtr title,
             IntPtr message,
-            IntPtr okText,
-            IntPtr cancelText,
-            IntPtr callback);
-    
-        public static void ShowDialog(string title, string message, string okText = "确定")
+            IntPtr defaultButton,
+            IntPtr alternateButton);
+        
+        [DllImport("__Internal")]
+        private static extern int _ShowDialog(
+            string title,
+            string message,
+            string defaultButton,
+            string alternateButton);
+
+        public override void ShowDialog(string title, string message, string okText = "确定")
         {
             ShowDialog(title, message, null, okText, null);
         }
-    
-        public static void ShowDialog(string title, string message, Action<bool> onResult, 
+
+        public override void ShowDialog(string title, string message, Action<bool> onResult = null, 
             string okText = "确定", string cancelText = "取消")
         {
-            s_currentCallback = new DialogCallback((result) => {
-                onResult?.Invoke(result);
-                s_currentCallback = null;
-            });
-
-            using var titlePtr = new Utf8StringPtr(title);
-            using var messagePtr = new Utf8StringPtr(message);
-            using var okTextPtr = new Utf8StringPtr(okText);
-            using var cancelTextPtr = new Utf8StringPtr(cancelText);
+            if (!Application.isPlaying) 
+            {
+                onResult?.Invoke(false);
+                return;
+            }
+            
+            IntPtr titlePtr = IntPtr.Zero;
+            IntPtr messagePtr = IntPtr.Zero;
+            IntPtr okTextPtr = IntPtr.Zero;
+            IntPtr cancelTextPtr = IntPtr.Zero;
+            
+            string safeTitle = string.IsNullOrEmpty(title) ? "Dialog" : title;
+            string safeMessage = string.IsNullOrEmpty(message) ? "" : message;
+            string safeOkText = string.IsNullOrEmpty(okText) ? "OK" : okText;
+            string safeCancelText = string.IsNullOrEmpty(cancelText) ? null : cancelText;
+            
             try
             {
-                var callbackPtr = Marshal.GetFunctionPointerForDelegate(s_currentCallback);
-                _ShowDialog(
+                titlePtr = StringToUtf8Ptr(safeTitle);
+                messagePtr = StringToUtf8Ptr(safeMessage);
+                okTextPtr = StringToUtf8Ptr(safeOkText);
+                cancelTextPtr = StringToUtf8Ptr(safeCancelText);
+                
+                if (titlePtr == IntPtr.Zero || messagePtr == IntPtr.Zero || okTextPtr == IntPtr.Zero)
+                {
+                    onResult?.Invoke(false);
+                    return;
+                }
+                
+                int dialogResult = _ShowDialog(
                     titlePtr,
                     messagePtr,
                     okTextPtr,
-                    string.IsNullOrEmpty(cancelText) ? IntPtr.Zero : cancelTextPtr,
-                    callbackPtr
+                    cancelTextPtr
                 );
+                
+                onResult?.Invoke(dialogResult == 0);
             }
             catch
             {
                 onResult?.Invoke(false);
-                s_currentCallback = null;
+            }
+            finally
+            {
+                FreeUtf8Ptr(titlePtr);
+                FreeUtf8Ptr(messagePtr);
+                FreeUtf8Ptr(okTextPtr);
+                FreeUtf8Ptr(cancelTextPtr);
             }
         }
-    }
-    
-    
-    internal sealed class Utf8StringPtr : IDisposable
-    {
-        private readonly IntPtr m_Ptr;
-        private readonly int m_Length;
-    
-        internal Utf8StringPtr(string str)
+        
+        /// <summary>
+        /// 将字符串转换为UTF8编码的非托管内存指针
+        /// </summary>
+        private static IntPtr StringToUtf8Ptr(string str)
         {
             if (string.IsNullOrEmpty(str))
+                return IntPtr.Zero;
+                
+            try
             {
-                m_Ptr = IntPtr.Zero;
-                m_Length = 0;
-                return;
+                byte[] bytes = Encoding.UTF8.GetBytes(str);
+                IntPtr ptr = Marshal.AllocHGlobal(bytes.Length + 1);
+                Marshal.Copy(bytes, 0, ptr, bytes.Length);
+                Marshal.WriteByte(ptr, bytes.Length, 0); // 添加null终止符
+                
+                string roundTrip = Marshal.PtrToStringUTF8(ptr);
+                if (roundTrip != str)
+                {
+                    Debug.LogWarning($"[MacPlatform] String round-trip mismatch: '{str}' -> '{roundTrip}'");
+                }
+                
+                return ptr;
             }
-        
-            byte[] bytes = System.Text.Encoding.UTF8.GetBytes(str);
-            m_Length = bytes.Length;
-            m_Ptr = Marshal.AllocHGlobal(m_Length + 1);
-            Marshal.Copy(bytes, 0, m_Ptr, m_Length);
-            Marshal.WriteByte(m_Ptr, m_Length, 0);
-        }
-    
-        public static implicit operator IntPtr(Utf8StringPtr ptr) => ptr.m_Ptr;
-    
-        public void Dispose()
-        {
-            if (m_Ptr != IntPtr.Zero)
+            catch (Exception ex)
             {
-                Marshal.FreeHGlobal(m_Ptr);
+                Debug.LogError($"[MacPlatform] Failed to convert string '{str}' to pointer: {ex}");
+                return IntPtr.Zero;
+            }
+        }
+        
+        /// <summary>
+        /// 释放UTF8字符串指针
+        /// </summary>
+        private static void FreeUtf8Ptr(IntPtr ptr)
+        {
+            if (ptr != IntPtr.Zero)
+            {
+                try
+                {
+                    Marshal.FreeHGlobal(ptr);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[MacPlatform] Error freeing memory at {ptr}: {ex}");
+                }
             }
         }
     }

@@ -8,10 +8,12 @@ namespace Verve.UniEx.Debug
     using Verve.Debug;
     using System.Text;
     using System.Reflection;
+    using System.Diagnostics;
     using System.Collections;
     using System.Collections.Generic;
     using System.Text.RegularExpressions;
     using Object = UnityEngine.Object;
+    using Debug = UnityEngine.Debug;
 
 
     /// <summary>
@@ -25,7 +27,7 @@ namespace Verve.UniEx.Debug
         [NonSerialized, Tooltip("控制台输入")] private string m_ConsoleInput = "";
         [NonSerialized, Tooltip("控制台滚动位置")] private Vector2 m_ConsoleScrollPosition = Vector2.zero;
         [NonSerialized, Tooltip("输出是否折叠")] private bool m_OutputFoldout = true;
-        [NonSerialized, Tooltip("命令集")] private static readonly Dictionary<string, CommandInfo> s_Commands =
+        [NonSerialized, Tooltip("命令集")] private static Dictionary<string, CommandInfo> s_Commands =
             new Dictionary<string, CommandInfo>(StringComparer.OrdinalIgnoreCase);
 
         
@@ -55,7 +57,7 @@ namespace Verve.UniEx.Debug
         
         protected override IEnumerator OnStartup()
         {
-            FindAllConsoleCommand();
+            s_Commands = FindAllConsoleCommand();
             AddToConsoleOutput("调试控制台已启动，输入 'help' 查看可用命令。");
             yield return base.OnStartup();
         }
@@ -75,7 +77,6 @@ namespace Verve.UniEx.Debug
         {
             m_ConsoleVisible = false;
             m_ConsoleInput = "";
-            // m_ConsoleOutput?.Clear();
             base.OnShutdown();
         }
 
@@ -91,6 +92,7 @@ namespace Verve.UniEx.Debug
             GUIStyle inputStyle = new GUIStyle(GUI.skin.textField);
             inputStyle.normal.textColor = Color.white;
             inputStyle.focused.textColor = Color.white;
+            inputStyle.fontSize = 16;
             
             float consoleHeight = Screen.height / 3f;
             
@@ -115,7 +117,7 @@ namespace Verve.UniEx.Debug
                     GUIStyle labelStyle = new GUIStyle(GUI.skin.label);
                     labelStyle.normal.textColor = messageColor;
                     labelStyle.wordWrap = true;
-                    
+                    labelStyle.fontSize = 16;
                     GUILayout.Label($"[{message.Timestamp:F2}] {message.Text}", labelStyle);
                 }
                 
@@ -212,15 +214,21 @@ namespace Verve.UniEx.Debug
             
             AddToConsoleOutput($"> {m_ConsoleInput}");
             
-            object result = ExecuteCommand(m_ConsoleInput);
-
-            if (result != null)
+            try
             {
-                AddToConsoleOutput($"{result}");
+                object result = ExecuteCommand(m_ConsoleInput);
+    
+                if (result != null)
+                {
+                    AddToConsoleOutput($"{result}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddToConsoleOutput($"命令执行错误: {ex.Message}", LogLevel.Error);
             }
             
             m_ConsoleInput = "";
-            
             m_ConsoleScrollPosition = new Vector2(0, float.MaxValue);
         }
         
@@ -292,15 +300,16 @@ namespace Verve.UniEx.Debug
         /// <summary>
         /// 查找所有控制台命令
         /// </summary>
-        private static void FindAllConsoleCommand()
+        private static Dictionary<string, CommandInfo> FindAllConsoleCommand()
         {
-            s_Commands.Clear();
+            var commands = new Dictionary<string, CommandInfo>(StringComparer.OrdinalIgnoreCase);
             
             var assemblies = AppDomain.CurrentDomain.GetAssemblies()
                 .Where(a => !a.IsDynamic && 
                             !a.FullName.Contains("Unity") && 
                             !a.FullName.StartsWith("System.") && 
-                            !a.FullName.StartsWith("Microsoft."));
+                            !a.FullName.StartsWith("Microsoft.") &&
+                            !a.FullName.StartsWith("Mono."));
             
             foreach (var assembly in assemblies)
             {
@@ -316,9 +325,9 @@ namespace Verve.UniEx.Debug
                         {
                             var attr = method.GetCustomAttribute<ConsoleCommandAttribute>();
                             var commandKey = attr.Command.ToLower();
-                            if (s_Commands.ContainsKey(commandKey)) continue;
+                            if (commands.ContainsKey(commandKey)) continue;
 
-                            s_Commands.Add(commandKey, new CommandInfo()
+                            commands.Add(commandKey, new CommandInfo()
                             {
                                 Description = attr.Description,
                                 Method = method,
@@ -328,6 +337,8 @@ namespace Verve.UniEx.Debug
                 }
                 catch { }
             }
+
+            return commands;
         }
 
         /// <summary>
@@ -349,35 +360,28 @@ namespace Verve.UniEx.Debug
                 var parameters = info.Method.GetParameters();
                 object[] convertedArgs = new object[parameters.Length];
                 
-                try
+                for (int i = 0; i < parameters.Length; i++)
                 {
-                    for (int i = 0; i < parameters.Length; i++)
+                    if (i < args.Length)
                     {
-                        if (i < args.Length)
+                        if (args[i].StartsWith("\"") && args[i].EndsWith("\""))
                         {
-                            if (args[i].StartsWith("\"") && args[i].EndsWith("\""))
-                            {
-                                args[i] = args[i].Substring(1, args[i].Length - 2);
-                            }
-                            
-                            convertedArgs[i] = Convert.ChangeType(args[i], parameters[i].ParameterType);
+                            args[i] = args[i].Substring(1, args[i].Length - 2);
                         }
-                        else if (parameters[i].HasDefaultValue)
-                        {
-                            convertedArgs[i] = parameters[i].DefaultValue;
-                        }
-                        else
-                        {
-                            return $"参数错误: 参数不足，需要 {parameters.Length} 个参数";
-                        }
+                        
+                        convertedArgs[i] = Convert.ChangeType(args[i], parameters[i].ParameterType);
                     }
+                    else if (parameters[i].HasDefaultValue)
+                    {
+                        convertedArgs[i] = parameters[i].DefaultValue;
+                    }
+                    else
+                    {
+                        return $"参数错误: 参数不足，需要 {parameters.Length} 个参数";
+                    }
+                }
 
-                    return info.Method.Invoke(null, convertedArgs);
-                }
-                catch (Exception ex)
-                {
-                    return $"执行错误: {ex.Message}";
-                }
+                return info.Method.Invoke(null, convertedArgs);
             }
 
             return $"未知命令: {command}";
@@ -438,9 +442,11 @@ namespace Verve.UniEx.Debug
         [ConsoleCommand("gc", "执行垃圾回收")]
         private static string GCCommand()
         {
+            long startMem = GC.GetTotalMemory(false);
             GC.Collect();
             GC.WaitForPendingFinalizers();
-            return "垃圾回收已完成";
+            long endMem = GC.GetTotalMemory(true);
+            return $"垃圾回收完成 | 释放: {(startMem - endMem)/1024:F1}KB | 当前: {endMem/1024:F1}KB";
         }
 
         [ConsoleCommand("volume", "设置全局音量（格式: volume [0.0 - 1.0]）")]
@@ -466,29 +472,20 @@ namespace Verve.UniEx.Debug
                 return $"分辨率错误: 宽或高过低";
             
             Screen.SetResolution(width, height, fullscreen);
-            return $"分辨率已设置: {width}x{height} {(fullscreen ? "全屏" : "窗口")}";
+            return $"分辨率已设置: {Screen.width}x{Screen.height} {(fullscreen ? "全屏" : "窗口")}";
         }
         
         [ConsoleCommand("ping", "测试网络延迟（格式: ping [地址]）")]
         private static string PingCommand(string host = "8.8.8.8")
         {
             if (Application.platform == RuntimePlatform.WebGLPlayer)
-                return "WebGL平台不支持 ping 命令";
-                
-            try
-            {
-                using (var ping = new System.Net.NetworkInformation.Ping())
-                {
-                    var reply = ping.Send(host, 2000);
-                    return reply.Status == System.Net.NetworkInformation.IPStatus.Success
-                        ? $"{host} 延迟: {reply.RoundtripTime}ms (TTL: {reply.Options.Ttl})"
-                        : $"无法 ping 通 {host}: {reply.Status}";
-                }
-            }
-            catch (Exception e)
-            {
-                return $"ping 错误: {e.Message}";
-            }
+                return "WebGL平台不支持网络诊断命令";
+            
+            using var ping = new System.Net.NetworkInformation.Ping();
+            var reply = ping.Send(host, 2000);
+            return reply.Status == System.Net.NetworkInformation.IPStatus.Success
+                ? $"{host} 延迟: {reply.RoundtripTime}ms (TTL: {reply.Options.Ttl})"
+                : $"无法 ping 通 {host}: {reply.Status}";
         }
 
         [ConsoleCommand("quit", "退出应用程序")]

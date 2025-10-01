@@ -61,12 +61,12 @@ namespace Verve.UniEx
     }
 
     
-    public class CoroutineRunner : ComponentInstanceBase<CoroutineRunner>
+    internal class CoroutineRunner : ComponentInstanceBase<CoroutineRunner>
     {
         protected override void OnInitialized()
         {
             base.OnInitialized();
-            Instance.gameObject.hideFlags = HideFlags.HideAndDontSave;
+            gameObject.hideFlags = HideFlags.HideAndDontSave;
         }
     }
 }
