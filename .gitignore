@@ -79,3 +79,4 @@ crashlytics-build.properties
 /[Aa]ssets/.[Cc]ache/
 /[Aa]ssets/.[Tt]emp/
 /[Aa]ssets/[Pp]ackages/
+/[Ss]erverData/

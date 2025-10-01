@@ -16,5 +16,6 @@
 - [NuGetForUnity](https://github.com/GlitchEnzo/NuGetForUnity)
 - [ProtoBuf](https://github.com/protobuf-net/protobuf-net)
 - [Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)
+- [HybridCLR](https://github.com/focus-creative-games/hybridclr)
 - `Unity.Addressables`
 - `Unity.InputSystem`
