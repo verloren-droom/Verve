@@ -2,7 +2,6 @@
 
 namespace Verve.UniEx.Audio
 {
-    using Verve;
     using UnityEngine;
     using UnityEngine.Audio;
     using System.Collections;
@@ -10,9 +9,9 @@ namespace Verve.UniEx.Audio
     
     
     /// <summary>
-    /// 音乐子模块
+    /// 音乐子模块 - 提供背景音乐播放与控制
     /// </summary>
-    [System.Serializable, GameFeatureSubmodule(typeof(AudioGameFeature), Description = "音乐子模块")]
+    [System.Serializable, GameFeatureSubmodule(typeof(AudioGameFeature), Description = "音乐子模块 - 提供背景音乐播放与控制")]
     public sealed partial class MusicSubmodule : AudioSubmodule
     {
         private AudioSource m_Source;
@@ -29,7 +28,7 @@ namespace Verve.UniEx.Audio
 
         protected override IEnumerator OnStartup()
         {
-            if (UnityEngine.Application.isPlaying)
+            if (Application.isPlaying)
             {
                 m_Source = new GameObject($"[{nameof(MusicSubmodule)}]").AddComponent<AudioSource>();
                 m_Source.outputAudioMixerGroup = Component.MusicGroup;
@@ -45,7 +44,14 @@ namespace Verve.UniEx.Audio
         {
             if (m_Source != null)
             {
-                GameObject.Destroy(m_Source.gameObject);
+                if (Application.isPlaying)
+                {
+                    GameObject.Destroy(m_Source);
+                }
+                else
+                {
+                    GameObject.DestroyImmediate(m_Source);
+                }
             }
         }
 
@@ -62,14 +68,6 @@ namespace Verve.UniEx.Audio
             m_Source.gameObject.name = $"[{nameof(MusicSubmodule)}] [{clip.name}]";
             m_Source.Play();
             await FadeIn(fadeDuration);
-        }
-
-        public async Task Play(
-            string path,
-            [ModuleMethodBridge("LoaderGameFeature", "AddressablesLoader", "LoadAssetAsync")] IAudio.LoadAudioAssetAsync loadAssetAsync, 
-            float fadeDuration = 0)
-        {
-            await Play(await loadAssetAsync(path), fadeDuration);
         }
 
         public void Stop()
@@ -112,7 +110,7 @@ namespace Verve.UniEx.Audio
         /// <summary>
         /// 淡出效果
         /// </summary>
-        public async Task FadeOut(float duration)
+        private async Task FadeOut(float duration)
         {
             float timer = 0;
             m_LastVolume = Volume;

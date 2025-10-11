@@ -24,17 +24,17 @@ namespace Verve.UniEx.Timer
             if (index < 0) index = ~index;
 
             m_Timers.Insert(index, timer);
-            return timer.ID;
+            return timer.id;
         }
         
         public override void RemoveTimer(int id)
         {
-            m_Timers.RemoveAll(x => x.ID == id);
+            m_Timers.RemoveAll(x => x.id == id);
         }
         
         public override void RemoveTimer(Action onComplete)
         {
-            m_Timers.RemoveAll(x => x.OnComplete == onComplete);
+            m_Timers.RemoveAll(x => x.onComplete == onComplete);
         }
 
         protected override void OnTick(in GameFeatureContext ctx)
@@ -46,10 +46,10 @@ namespace Verve.UniEx.Timer
             var i = 0;
             while (i < m_Timers.Count)
             {
-                if (m_Timers[i].Duration > ElapsedTime) break;
+                if (m_Timers[i].duration > ElapsedTime) break;
 
                 TimerData timer = m_Timers[i];
-                var action = timer.OnComplete;
+                var action = timer.onComplete;
                 m_Timers.RemoveAt(i);
                 try { action?.Invoke(); }
                 catch { }

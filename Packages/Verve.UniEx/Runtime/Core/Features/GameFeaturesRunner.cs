@@ -106,6 +106,7 @@ namespace Verve.UniEx
         private void OnEnable()
         {
             // Assert.IsNotNull(m_ModuleProfile, "Game feature modules profile is null!");
+            // if (m_IsRunning) return;
             if (m_StartupCoroutine != null)
             {
                 StopCoroutine(m_StartupCoroutine);
@@ -164,12 +165,12 @@ namespace Verve.UniEx
             m_IsRunning = false;
             OnModuleAdded = null;
             OnModuleRemoved = null;
-            ShutdownAllModules();
             if (m_StartupCoroutine != null)
             {
                 StopCoroutine(m_StartupCoroutine);
                 m_StartupCoroutine = null;
             }
+            ShutdownAllModules();
         }
         
         /// <summary>

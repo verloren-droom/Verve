@@ -83,7 +83,7 @@ namespace Verve.UniEx
         [SerializeField, HideInInspector, Tooltip("绑定的模块组件")] private T m_Component;
         
         /// <summary> 绑定的模块组件 </summary>
-        public T Component 
+        protected T Component 
         { 
             get
             {

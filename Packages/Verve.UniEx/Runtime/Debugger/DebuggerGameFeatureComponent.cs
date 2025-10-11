@@ -6,10 +6,17 @@ namespace Verve.UniEx.Debug
     using UnityEngine;
 
     
+    /// <summary>
+    /// 调试游戏功能组件
+    /// </summary>
     [Serializable, GameFeatureComponentMenu("Verve/Debug")]
     public sealed class DebuggerGameFeatureComponent : GameFeatureComponent
     {
-        [Tooltip("显示/隐藏调试控制台快捷键")] public GameFeatureParameter<KeyCode> commandToggleKey = new GameFeatureParameter<KeyCode>(KeyCode.F10);
+        [SerializeField, Tooltip("显示/隐藏调试控制台快捷键")] private GameFeatureParameter<KeyCode> m_CommandToggleKey = new GameFeatureParameter<KeyCode>(KeyCode.F10);
+
+
+        /// <summary> 显示/隐藏调试控制台快捷键 </summary>
+        public KeyCode CommandToggleKey => m_CommandToggleKey.Value;
     }
 }
 

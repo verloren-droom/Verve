@@ -178,7 +178,7 @@ namespace Verve.UniEx.Debug
         /// </summary>
         private void HandleConsoleInputEvents(Event e)
         {
-            if (e.isKey && e.type == EventType.KeyDown && e.keyCode == Component.commandToggleKey)
+            if (e.isKey && e.type == EventType.KeyDown && e.keyCode == Component.CommandToggleKey)
             {
                 m_ConsoleVisible = !m_ConsoleVisible;
                 e.Use();

@@ -9,7 +9,6 @@ namespace Verve.UniEx.Audio
     public abstract class AudioSubmodule : GameFeatureSubmodule<AudioGameFeatureComponent>, IAudio
     {
         public virtual float Volume { get; set; }
-
         public virtual bool IsPlaying { get; }
         public virtual bool Mute { get; set; }
     }

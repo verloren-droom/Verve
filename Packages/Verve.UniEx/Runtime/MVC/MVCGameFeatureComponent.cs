@@ -6,10 +6,16 @@ namespace Verve.UniEx.MVC
     using UnityEngine;
     
     
+    /// <summary>
+    /// MVC游戏功能组件
+    /// </summary>
     [Serializable, GameFeatureComponentMenu("Verve/MVC")]
     public sealed class MVCGameFeatureComponent : GameFeatureComponent
     {
         [SerializeField, Tooltip("视图根节点")] private GameFeatureParameter<GameObject> m_ViewRoot = new GameFeatureParameter<GameObject>();
+        
+        
+        /// <summary> 视图根节点 </summary>
         public Transform ViewRoot => m_ViewRoot.Value.transform;
     }
 }

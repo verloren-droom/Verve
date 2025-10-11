@@ -16,14 +16,13 @@ namespace Verve.UniEx.Audio
     /// <summary>
     /// 音效子模块 - 提供操作反馈与环境代入感
     /// </summary>
-    [System.Serializable, GameFeatureSubmodule(typeof(AudioGameFeature), Description = "音效子模块 - 提供操作反馈与环境代入感")]
+    [Serializable, GameFeatureSubmodule(typeof(AudioGameFeature), Description = "音效子模块 - 提供操作反馈与环境代入感")]
     public sealed partial class SoundEffectSubmodule : AudioSubmodule
     {
         [SerializeField, Tooltip("音频总音量"), Range(0, 1)] private float m_Volume = 1.0f;
         
         private ObjectPool<AudioSource> m_Pool;
         [SerializeField, ReadOnly] private List<AudioSource> m_ActiveSources = new List<AudioSource>();
-        private readonly Dictionary<string, AudioClip> m_LoadedClips = new Dictionary<string, AudioClip>();
 
         public override float Volume
         {
@@ -40,7 +39,7 @@ namespace Verve.UniEx.Audio
 
         protected override IEnumerator OnStartup()
         {
-            if (UnityEngine.Application.isPlaying)
+            if (Application.isPlaying)
             {
                 m_Pool = new ObjectPool<AudioSource>(() =>
                 {
@@ -73,7 +72,6 @@ namespace Verve.UniEx.Audio
         protected override void OnShutdown()
         {
             m_Pool?.Clear();
-            m_LoadedClips?.Clear();
             base.OnShutdown();
         }
 
@@ -104,44 +102,14 @@ namespace Verve.UniEx.Audio
             }
         }
 
-        public async Task Play(IAudio.LoadAudioAssetAsync loadAudioAsset, string path, float volume = 1.0f, Vector3? target = null, float pitch = 1.0f, float minDistance = 1.0f, float maxDistance = 500.0f, float spatialBlend = 1.0f, float panStereo = 0.0f)
-        {
-            if (m_LoadedClips.TryGetValue(path, out var clip))
-            {
-                await Play(clip, volume, target, pitch, minDistance, maxDistance, spatialBlend, panStereo);
-            }
-            else
-            {
-                var audio = await loadAudioAsset(path);
-                m_LoadedClips.Add(path, audio);
-                await Play(audio, volume, target, pitch, minDistance, maxDistance, spatialBlend, panStereo);
-            }
-        }
-
         public void Pause(AudioClip clip)
         {
             m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.Pause();
         }
 
-        public void Pause(string path)
-        {
-            if (m_LoadedClips.TryGetValue(path, out var audio))
-            {
-                Pause(audio);
-            }
-        }
-        
         public void UnPause(AudioClip clip)
         {
             m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.UnPause();
-        }
-
-        public void UnPause(string path)
-        {
-            if (m_LoadedClips.TryGetValue(path, out var audio))
-            {
-                UnPause(audio);
-            }
         }
 
         public void PauseAll()
@@ -159,14 +127,6 @@ namespace Verve.UniEx.Audio
             m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.Stop();
         }
 
-        public void Stop(string path)
-        {
-            if (m_LoadedClips.TryGetValue(path, out var clip))
-            {
-                Stop(clip);
-            }
-        }
-        
         public void StopAll()
         {
             foreach (var source in m_ActiveSources.ToArray())
@@ -184,27 +144,10 @@ namespace Verve.UniEx.Audio
                 source.mute = mute;
             }
         }
-        
-        public void SetMute(string path, bool mute)
-        {
-            if (m_LoadedClips.TryGetValue(path, out var clip))
-            {
-                SetMute(clip, mute);
-            }
-        }
 
         public bool GetMute(AudioClip clip)
         {
             return m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.mute ?? false;
-        }
-        
-        public bool GetMute(string path)
-        {
-            if (m_LoadedClips.TryGetValue(path, out var clip))
-            {
-                return GetMute(clip);
-            }
-            return false;
         }
 
         public void SetVolume(AudioClip clip, float volume)
@@ -215,58 +158,20 @@ namespace Verve.UniEx.Audio
                 source.volume = Volume * Mathf.Clamp01(volume);
             }
         }
-        
-        public void SetVolume(string path, float volume)
-        {
-            if (m_LoadedClips.TryGetValue(path, out var clip))
-            {
-                SetVolume(clip, volume);
-            }
-        }
-        
+
         public float GetVolume(AudioClip clip)
         {
             return m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.volume ?? 0;
         }
-        
-        public float GetVolume(string path)
-        {
-            if (m_LoadedClips.TryGetValue(path, out var clip))
-            {
-                return GetVolume(clip);
-            }
-            
-            return 0;
-        }
-        
+
         public bool HasActiveClip(AudioClip clip)
         {
             return m_ActiveSources.Any(source => source.clip == clip);
-        }
-        
-        public bool HasActiveClip(string path)
-        {
-            if (m_LoadedClips.TryGetValue(path, out var loadedClip))
-            {
-                return HasActiveClip(loadedClip);
-            }
-            
-            return false;
         }
 
         public bool IsClipPlaying(AudioClip clip)
         {
             return m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.isPlaying ?? false;
-        }
-        
-        public bool IsClipPlaying(string path)
-        {
-            if (m_LoadedClips.TryGetValue(path, out var loadedClip))
-            {
-                return IsClipPlaying(loadedClip);
-            }
-            
-            return false;
         }
     }
 }

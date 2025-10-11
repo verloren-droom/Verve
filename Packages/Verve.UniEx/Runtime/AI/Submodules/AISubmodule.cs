@@ -3,7 +3,7 @@
 namespace Verve.UniEx.AI
 {
     [GameFeatureSubmodule(typeof(AIGameFeature))]
-    public class AISubmodule : TickableGameFeatureSubmodule
+    public sealed partial class AISubmodule : TickableGameFeatureSubmodule
     {
         protected override void OnTick(in GameFeatureContext ctx)
         {
