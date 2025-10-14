@@ -1,10 +1,10 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("Verve.UniEx.Gameplay.dll")]
+[assembly: AssemblyTitle("Verve.File.dll")]
 [assembly: AssemblyCompany("Benfach")]
-[assembly: AssemblyDefaultAlias("Verve.UniEx.Gameplay.dll")]
-[assembly: AssemblyDescription("Verve.UniEx.Gameplay.dll")]
+[assembly: AssemblyDefaultAlias("Verve.File.dll")]
+[assembly: AssemblyDescription("Verve.File.dll")]
 [assembly: ComVisible(false)]
 
 [assembly: AssemblyVersion("0.1.0.0")]
