@@ -70,6 +70,8 @@ namespace Verve.UniEx.Event
         {
             m_PropertyChanged = null;
         }
+        
+        public static implicit operator T(PropertyProxy<T> proxy) => proxy.Value;
     }
 }
 

@@ -22,9 +22,31 @@ namespace Verve.UniEx.Input
     [Serializable, GameFeatureSubmodule(typeof(InputGameFeature), Description = "新版输入系统（Input System）")]
     public sealed partial class InputSystemSubmodule : InputSubmodule
     {
+        [SerializeField, Tooltip("玩家输入")] private PlayerInput m_PlayerInput;
+
         public override bool IsValid => m_PlayerInput != null;
-        
-        private PlayerInput m_PlayerInput;
+
+        private bool m_IsEnabled = true;
+
+        public override bool IsEnabled
+        {
+            get => m_IsEnabled;
+            set
+            {
+                if (m_IsEnabled == value) return;
+                if (value)
+                {
+                    m_PlayerInput?.actions?.Enable();
+                    m_PlayerInput?.ActivateInput();
+                }
+                else
+                {
+                    m_PlayerInput?.DeactivateInput();
+                    m_PlayerInput?.actions?.Disable();
+                }
+                m_IsEnabled = value;
+            }
+        }
 
         private struct CallbackInfo
         {
@@ -36,20 +58,30 @@ namespace Verve.UniEx.Input
 
         private readonly ConcurrentDictionary<string, List<CallbackInfo>> m_ActionCallbacks = 
             new ConcurrentDictionary<string, List<CallbackInfo>>();
-
-
-        protected override IEnumerator OnStartup()
-        {
-            m_PlayerInput = Component.Input ?? Object.FindObjectOfType<PlayerInput>();
-            m_PlayerInput?.actions?.Enable();
-            m_PlayerInput?.ActivateInput();
-            return null;
-        }
+        
 
         protected override void OnShutdown()
         {
-            m_PlayerInput?.DeactivateInput();
-            m_PlayerInput?.actions?.Disable();
+            if (Application.isPlaying && m_PlayerInput != null && m_PlayerInput.gameObject != null)
+            {
+                m_PlayerInput?.DeactivateInput();
+                m_PlayerInput?.actions?.Disable();
+            }
+        }
+
+        /// <summary>
+        /// 绑定玩家输入
+        /// </summary>
+        /// <param name="playerInput"></param>
+        /// <param name="enable">是否直接启动</param>
+        public void BindPlayerInput(PlayerInput playerInput, bool enable = true)
+        {
+            m_PlayerInput = playerInput;
+            if (enable && m_PlayerInput != null)
+            {
+                m_PlayerInput?.actions?.Enable();
+                m_PlayerInput?.ActivateInput();
+            }
         }
 
         protected override void OnAddListener<T>(string actionName, Action<InputServiceContext<T>> onAction, InputServicePhase phase = InputServicePhase.Performed)

@@ -12,11 +12,12 @@ namespace Verve.UniEx.MVC
     
     
     /// <summary>
-    /// MVC视图基类
+    ///  <para>MVC视图基类</para>
     /// </summary>
     public abstract partial class ViewBase : MonoBehaviour, IView
     {
-        [SerializeField, ReadOnly] private string m_ViewName;
+        [SerializeField, Tooltip("视图名称"), ReadOnly] private string m_ViewName;
+        /// <summary> 视图名称 </summary>
         public virtual string ViewName
         {
             get => m_ViewName ??= 
@@ -35,13 +36,12 @@ namespace Verve.UniEx.MVC
         protected virtual void OnOpening(params object[] args) { }
         protected virtual void OnClosing() { }
 
-        protected virtual IEnumerator Start()
+        private void OnEnable()
         {
             if (!m_IsOpened)
             {
                 ((IView)this).Open();
             }
-            yield break;
         }
 
         void IView.Open(params object[] args)
@@ -55,7 +55,7 @@ namespace Verve.UniEx.MVC
 
         public void Close()
         {
-            if (gameObject == null)
+            if (!this || !gameObject)
                 return;
             
             OnClosing();
@@ -64,7 +64,14 @@ namespace Verve.UniEx.MVC
             m_IsOpened = false;
             OnOpened = null;
             OnClosed = null;
-            Destroy(gameObject);
+            if (Application.isPlaying)
+            {
+                Destroy(gameObject);
+            }
+            else
+            {
+                DestroyImmediate(gameObject);
+            }
         }
 
         /// <summary>

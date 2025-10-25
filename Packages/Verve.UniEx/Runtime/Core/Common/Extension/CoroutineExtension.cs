@@ -87,11 +87,13 @@ namespace Verve.UniEx
             else context.Post(_ => action(arg), null);
         }
         
+        /// <summary> 将Task异步转为Unity协程 </summary>
         public static Coroutine AsCoroutine(this Task self, Action onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
         {
             return CoroutineRunner.Instance.StartCoroutine(self.AsIEnumerator(onComplete, onError, token));
         }
         
+        /// <summary> 将Task异步转为Unity协程 </summary>
         public static Coroutine AsCoroutine<T>(this Task<T> self, Action<T> onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
         {
             return CoroutineRunner.Instance.StartCoroutine(self.AsIEnumerator(onComplete, onError, token));

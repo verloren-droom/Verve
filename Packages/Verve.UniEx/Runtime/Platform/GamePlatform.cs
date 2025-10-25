@@ -1,3 +1,5 @@
+#if UNITY_5_3_OR_NEWER
+
 namespace Verve.UniEx
 {
     using System;
@@ -6,7 +8,7 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    /// 游戏平台
+    /// 游戏平台 - 封装了平台相关的功能
     /// </summary>
     [Serializable]
     public sealed class GamePlatform
@@ -67,14 +69,8 @@ namespace Verve.UniEx
         /// <returns>剪贴板文本</returns>
         public static string GetClipboardText() => s_Platform.GetClipboardText();
         
-        /// <summary> 项目路径（只读） </summary>
-        public static string ProjectPath => s_Platform.ProjectPath;
-        
-        /// <summary> 持久化数据路径（只读） </summary>
-        public static string PersistentDataPath => s_Platform.PersistentDataPath;
-        
-        /// <summary> 临时缓存路径（只读） </summary>
-        public static string TemporaryCachePath => s_Platform.TemporaryCachePath;
+        /// <summary> 文件系统 </summary>
+        public static IGamePlatformFileSystem FileSystem => s_Platform.FileSystem;
         
         /// <summary>
         /// 打开文件选择器
@@ -161,3 +157,5 @@ namespace Verve.UniEx
         }
     }
 }
+
+#endif

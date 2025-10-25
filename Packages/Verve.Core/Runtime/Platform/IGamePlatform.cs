@@ -32,19 +32,14 @@ namespace Verve
         /// <summary> 设备电量 </summary>
         float BatteryLevel { get; }
         
-        /// <summary> 项目路径 </summary>
-        string ProjectPath { get; }
-        
-        /// <summary> 持久化数据路径 </summary>
-        string PersistentDataPath { get; }
-        
-        /// <summary> 临时缓存路径 </summary>
-        string TemporaryCachePath { get; }
+        IGamePlatformFileSystem FileSystem { get; }
         
         /// <summary> 打开网址 </summary>
         void OpenUrl(string url);
         
-        /// <summary> 打开系统文件选择器 </summary>
+        /// <summary>
+        ///  <para>打开系统文件选择器</para>
+        /// </summary>
         void OpenFilePicker(System.Action<string> onFileSelected, string filter = "All files (*.*)|*.*");
         
         /// <summary> 复制文本到剪贴板 </summary>

@@ -10,6 +10,7 @@ namespace VerveEditor.UniEx
     using UnityEngine;
     using System.Reflection;
     using System.Collections.Generic;
+    using UnityEditor.SceneManagement;
     using Object = UnityEngine.Object;
     
     
@@ -361,6 +362,29 @@ namespace VerveEditor.UniEx
             }
 
             return result;
+        }
+        
+        /// <summary>
+        /// 获取父级对象
+        /// </summary>
+        public static GameObject GetParentObject(MenuCommand menuCommand)
+        {
+            GameObject parent;
+            
+            if (PrefabStageUtility.GetCurrentPrefabStage() != null)
+            {
+                parent = PrefabStageUtility.GetCurrentPrefabStage().prefabContentsRoot;
+            }
+            else if (menuCommand.context is GameObject context)
+            {
+                parent = context;
+            }
+            else
+            {
+                parent = Selection.activeGameObject;
+            }
+
+            return parent;
         }
     }
 }

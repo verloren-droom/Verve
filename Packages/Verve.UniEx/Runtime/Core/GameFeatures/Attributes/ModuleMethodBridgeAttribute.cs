@@ -9,8 +9,10 @@ namespace Verve.UniEx
     [AttributeUsage(AttributeTargets.Parameter)]
     public class ModuleMethodBridgeAttribute : Attribute
     {
-        /// <summary> 目标方法路径 </summary>
-        public string TargetMethodPath { get; }
+        /// <summary> 模块名 </summary>
+        public string ModuleName { get; }
+        public string SubmoduleName { get; }
+        public string MethodName { get; }
         
 
         public ModuleMethodBridgeAttribute(string method)
@@ -19,18 +21,22 @@ namespace Verve.UniEx
             {
                 throw new ArgumentException($"{nameof(method)} cannot be null or empty.");
             }
-            TargetMethodPath = method;
+            ModuleName = method.Split('.')[0];
+            SubmoduleName = method.Split('.')[1];
+            MethodName = method.Split('.')[2];
         }
         
         public ModuleMethodBridgeAttribute(string moduleName, string submoduleName, string methodName)
         {
             if (string.IsNullOrWhiteSpace(moduleName))
                 throw new ArgumentException("moduleName");
+            ModuleName = moduleName;
             if (string.IsNullOrWhiteSpace(submoduleName))
                 throw new ArgumentException("submoduleName");
+            SubmoduleName = submoduleName;
             if (string.IsNullOrWhiteSpace(methodName))
                 throw new ArgumentException("methodName");
-            TargetMethodPath = $"{moduleName}.{submoduleName}.{methodName}";
+            MethodName = methodName;
         }
     }
 }

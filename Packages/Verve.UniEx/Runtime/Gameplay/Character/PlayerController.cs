@@ -10,6 +10,7 @@ namespace Verve.UniEx.Gameplay
     /// <summary>
     /// 玩家控制器 - 玩家控制
     /// </summary>
+    [AddComponentMenu("Verve/Gameplay/Character/PlayerController"), DisallowMultipleComponent, ExecuteAlways]
     public partial class PlayerController : Controller
     {
         public Camera PlayerCamera => ControlledPawn is PlayerPawn playerPawn ? playerPawn.PlayerCamera : null;

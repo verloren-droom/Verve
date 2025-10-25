@@ -1,3 +1,5 @@
+using UnityEngine.Events;
+
 #if UNITY_5_3_OR_NEWER
 
 namespace Verve.UniEx.Gameplay
@@ -7,6 +9,8 @@ namespace Verve.UniEx.Gameplay
     using System.Collections;
     using System.Collections.Generic;
 
+    [Serializable]
+    public class OnHitEvent : UnityEvent<RaycastHit> { }
     
     /// <summary>
     /// 发射物
@@ -23,11 +27,11 @@ namespace Verve.UniEx.Gameplay
 
         
         /// <summary> 命中事件 </summary>
-        public event Action<RaycastHit> OnHit;
+        public OnHitEvent OnHit;
         /// <summary> 发射事件 </summary>
-        public event Action OnFire;
+        public UnityEvent OnFire;
         /// <summary> 销毁事件  </summary>
-        public event Action OnDestroyed;
+        public UnityEvent OnDestroyed;
         
 
         private bool m_IsActive;

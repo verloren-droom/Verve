@@ -20,7 +20,9 @@ namespace Verve.UniEx
         public virtual string DeviceId => SystemInfo.deviceUniqueIdentifier;
         public float BatteryLevel => SystemInfo.batteryLevel;
         public string Language => Application.systemLanguage.ToString();
-
+        
+        private IGamePlatformFileSystem m_FileSystem = new GenericFileSystem();
+        public IGamePlatformFileSystem FileSystem => m_FileSystem;
 
         public virtual void Quit()
         {
@@ -106,22 +108,6 @@ namespace Verve.UniEx
         {
             Screen.sleepTimeout = keepOn ? SleepTimeout.NeverSleep : SleepTimeout.SystemSetting;
         }
-        
-        public virtual string ProjectPath => Application.dataPath;
-
-        public virtual string PersistentDataPath => 
-#if UNITY_EDITOR
-            System.IO.Path.Combine(ProjectPath, ".Cache");
-#else
-            Application.persistentDataPath;
-#endif
-        
-        public virtual string TemporaryCachePath =>
-#if UNITY_EDITOR
-            System.IO.Path.Combine(ProjectPath, ".Temp");
-#else
-            Application.temporaryCachePath;
-#endif
 
         public virtual bool RunInBackground
         {

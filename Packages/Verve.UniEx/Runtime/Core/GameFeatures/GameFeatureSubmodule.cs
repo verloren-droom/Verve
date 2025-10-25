@@ -10,7 +10,7 @@ namespace Verve.UniEx
     [Serializable]
     public abstract class GameFeatureSubmodule : IGameFeatureSubmodule
     {
-        public bool IsEnabled { get; set; } = true;
+        public virtual bool IsEnabled { get; set; } = true;
     
         [NonSerialized] private bool m_IsStarting;
         [NonSerialized] private bool m_StartCompleted;
