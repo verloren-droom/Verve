@@ -27,10 +27,18 @@ namespace Verve.UniEx
         
         protected override async Task OnExecute(CancellationToken ct = default)
         {
+            if (m_Nodes == null || m_Nodes.Count <= 0)
+            {
+                MarkCompleted();
+                return;
+            }
+            
             m_ExecutionCts?.Dispose();
             m_ExecutionCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             
-            for (m_CurrentIndex = 0; m_CurrentIndex < m_Nodes.Count; m_CurrentIndex++)
+            int startIndex = m_CurrentIndex >= 0 ? m_CurrentIndex : 0;
+            
+            for (m_CurrentIndex = startIndex; m_CurrentIndex < m_Nodes.Count; m_CurrentIndex++)
             {
                 m_ExecutionCts.Token.ThrowIfCancellationRequested();
                 
@@ -48,7 +56,6 @@ namespace Verve.UniEx
             m_ExecutionCts?.Cancel();
             m_CurrentNode?.Cancel();
             m_CurrentNode = null;
-            m_CurrentIndex = -1;
         }
 
         protected override void OnReset()

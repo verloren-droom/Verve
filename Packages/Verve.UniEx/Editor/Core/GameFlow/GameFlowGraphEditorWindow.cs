@@ -86,6 +86,10 @@ namespace VerveEditor.Flow
             ///  <para>高亮端口样式</para>
             /// </summary>
             public static GUIStyle HighlightPort { get; private set; }
+            /// <summary>
+            ///  <para>根节点样式</para>
+            /// </summary>
+            public static GUIStyle RootNodeStyle { get; private set; }
             
             static Styles()
             {
@@ -131,14 +135,16 @@ namespace VerveEditor.Flow
                 HighlightPort.fixedWidth = 12f;
                 HighlightPort.fixedHeight = 12f;
                 HighlightPort.alignment = TextAnchor.MiddleCenter;
+                
+                RootNodeStyle = new GUIStyle(NodeStyle);
             }
             
             /// <summary>
             ///  <para>创建颜色纹理</para>
             /// </summary>
-            private static Texture2D CreateColorTexture(Color color)
+            private static Texture2D CreateColorTexture(Color color, int width = 1, int height = 1)
             {
-                var texture = new Texture2D(1, 1);
+                var texture = new Texture2D(width, height);
                 texture.hideFlags = HideFlags.HideAndDontSave;
                 texture.wrapMode = TextureWrapMode.Repeat;
                 texture.SetPixel(0, 0, color);
@@ -167,7 +173,7 @@ namespace VerveEditor.Flow
         public static void OpenWindow()
         {
             var window = GetWindow<GameFlowGraphEditorWindow>();
-            window.titleContent = new GUIContent("Flow Graph");
+            window.titleContent = new GUIContent("Flow Graph (Experimental)");
             window.minSize = new Vector2(800, 600);
             window.Focus();
             window.Show();
@@ -690,12 +696,17 @@ namespace VerveEditor.Flow
                     nodeStyle = Styles.ExecutingNodeStyle;
                 else if (node.IsCompleted)
                     nodeStyle = Styles.CompletedNodeStyle;
+                else if (node == m_SelectedNode)
+                    nodeStyle = Styles.SelectedNodeStyle;
                 else
-                    nodeStyle = node == m_SelectedNode ? Styles.SelectedNodeStyle : Styles.NodeStyle;
+                    nodeStyle = m_CurrentGraph != null && node == m_CurrentGraph.RootNode ? Styles.RootNodeStyle : Styles.NodeStyle;
             }
             else
             {
-                nodeStyle = node == m_SelectedNode ? Styles.SelectedNodeStyle : Styles.NodeStyle;
+                if (node == m_SelectedNode)
+                    nodeStyle = Styles.SelectedNodeStyle;
+                else
+                    nodeStyle = m_CurrentGraph != null && node == m_CurrentGraph.RootNode ? Styles.RootNodeStyle : Styles.NodeStyle;
             }
             
             GUI.Box(nodeRect, "", nodeStyle);

@@ -65,7 +65,7 @@ namespace Verve.UniEx.MVC
         /// <param name="onOpened">打开回调</param>
         /// <param name="args">参数</param>
         /// <returns></returns>
-        public async Task<bool> OpenView<T>(
+        public bool OpenView<T>(
             GameObject viewPrefab,
             bool isCloseAllOther = false,
             Transform parent = null,

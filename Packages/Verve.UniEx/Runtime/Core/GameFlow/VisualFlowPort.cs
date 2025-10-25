@@ -84,99 +84,6 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>重建连接</para>
-        /// </summary>
-        public void RebuildConnections(Dictionary<string, GameFlowNodeWrapper> nodeLookup)
-        {
-            if (m_Connections == null)
-            {
-                m_Connections = new List<VisualFlowConnection>();
-            }
-            else
-            {
-                m_Connections.Clear();
-            }
-            
-            if (m_ConnectionIDs == null || nodeLookup == null) 
-                return;
-
-            foreach (var connectedPortID in m_ConnectionIDs)
-            {
-                if (string.IsNullOrEmpty(connectedPortID)) continue;
-                
-                VisualFlowPort targetPort = null;
-                foreach (var nodeEntry in nodeLookup)
-                {
-                    var node = nodeEntry.Value;
-                    if (node == null) continue;
-                    
-                    var foundPort = node.FindPortByID(connectedPortID);
-                    if (foundPort != null)
-                    {
-                        targetPort = foundPort;
-                        break;
-                    }
-                }
-                
-                if (targetPort == null) { continue; }
-                
-                VisualFlowConnection connection;
-                if (PortDirection == Direction.Input)
-                {
-                    connection = new VisualFlowConnection(this, targetPort);
-                }
-                else
-                {
-                    connection = new VisualFlowConnection(targetPort, this);
-                }
-                
-                if (!m_Connections.Contains(connection))
-                {
-                    m_Connections.Add(connection);
-                }
-                
-                if (targetPort.m_Connections == null)
-                {
-                    targetPort.m_Connections = new List<VisualFlowConnection>();
-                }
-                
-                if (!targetPort.m_Connections.Contains(connection))
-                {
-                    targetPort.m_Connections.Add(connection);
-                }
-                
-                ApplyImmediateConnection();
-            }
-        }
-
-        /// <summary>
-        ///  <para>断开连接</para>
-        /// </summary>
-        public void Disconnect(VisualFlowConnection connection)
-        {
-            if (connection == null) return;
-            
-            var otherPort = connection.GetOtherPort(this);
-            if (otherPort != null)
-            {
-                m_ConnectionIDs.Remove(otherPort.PortID);
-                otherPort.m_ConnectionIDs.Remove(PortID);
-                
-                if (otherPort.m_Connections != null)
-                {
-                    otherPort.m_Connections.Remove(connection);
-                }
-                
-                ClearConnectionAssignment();
-            }
-            
-            if (m_Connections != null)
-            {
-                m_Connections.Remove(connection);
-            }
-        }
-
-        /// <summary>
         ///  <para>断开所有连接</para>
         /// </summary>
         public void DisconnectAll()
@@ -432,6 +339,87 @@ namespace Verve.UniEx
         }
         
         /// <summary>
+        ///  <para>重建连接</para>
+        /// </summary>
+        public void RebuildConnections(Dictionary<string, GameFlowNodeWrapper> nodeLookup)
+        {
+            if (m_Connections == null)
+            {
+                m_Connections = new List<VisualFlowConnection>();
+            }
+            else
+            {
+                // 只清除连接对象，不清理连接ID
+                m_Connections.Clear();
+            }
+            
+            if (m_ConnectionIDs == null || nodeLookup == null) 
+                return;
+        
+            foreach (var connectedPortID in m_ConnectionIDs)
+            {
+                if (string.IsNullOrEmpty(connectedPortID)) continue;
+                
+                VisualFlowPort targetPort = null;
+                foreach (var nodeEntry in nodeLookup)
+                {
+                    var node = nodeEntry.Value;
+                    if (node == null) continue;
+                    
+                    var foundPort = node.FindPortByID(connectedPortID);
+                    if (foundPort != null)
+                    {
+                        targetPort = foundPort;
+                        break;
+                    }
+                }
+                
+                if (targetPort == null) { continue; }
+                
+                // 检查是否已经存在相同的连接（避免重复创建）
+                bool connectionExists = false;
+                if (m_Connections != null)
+                {
+                    connectionExists = m_Connections.Any(conn => 
+                        (conn.InputPort == this && conn.OutputPort == targetPort) ||
+                        (conn.InputPort == targetPort && conn.OutputPort == this));
+                }
+                
+                if (!connectionExists)
+                {
+                    VisualFlowConnection connection;
+                    if (PortDirection == Direction.Input)
+                    {
+                        connection = new VisualFlowConnection(this, targetPort);
+                    }
+                    else
+                    {
+                        connection = new VisualFlowConnection(targetPort, this);
+                    }
+                    
+                    m_Connections.Add(connection);
+                    
+                    if (targetPort.m_Connections == null)
+                    {
+                        targetPort.m_Connections = new List<VisualFlowConnection>();
+                    }
+                    
+                    // 同样检查目标端口是否已存在该连接
+                    bool targetConnectionExists = targetPort.m_Connections.Any(conn => 
+                        (conn.InputPort == this && conn.OutputPort == targetPort) ||
+                        (conn.InputPort == targetPort && conn.OutputPort == this));
+                    
+                    if (!targetConnectionExists)
+                    {
+                        targetPort.m_Connections.Add(connection);
+                    }
+                    
+                    ApplyImmediateConnection();
+                }
+            }
+        }
+        
+        /// <summary>
         ///  <para>连接到目标端口</para>
         /// </summary>
         public void ConnectTo(VisualFlowPort targetPort)
@@ -442,57 +430,110 @@ namespace Verve.UniEx
                 return;
             }
         
-            if (!AllowMultipleConnections)
-            {
-                DisconnectAll();
-            }
+            // 检查是否已经连接（避免重复连接）
+            bool alreadyConnected = m_ConnectionIDs.Contains(targetPort.PortID) && 
+                                   targetPort.m_ConnectionIDs.Contains(PortID);
             
-            if (!targetPort.AllowMultipleConnections)
+            if (!alreadyConnected)
             {
-                targetPort.DisconnectAll();
+                if (!AllowMultipleConnections)
+                {
+                    DisconnectAll();
+                }
+                
+                if (!targetPort.AllowMultipleConnections)
+                {
+                    targetPort.DisconnectAll();
+                }
+        
+                if (!m_ConnectionIDs.Contains(targetPort.PortID))
+                {
+                    m_ConnectionIDs.Add(targetPort.PortID);
+                }
+                
+                if (!targetPort.m_ConnectionIDs.Contains(PortID))
+                {
+                    targetPort.m_ConnectionIDs.Add(PortID);
+                }
             }
         
-            if (!m_ConnectionIDs.Contains(targetPort.PortID))
-            {
-                m_ConnectionIDs.Add(targetPort.PortID);
-            }
-            
-            if (!targetPort.m_ConnectionIDs.Contains(PortID))
-            {
-                targetPort.m_ConnectionIDs.Add(PortID);
-            }
-        
+            // 确保连接对象存在（但避免重复创建）
             if (m_Connections == null)
             {
                 m_Connections = new List<VisualFlowConnection>();
             }
             
-            VisualFlowConnection connection;
-            if (PortDirection == Direction.Input)
+            // 检查是否已存在连接对象
+            bool connectionObjectExists = m_Connections.Any(conn => 
+                conn.InputPort == (PortDirection == Direction.Input ? this : targetPort) &&
+                conn.OutputPort == (PortDirection == Direction.Input ? targetPort : this));
+            
+            if (!connectionObjectExists)
             {
-                connection = new VisualFlowConnection(this, targetPort);
-            }
-            else
-            {
-                connection = new VisualFlowConnection(targetPort, this);
-            }
+                VisualFlowConnection connection;
+                if (PortDirection == Direction.Input)
+                {
+                    connection = new VisualFlowConnection(this, targetPort);
+                }
+                else
+                {
+                    connection = new VisualFlowConnection(targetPort, this);
+                }
         
-            if (!m_Connections.Contains(connection))
-            {
                 m_Connections.Add(connection);
-            }
-            
-            if (targetPort.m_Connections == null)
-            {
-                targetPort.m_Connections = new List<VisualFlowConnection>();
-            }
-            
-            if (!targetPort.m_Connections.Contains(connection))
-            {
-                targetPort.m_Connections.Add(connection);
+                
+                if (targetPort.m_Connections == null)
+                {
+                    targetPort.m_Connections = new List<VisualFlowConnection>();
+                }
+                
+                // 同样检查目标端口是否已存在连接对象
+                bool targetConnectionObjectExists = targetPort.m_Connections.Any(conn => 
+                    conn.InputPort == (PortDirection == Direction.Input ? this : targetPort) &&
+                    conn.OutputPort == (PortDirection == Direction.Input ? targetPort : this));
+                
+                if (!targetConnectionObjectExists)
+                {
+                    targetPort.m_Connections.Add(connection);
+                }
             }
         
             ApplyImmediateConnection();
+        }
+        
+        /// <summary>
+        ///  <para>断开连接</para>
+        /// </summary>
+        public void Disconnect(VisualFlowConnection connection)
+        {
+            if (connection == null) return;
+            
+            var otherPort = connection.GetOtherPort(this);
+            if (otherPort != null)
+            {
+                // 只有在确实存在连接时才移除连接ID
+                if (m_ConnectionIDs.Contains(otherPort.PortID))
+                {
+                    m_ConnectionIDs.Remove(otherPort.PortID);
+                }
+                
+                if (otherPort.m_ConnectionIDs.Contains(PortID))
+                {
+                    otherPort.m_ConnectionIDs.Remove(PortID);
+                }
+                
+                if (otherPort.m_Connections != null)
+                {
+                    otherPort.m_Connections.Remove(connection);
+                }
+                
+                ClearConnectionAssignment();
+            }
+            
+            if (m_Connections != null)
+            {
+                m_Connections.Remove(connection);
+            }
         }
     }
 }

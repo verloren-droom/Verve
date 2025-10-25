@@ -34,7 +34,8 @@ namespace Verve.UniEx
             {
                 m_SerializedCallback.Invoke();
             }
-            
+
+            await Task.CompletedTask;
             MarkCompleted();
         }
     }

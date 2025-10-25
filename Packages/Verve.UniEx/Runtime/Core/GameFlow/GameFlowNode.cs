@@ -30,7 +30,7 @@ namespace Verve.UniEx
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        async Task IGameFlowNode.Execute(CancellationToken ct = default)
+        async Task IGameFlowNode.Execute(CancellationToken ct)
         {
             if (IsExecuting || IsCompleted)
                 return;
@@ -62,7 +62,7 @@ namespace Verve.UniEx
         /// <summary>
         ///  <para>执行</para>
         /// </summary>
-        protected abstract Task OnExecute(CancellationToken ct = default);
+        protected abstract Task OnExecute(CancellationToken ct);
         /// <summary>
         ///  <para>取消</para>
         /// </summary>

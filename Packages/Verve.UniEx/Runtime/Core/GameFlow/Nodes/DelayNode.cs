@@ -27,6 +27,12 @@ namespace Verve.UniEx
 
         protected override async Task OnExecute(CancellationToken ct = default)
         {
+            if (m_Duration <= 0f)
+            {
+                MarkCompleted();
+                return;
+            }
+            
             float elapsed = 0f;
         
             while (elapsed < m_Duration)
