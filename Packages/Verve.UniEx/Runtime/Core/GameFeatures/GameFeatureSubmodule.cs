@@ -73,6 +73,14 @@ namespace Verve.UniEx
         
             m_IsStarting = false;
         }
+        
+        void IDisposable.Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing) { }
     }
     
     

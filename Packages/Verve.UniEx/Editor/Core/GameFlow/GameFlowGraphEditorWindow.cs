@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.Flow
+namespace VerveEditor
 {
     using Verve;
     using System;
@@ -14,14 +14,14 @@ namespace VerveEditor.Flow
     
     
     /// <summary>
-    ///  <para>流程节点图编辑窗口</para>
+    ///  <para>可视化流程节点图编辑窗口</para>
     /// </summary>
     internal class GameFlowGraphEditorWindow : EditorWindow
     {
         [SerializeField, Tooltip("当前流程图")] private GameFlowGraphAsset m_CurrentGraph;
         [SerializeField, Tooltip("当前流程图偏移量")] private Vector2 m_GraphOffset;
-        [SerializeField, Tooltip("当前流程图输入端口")] private VisualFlowPort m_SelectedInputPort;
-        [SerializeField, Tooltip("当前流程图输出端口")] private VisualFlowPort m_SelectedOutputPort;
+        [NonSerialized, Tooltip("当前流程图输入端口")] private VisualFlowPort m_SelectedInputPort;
+        [NonSerialized, Tooltip("当前流程图输出端口")] private VisualFlowPort m_SelectedOutputPort;
 
         /// <summary>
         ///  <para>当前选中的输入端口</para>

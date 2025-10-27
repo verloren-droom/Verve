@@ -5,6 +5,6 @@ namespace Verve.MVC
     /// </summary>
     public static class CommandExtension
     {
-        public static T GetModel<T>(this ICommand self) where T : class, IModel, new() => self.Activity?.GetModel<T>();
+        public static T GetModel<T>(this ICommand self) where T : class, IModel, new() => self.GetActivity()?.GetModel<T>();
     }
 }

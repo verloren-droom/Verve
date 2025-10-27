@@ -20,7 +20,13 @@ namespace Verve.UniEx
         [SerializeField, Tooltip("节点位置"), ReadOnly] private Vector2 m_Position;
         [SerializeField, Tooltip("节点大小"), ReadOnly] private Vector2 m_NodeSize = new Vector2(DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT);
         
+#if UNITY_2019_4_OR_NEWER
         [SerializeField, Tooltip("被包装的节点"), SerializeReference] private IGameFlowNode m_WrappedNode;
+#else
+        [SerializeField, Tooltip("被包装的节点")] private GameFlowNode m_WrappedNode;
+#endif
+        
+        
         [SerializeField] private List<VisualFlowPort> m_InputPorts = new List<VisualFlowPort>();
         [SerializeField] private List<VisualFlowPort> m_OutputPorts = new List<VisualFlowPort>();
         

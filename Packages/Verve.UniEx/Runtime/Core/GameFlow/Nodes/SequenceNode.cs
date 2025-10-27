@@ -7,6 +7,7 @@ namespace Verve.UniEx
     using System.Threading;
     using System.Threading.Tasks;
     using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
 
     
     /// <summary>
@@ -15,15 +16,19 @@ namespace Verve.UniEx
     [Serializable, GameFlowNode("Basic/Sequence", "Sequence", "序列节点")]
     public class SequenceNode : GameFlowNode, ICompositeGameFlowNode
     {
+#if UNITY_2019_4_OR_NEWER
         [SerializeReference, Tooltip("节点列表"), HideInInspector] private List<IGameFlowNode> m_Nodes = new List<IGameFlowNode>();
-        private IGameFlowNode m_CurrentNode;
-        private CancellationTokenSource m_ExecutionCts;
+#else
+        [SerializeField, Tooltip("节点列表"), HideInInspector] private List<GameFlowNode> m_Nodes = new List<GameFlowNode>();
+#endif
+        [NonSerialized] private IGameFlowNode m_CurrentNode;
+        [NonSerialized] private CancellationTokenSource m_ExecutionCts;
         [SerializeField, Tooltip("当前索引值"), ReadOnly] private int m_CurrentIndex = -1;
         
         public IEnumerable<IGameFlowNode> Children => m_Nodes;
         
         public SequenceNode() : base() { }
-        public SequenceNode(string actionID) : base(actionID) { }
+        public SequenceNode(string nodeID) : base(nodeID) { }
         
         protected override async Task OnExecute(CancellationToken ct = default)
         {
@@ -73,31 +78,36 @@ namespace Verve.UniEx
             }
         }
 
-        public void Append(IGameFlowNode node)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void ICompositeGameFlowNode.Append(IGameFlowNode node)
         {
             if (node == null) return;
             m_Nodes?.Add(node);
         }
 
-        public void Insert(IGameFlowNode node, int insertIndex)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void ICompositeGameFlowNode.Insert(IGameFlowNode node, int insertIndex)
         {
             if (node == null) return;
             m_Nodes?.Insert(insertIndex, node);
         }
         
-        public void Remove(IGameFlowNode node)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void ICompositeGameFlowNode.Remove(IGameFlowNode node)
         {
             if (node == null) return;
             m_Nodes?.Remove(node);
         }
         
-        public void RemoveAt(int index)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void ICompositeGameFlowNode.RemoveAt(int index)
         {
             if (index >= 0 && index < m_Nodes.Count)
                 m_Nodes?.RemoveAt(index);
         }
 
-        public void Clear()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void ICompositeGameFlowNode.Clear()
         {
             m_Nodes?.Clear();
         }

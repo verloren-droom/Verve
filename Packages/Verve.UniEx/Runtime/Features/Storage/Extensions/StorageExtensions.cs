@@ -15,6 +15,7 @@ namespace Verve.UniEx.Storage
         /// <summary>
         /// 尝试读取数据
         /// </summary>
+        [System.Obsolete("Please use async version for large data")]
         public static bool TryReadData<TData>(
             this IStorage self,
             string filePath,
@@ -29,6 +30,7 @@ namespace Verve.UniEx.Storage
         /// <summary>
         /// 读取存储数据（默认使用 UnityEngine.JsonUtility 序列化/反序列化功能）
         /// </summary>
+        [System.Obsolete("Please use async version for large data")]
         public static bool TryReadData<TData>(
             this IStorage self,
             string filePath,
@@ -43,6 +45,7 @@ namespace Verve.UniEx.Storage
         /// <summary>
         /// 读取存储数据（默认使用 UnityEngine.JsonUtility 序列化/反序列化功能）
         /// </summary>
+        [System.Obsolete("Please use async version for large data")]
         public static bool TryReadData<TData>(
             this IStorage self,
             string filePath,
@@ -56,6 +59,7 @@ namespace Verve.UniEx.Storage
         /// <summary>
         /// 写入存储数据
         /// </summary>
+        [System.Obsolete("Please use async version for large data")]
         public static void WriteData<TData>(
             this IStorage self,
             string filePath,
@@ -70,6 +74,7 @@ namespace Verve.UniEx.Storage
         /// <summary>
         /// 写入存储数据（默认使用 UnityEngine.JsonUtility 序列化/反序列化功能）
         /// </summary>
+        [System.Obsolete("Please use async version for large data")]
         public static void WriteData<TData>(
             this IStorage self,
             string filePath,
@@ -83,6 +88,7 @@ namespace Verve.UniEx.Storage
         /// <summary>
         /// 写入存储数据（默认使用 UnityEngine.JsonUtility 序列化/反序列化功能）
         /// </summary>
+        [System.Obsolete("Please use async version for large data")]
         public static void WriteData<TData>(
             this IStorage self,
             string filePath,

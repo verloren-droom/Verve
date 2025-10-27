@@ -2,41 +2,60 @@ namespace Verve.UniEx
 {
     using System;
     
-
     /// <summary>
-    /// 模块方法桥接特性 - 标记桥接了当前方法和目标方法
+    /// 模块方法桥接特性 - 标记需要生成桥接扩展的方法
     /// </summary>
-    [AttributeUsage(AttributeTargets.Parameter)]
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class ModuleMethodBridgeAttribute : Attribute
     {
-        /// <summary> 模块名 </summary>
-        public string ModuleName { get; }
-        public string SubmoduleName { get; }
-        public string MethodName { get; }
+        /// <summary> 目标模块名 </summary>
+        public string TargetModule { get; }
         
+        /// <summary> 目标子模块名 </summary>
+        public string TargetSubmodule { get; }
+        
+        /// <summary> 目标方法名 </summary>
+        public string TargetMethod { get; }
+        
+        /// <summary> 扩展方法后缀 </summary>
+        public string ExtensionSuffix { get; }
 
-        public ModuleMethodBridgeAttribute(string method)
+        public ModuleMethodBridgeAttribute(string targetMethod, string extensionSuffix = null)
         {
-            if (string.IsNullOrEmpty(method))
-            {
-                throw new ArgumentException($"{nameof(method)} cannot be null or empty.");
-            }
-            ModuleName = method.Split('.')[0];
-            SubmoduleName = method.Split('.')[1];
-            MethodName = method.Split('.')[2];
+            if (string.IsNullOrEmpty(targetMethod))
+                throw new ArgumentException("Target method cannot be null or empty");
+                
+            var parts = targetMethod.Split('.');
+            if (parts.Length != 3)
+                throw new ArgumentException("Target method must be in format: Module.Submodule.Method");
+                
+            TargetModule = parts[0];
+            TargetSubmodule = parts[1];
+            TargetMethod = parts[2];
+            ExtensionSuffix = extensionSuffix ?? TargetSubmodule;
         }
         
-        public ModuleMethodBridgeAttribute(string moduleName, string submoduleName, string methodName)
+        public ModuleMethodBridgeAttribute(string targetModule, string targetSubmodule, string targetMethod, string extensionSuffix = null)
         {
-            if (string.IsNullOrWhiteSpace(moduleName))
-                throw new ArgumentException("moduleName");
-            ModuleName = moduleName;
-            if (string.IsNullOrWhiteSpace(submoduleName))
-                throw new ArgumentException("submoduleName");
-            SubmoduleName = submoduleName;
-            if (string.IsNullOrWhiteSpace(methodName))
-                throw new ArgumentException("methodName");
-            MethodName = methodName;
+            TargetModule = targetModule ?? throw new ArgumentException("targetModule");
+            TargetSubmodule = targetSubmodule ?? throw new ArgumentException("targetSubmodule");
+            TargetMethod = targetMethod ?? throw new ArgumentException("targetMethod");
+            ExtensionSuffix = extensionSuffix ?? targetSubmodule;
+        }
+    }
+    
+    /// <summary>
+    /// 桥接参数特性 - 标记方法中需要桥接的参数
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Parameter)]
+    public class BridgeParameterAttribute : Attribute
+    {
+        /// <summary> 桥接参数名 </summary>
+        public string ParameterName { get; }
+        
+        public BridgeParameterAttribute(string parameterName = null)
+        {
+            ParameterName = parameterName;
         }
     }
 }

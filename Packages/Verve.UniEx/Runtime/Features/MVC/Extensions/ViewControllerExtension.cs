@@ -7,7 +7,7 @@ namespace Verve.UniEx.MVC
     
     public static class ViewControllerExtension
     {
-        public static bool OpenView(
+        public static void OpenView(
             this ViewController self,
             GameObject viewPrefab,
             bool isCloseAllOther = false,
@@ -15,7 +15,7 @@ namespace Verve.UniEx.MVC
             Action<ViewBase> onOpened = null,
             params object[] args)
         {
-            return self.OpenView(viewPrefab, isCloseAllOther, parent, onOpened, args);
+            self.OpenView(viewPrefab, isCloseAllOther, parent, onOpened, args);
         }
     }
 }

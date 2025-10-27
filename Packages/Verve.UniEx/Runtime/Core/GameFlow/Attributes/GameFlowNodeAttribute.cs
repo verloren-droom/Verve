@@ -6,10 +6,11 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    ///  <para>游戏流程节点特性<</para>
+    ///  <para>游戏流程节点特性</para>
+    ///  <para>用于将节点暴露到可视化流程图中，注意节点类一定要存在一个无参构造方法</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, Inherited = false)]
-    public class GameFlowNodeAttribute : Attribute
+    public sealed class GameFlowNodeAttribute : Attribute
     {
         /// <summary>
         ///  <para>节点路径</para>

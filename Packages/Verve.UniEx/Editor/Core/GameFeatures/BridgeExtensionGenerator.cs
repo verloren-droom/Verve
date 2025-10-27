@@ -1,3 +1,4 @@
+// BridgeExtensionGenerator.cs
 #if UNITY_EDITOR
 
 namespace VerveEditor.UniEx
@@ -12,11 +13,9 @@ namespace VerveEditor.UniEx
     using UnityEditor;
     using UnityEngine;
     using Verve.UniEx;
-    using Object = UnityEngine.Object;
 
-    
     /// <summary>
-    /// 桥接扩展代码生成器
+    /// 修复泛型类型推断的桥接扩展代码生成器
     /// </summary>
     public static class BridgeExtensionGenerator
     {
@@ -66,6 +65,7 @@ namespace VerveEditor.UniEx
                     return;
                 }
 
+                // 按模块分组生成
                 var modulesGrouped = bridgeInfo.GroupBy(info => info.ModuleType);
                 
                 foreach (var moduleGroup in modulesGrouped)
@@ -94,11 +94,11 @@ namespace VerveEditor.UniEx
                 }
                 
                 AssetDatabase.Refresh();
-                Debug.Log($"Successfully generated {generatedCount} bridge extension classes, updated {updatedCount} files in {outputDir}");
+                Debug.Log($"✅ Successfully generated {generatedCount} bridge extension classes, updated {updatedCount} files in {outputDir}");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error generating bridge extensions: {ex.Message}\n{ex.StackTrace}");
+                Debug.LogError($"❌ Error generating bridge extensions: {ex.Message}\n{ex.StackTrace}");
             }
             finally
             {
@@ -138,15 +138,15 @@ namespace VerveEditor.UniEx
                     
                     foreach (var method in methods)
                     {
-                        var bridgeAttributes = GetBridgeAttributes(method);
-                        if (bridgeAttributes.Count > 0)
+                        var bridgeAttributes = method.GetCustomAttributes<ModuleMethodBridgeAttribute>();
+                        foreach (var bridgeAttr in bridgeAttributes)
                         {
                             bridgeInfo.Add(new BridgeMethodInfo
                             {
                                 ModuleType = moduleType,
                                 SubmoduleType = submoduleType,
                                 Method = method,
-                                BridgeAttributes = bridgeAttributes
+                                BridgeAttribute = bridgeAttr
                             });
                         }
                     }
@@ -154,33 +154,6 @@ namespace VerveEditor.UniEx
             }
 
             return bridgeInfo;
-        }
-
-        /// <summary>
-        /// 获取方法的桥接特性
-        /// </summary>
-        private static List<BridgeAttributeInfo> GetBridgeAttributes(MethodInfo method)
-        {
-            var bridgeAttributes = new List<BridgeAttributeInfo>();
-            var parameters = method.GetParameters();
-
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                var parameter = parameters[i];
-                var bridgeAttr = parameter.GetCustomAttribute<ModuleMethodBridgeAttribute>();
-                
-                if (bridgeAttr != null)
-                {
-                    bridgeAttributes.Add(new BridgeAttributeInfo
-                    {
-                        ParameterIndex = i,
-                        Parameter = parameter,
-                        Attribute = bridgeAttr
-                    });
-                }
-            }
-
-            return bridgeAttributes;
         }
 
         /// <summary>
@@ -198,16 +171,17 @@ namespace VerveEditor.UniEx
             };
 
             var extensionMethodsCode = new StringBuilder();
-            var generatedMethods = new HashSet<string>();
+            var generatedMethodSignatures = new HashSet<string>();
 
             foreach (var bridgeInfo in bridgeMethods)
             {
                 string extensionMethod = GenerateBridgeExtensionMethod(bridgeInfo, requiredNamespaces, moduleProfile);
                 
-                if (!string.IsNullOrEmpty(extensionMethod) && !generatedMethods.Contains(GetMethodSignature(bridgeInfo.Method)))
+                if (!string.IsNullOrEmpty(extensionMethod) && 
+                    !generatedMethodSignatures.Contains(GetMethodSignature(bridgeInfo, bridgeInfo.BridgeAttribute.ExtensionSuffix)))
                 {
                     extensionMethodsCode.Append(extensionMethod);
-                    generatedMethods.Add(GetMethodSignature(bridgeInfo.Method));
+                    generatedMethodSignatures.Add(GetMethodSignature(bridgeInfo, bridgeInfo.BridgeAttribute.ExtensionSuffix));
                 }
             }
 
@@ -232,7 +206,7 @@ namespace VerveEditor.UniEx
             string namespaceName = moduleType.Namespace ?? "Verve.UniEx.Generated";
             sb.AppendLine($"namespace {namespaceName}");
             sb.AppendLine("{");
-            sb.AppendLine($"    public static class {moduleType.Name}Extensions");
+            sb.AppendLine($"    public static class {moduleType.Name}BridgeExtensions");
             sb.AppendLine($"    {{");
             sb.Append(extensionMethodsCode.ToString());
             sb.AppendLine($"    }}");
@@ -248,139 +222,29 @@ namespace VerveEditor.UniEx
         private static string GenerateBridgeExtensionMethod(BridgeMethodInfo bridgeInfo, HashSet<string> requiredNamespaces, GameFeatureModuleProfile moduleProfile)
         {
             var method = bridgeInfo.Method;
-            var parameters = method.GetParameters();
-            var bridgeAttributes = bridgeInfo.BridgeAttributes;
-
-            if (bridgeAttributes.Count == 0)
-                return null;
-
-            var bridgeAttr = bridgeAttributes[0];
-            var targetMethodInfo = ResolveTargetMethod(bridgeAttr.Attribute, moduleProfile);
+            var bridgeAttr = bridgeInfo.BridgeAttribute;
             
+            // 解析目标方法
+            var targetMethodInfo = ResolveTargetMethod(bridgeAttr, moduleProfile);
             if (targetMethodInfo == null)
             {
-                Debug.LogWarning($"Could not resolve target method for bridge: {bridgeAttr.Attribute.MethodName}");
+                Debug.LogWarning($"Could not resolve target method: {bridgeAttr.TargetModule}.{bridgeAttr.TargetSubmodule}.{bridgeAttr.TargetMethod}");
                 return null;
             }
 
-            FindTypeNamespaces(method.ReturnType, requiredNamespaces);
-            foreach (var param in parameters)
+            // 收集命名空间
+            CollectRequiredNamespaces(method, targetMethodInfo, requiredNamespaces);
+
+            // 确定桥接参数
+            var bridgeParameter = FindBridgeParameter(method);
+            if (bridgeParameter == null)
             {
-                FindTypeNamespaces(param.ParameterType, requiredNamespaces);
-            }
-            FindTypeNamespaces(targetMethodInfo.ReturnType, requiredNamespaces);
-            foreach (var param in targetMethodInfo.GetParameters())
-            {
-                FindTypeNamespaces(param.ParameterType, requiredNamespaces);
+                Debug.LogWarning($"No bridge parameter found in method: {method.Name}");
+                return null;
             }
 
-            var regularParams = new List<ParameterInfo>();
-            var bridgeParams = new List<BridgeAttributeInfo>();
-
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                var currentBridgeAttr = bridgeAttributes.FirstOrDefault(attr => attr.ParameterIndex == i);
-                if (currentBridgeAttr != null)
-                {
-                    bridgeParams.Add(currentBridgeAttr);
-                }
-                else
-                {
-                    regularParams.Add(parameters[i]);
-                }
-            }
-
-            var methodBuilder = new StringBuilder();
-            
-            var genericParams = method.GetGenericArguments();
-            string genericConstraints = GenerateGenericConstraints(method);
-            
-            string returnType = GetTypeDisplayName(method.ReturnType);
-            bool isAsync = IsAsyncMethod(method);
-            bool targetIsAsync = IsAsyncMethod(targetMethodInfo);
-            
-            if (isAsync)
-            {
-                methodBuilder.Append($"        public static async {returnType} {method.Name}");
-            }
-            else
-            {
-                methodBuilder.Append($"        public static {returnType} {method.Name}");
-            }
-            
-            if (genericParams.Length > 0)
-            {
-                methodBuilder.Append($"<{string.Join(", ", genericParams.Select(p => p.Name))}>");
-            }
-            
-            methodBuilder.Append($"(this {bridgeInfo.SubmoduleType.Name} self");
-            
-            var targetParameters = targetMethodInfo.GetParameters();
-            var extensionParams = new List<string>();
-            
-            foreach (var targetParam in targetParameters)
-            {
-                string paramCode = GenerateParameterCode(targetParam);
-                extensionParams.Add(paramCode);
-                methodBuilder.Append($", {paramCode}");
-            }
-            
-            foreach (var param in regularParams)
-            {
-                string paramCode = GenerateParameterCode(param);
-                extensionParams.Add(paramCode);
-                methodBuilder.Append($", {paramCode}");
-            }
-            
-            methodBuilder.AppendLine($"){genericConstraints}");
-            methodBuilder.AppendLine("        {");
-            
-            string bridgeCall = GenerateBridgeCall(targetMethodInfo, targetIsAsync, extensionParams);
-            
-            if (method.ReturnType != typeof(void))
-            {
-                if (isAsync)
-                {
-                    methodBuilder.Append($"            return await self.{method.Name}(");
-                }
-                else
-                {
-                    methodBuilder.Append($"            return self.{method.Name}(");
-                }
-            }
-            else
-            {
-                if (isAsync)
-                {
-                    methodBuilder.Append($"            await self.{method.Name}(");
-                }
-                else
-                {
-                    methodBuilder.Append($"            self.{method.Name}(");
-                }
-            }
-            
-            var callParams = new List<string>();
-            int paramIndex = 0;
-            
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                if (i == bridgeAttr.ParameterIndex)
-                {
-                    callParams.Add(bridgeCall);
-                }
-                else
-                {
-                    callParams.Add(parameters[i].Name);
-                }
-                paramIndex++;
-            }
-            
-            methodBuilder.AppendLine($"{string.Join(", ", callParams)});");
-            methodBuilder.AppendLine("        }");
-            methodBuilder.AppendLine();
-
-            return methodBuilder.ToString();
+            // 生成扩展方法
+            return GenerateExtensionMethodCode(method, targetMethodInfo, bridgeAttr, bridgeParameter, bridgeInfo.SubmoduleType);
         }
 
         /// <summary>
@@ -388,34 +252,31 @@ namespace VerveEditor.UniEx
         /// </summary>
         private static MethodInfo ResolveTargetMethod(ModuleMethodBridgeAttribute bridgeAttr, GameFeatureModuleProfile moduleProfile)
         {
-            string targetModuleName = bridgeAttr.ModuleName;
-            string targetSubmoduleName = bridgeAttr.SubmoduleName;
-            string targetMethodName = bridgeAttr.MethodName;
-
             var targetModule = moduleProfile.Modules
-                .FirstOrDefault(m => m != null && m.GetType().Name == targetModuleName);
+                .FirstOrDefault(m => m != null && m.GetType().Name == bridgeAttr.TargetModule);
             
-            if (targetModule == null)
+            if (targetModule == null) 
             {
-                Debug.LogWarning($"Target module not found: {targetModuleName}");
+                Debug.LogWarning($"Target module not found: {bridgeAttr.TargetModule}");
                 return null;
             }
 
             var targetSubmodule = targetModule.Submodules
-                .FirstOrDefault(s => s != null && s.GetType().Name == targetSubmoduleName);
+                .FirstOrDefault(s => s != null && s.GetType().Name == bridgeAttr.TargetSubmodule);
             
             if (targetSubmodule == null)
             {
-                Debug.LogWarning($"Target submodule not found: {targetSubmoduleName}");
+                Debug.LogWarning($"Target submodule not found: {bridgeAttr.TargetSubmodule}");
                 return null;
             }
 
-            var targetMethod = targetSubmodule.GetType()
-                .GetMethod(targetMethodName, BindingFlags.Public | BindingFlags.Instance);
+            var targetType = targetSubmodule.GetType();
+            var targetMethod = targetType.GetMethod(bridgeAttr.TargetMethod, 
+                BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
             
             if (targetMethod == null)
             {
-                Debug.LogWarning($"Target method not found: {targetMethodName}");
+                Debug.LogWarning($"Target method not found: {bridgeAttr.TargetMethod} in {targetType.Name}");
                 return null;
             }
 
@@ -423,51 +284,164 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 生成桥接调用代码
+        /// 查找桥接参数
         /// </summary>
-        private static string GenerateBridgeCall(MethodInfo targetMethod, bool isAsync, List<string> parameters)
+        private static ParameterInfo FindBridgeParameter(MethodInfo method)
+        {
+            var parameters = method.GetParameters();
+            
+            // 查找标记了 BridgeParameterAttribute 的参数
+            foreach (var param in parameters)
+            {
+                var bridgeParamAttr = param.GetCustomAttribute<BridgeParameterAttribute>();
+                if (bridgeParamAttr != null)
+                {
+                    return param;
+                }
+            }
+            
+            // 如果没有标记的参数，返回第一个参数
+            return parameters.Length > 0 ? parameters[0] : null;
+        }
+
+        /// <summary>
+        /// 生成扩展方法代码
+        /// </summary>
+        private static string GenerateExtensionMethodCode(MethodInfo sourceMethod, MethodInfo targetMethod, 
+            ModuleMethodBridgeAttribute bridgeAttr, ParameterInfo bridgeParameter, Type submoduleType)
+        {
+            var methodBuilder = new StringBuilder();
+            
+            // 方法签名
+            string extensionMethodName = $"{sourceMethod.Name}With{bridgeAttr.ExtensionSuffix}";
+            string returnType = GetTypeDisplayName(sourceMethod.ReturnType);
+            bool isSourceAsync = IsAsyncMethod(sourceMethod);
+            bool isTargetAsync = IsAsyncMethod(targetMethod);
+            
+            // 泛型参数
+            var genericParams = sourceMethod.GetGenericArguments();
+            string genericDeclaration = genericParams.Length > 0 ? 
+                $"<{string.Join(", ", genericParams.Select(p => p.Name))}>" : "";
+            
+            // 泛型约束
+            string genericConstraints = GenerateGenericConstraints(sourceMethod);
+            
+            // 开始构建方法
+            if (isSourceAsync)
+            {
+                methodBuilder.Append($"        public static async {returnType} {extensionMethodName}{genericDeclaration}");
+            }
+            else
+            {
+                methodBuilder.Append($"        public static {returnType} {extensionMethodName}{genericDeclaration}");
+            }
+            
+            methodBuilder.Append($"(this {GetTypeDisplayName(submoduleType)} self");
+            
+            // 目标方法参数
+            var targetParameters = targetMethod.GetParameters()
+                .Select(p => GenerateParameterCode(p)).ToList();
+            
+            // 源方法参数（排除桥接参数）
+            var sourceParameters = sourceMethod.GetParameters()
+                .Where(p => p != bridgeParameter)
+                .Select(p => GenerateParameterCode(p)).ToList();
+            
+            // 合并参数
+            var allParameters = targetParameters.Concat(sourceParameters);
+            foreach (var param in allParameters)
+            {
+                methodBuilder.Append($", {param}");
+            }
+            
+            methodBuilder.AppendLine($"){genericConstraints}");
+            methodBuilder.AppendLine("        {");
+            
+            // 生成方法调用 - 直接内联，不声明额外变量
+            string methodCall = GenerateDirectMethodCall(sourceMethod, targetMethod, bridgeParameter, isSourceAsync, isTargetAsync);
+            methodBuilder.AppendLine($"            {methodCall}");
+            
+            methodBuilder.AppendLine("        }");
+            methodBuilder.AppendLine();
+
+            return methodBuilder.ToString();
+        }
+
+        /// <summary>
+        /// 生成直接方法调用（不声明额外变量）
+        /// </summary>
+        private static string GenerateDirectMethodCall(MethodInfo sourceMethod, MethodInfo targetMethod, 
+            ParameterInfo bridgeParameter, bool isSourceAsync, bool isTargetAsync)
+        {
+            // 构建目标方法调用
+            string targetCall = GenerateTargetMethodCallExpression(targetMethod, bridgeParameter.ParameterType, isTargetAsync);
+            
+            // 构建源方法调用参数
+            var callParams = new List<string>();
+            foreach (var param in sourceMethod.GetParameters())
+            {
+                if (param == bridgeParameter)
+                {
+                    // 桥接参数替换为目标方法调用
+                    callParams.Add(targetCall);
+                }
+                else
+                {
+                    callParams.Add(param.Name);
+                }
+            }
+            
+            // 构建源方法调用
+            string sourceCall = $"self.{sourceMethod.Name}";
+            
+            // 处理源方法的泛型参数
+            var sourceGenericParams = sourceMethod.GetGenericArguments();
+            if (sourceGenericParams.Length > 0)
+            {
+                sourceCall += $"<{string.Join(", ", sourceGenericParams.Select(GetTypeDisplayName))}>";
+            }
+            
+            sourceCall += $"({string.Join(", ", callParams)})";
+            
+            // 处理返回值
+            if (sourceMethod.ReturnType == typeof(void))
+            {
+                return isSourceAsync ? $"await {sourceCall};" : $"{sourceCall};";
+            }
+            else
+            {
+                return isSourceAsync ? $"return await {sourceCall};" : $"return {sourceCall};";
+            }
+        }
+
+        /// <summary>
+        /// 生成目标方法调用表达式
+        /// </summary>
+        private static string GenerateTargetMethodCallExpression(MethodInfo targetMethod, Type bridgeParameterType, bool isTargetAsync)
         {
             var targetParams = targetMethod.GetParameters();
             var paramNames = targetParams.Select(p => p.Name).ToList();
             
-            string call = $"{nameof(GameFeatures)}.{nameof(GameFeatures.GetSubmodule)}<{targetMethod.DeclaringType.Name}>().{targetMethod.Name}";
+            string call = $"{nameof(GameFeatures)}.{nameof(GameFeatures.GetSubmodule)}<{GetTypeDisplayName(targetMethod.DeclaringType)}>().{targetMethod.Name}";
             
-            var genericParams = targetMethod.GetGenericArguments();
-            if (genericParams.Length > 0)
+            // 处理目标方法的泛型参数 - 关键修复：使用桥接参数的实际类型
+            var targetGenericParams = targetMethod.GetGenericArguments();
+            if (targetGenericParams.Length > 0)
             {
-                call += $"<{string.Join(", ", genericParams.Select(p => p.Name))}>";
+                // 关键修复：使用桥接参数的实际类型，而不是泛型参数名
+                string actualTypeName = GetTypeDisplayName(bridgeParameterType);
+                call += $"<{actualTypeName}>";
             }
             
             call += $"({string.Join(", ", paramNames)})";
             
-            if (isAsync)
+            // 处理异步调用
+            if (isTargetAsync)
             {
                 call = $"await {call}";
             }
             
             return call;
-        }
-
-        /// <summary>
-        /// 生成参数代码
-        /// </summary>
-        private static string GenerateParameterCode(ParameterInfo parameter)
-        {
-            string typeName = GetTypeDisplayName(parameter.ParameterType);
-            string paramName = parameter.Name;
-            string defaultValue = "";
-            
-            if (parameter.GetCustomAttributes(typeof(ParamArrayAttribute), false).Length > 0)
-            {
-                typeName = $"params {typeName.Replace("[]", "")} []";
-            }
-            
-            if (parameter.HasDefaultValue)
-            {
-                defaultValue = $" = {GetDefaultValueCode(parameter.DefaultValue, parameter.ParameterType)}";
-            }
-            
-            return $"{typeName} {paramName}{defaultValue}";
         }
 
         /// <summary>
@@ -486,18 +460,25 @@ namespace VerveEditor.UniEx
                 var typeConstraints = genericParam.GetGenericParameterConstraints();
                 foreach (var constraint in typeConstraints)
                 {
-                    constraintBuilder.Add(GetTypeDisplayName(constraint));
+                    if (constraint != typeof(ValueType) && constraint != typeof(Enum))
+                    {
+                        constraintBuilder.Add(GetTypeDisplayName(constraint));
+                    }
                 }
                 
-                if (genericParam.GenericParameterAttributes.HasFlag(GenericParameterAttributes.NotNullableValueTypeConstraint))
+                // 特殊约束
+                var attributes = genericParam.GenericParameterAttributes;
+                if (attributes.HasFlag(System.Reflection.GenericParameterAttributes.NotNullableValueTypeConstraint))
                 {
                     constraintBuilder.Add("struct");
                 }
-                if (genericParam.GenericParameterAttributes.HasFlag(GenericParameterAttributes.ReferenceTypeConstraint))
+                else if (attributes.HasFlag(System.Reflection.GenericParameterAttributes.ReferenceTypeConstraint))
                 {
                     constraintBuilder.Add("class");
                 }
-                if (genericParam.GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
+                
+                if (attributes.HasFlag(System.Reflection.GenericParameterAttributes.DefaultConstructorConstraint) &&
+                    !attributes.HasFlag(System.Reflection.GenericParameterAttributes.NotNullableValueTypeConstraint))
                 {
                     constraintBuilder.Add("new()");
                 }
@@ -509,6 +490,183 @@ namespace VerveEditor.UniEx
             }
             
             return constraints.Count > 0 ? " " + string.Join(" ", constraints) : "";
+        }
+
+        /// <summary>
+        /// 收集所需的命名空间
+        /// </summary>
+        private static void CollectRequiredNamespaces(MethodInfo sourceMethod, MethodInfo targetMethod, HashSet<string> namespaces)
+        {
+            void AddNamespace(Type type)
+            {
+                if (type == null) return;
+                
+                if (type.Namespace != null && !type.Namespace.StartsWith("System") && type.Namespace != "System")
+                {
+                    namespaces.Add(type.Namespace);
+                }
+                
+                if (type.IsArray)
+                {
+                    AddNamespace(type.GetElementType());
+                    return;
+                }
+                
+                if (type.IsGenericType)
+                {
+                    foreach (var arg in type.GetGenericArguments())
+                    {
+                        AddNamespace(arg);
+                    }
+                }
+            }
+
+            AddNamespace(sourceMethod.ReturnType);
+            foreach (var param in sourceMethod.GetParameters())
+            {
+                AddNamespace(param.ParameterType);
+            }
+            
+            AddNamespace(targetMethod.ReturnType);
+            foreach (var param in targetMethod.GetParameters())
+            {
+                AddNamespace(param.ParameterType);
+            }
+            
+            if (IsAsyncMethod(sourceMethod) || IsAsyncMethod(targetMethod))
+            {
+                namespaces.Add("System.Threading.Tasks");
+            }
+        }
+
+        /// <summary>
+        /// 生成参数代码
+        /// </summary>
+        private static string GenerateParameterCode(ParameterInfo parameter)
+        {
+            string typeName = GetTypeDisplayName(parameter.ParameterType);
+            string paramName = parameter.Name;
+            
+            if (parameter.GetCustomAttributes(typeof(ParamArrayAttribute), false).Length > 0)
+            {
+                typeName = $"params {typeName.Replace("[]", "")}[]";
+            }
+            
+            string defaultValue = "";
+            if (parameter.HasDefaultValue)
+            {
+                if (parameter.DefaultValue != null && parameter.DefaultValue.GetType() != typeof(DBNull))
+                {
+                    defaultValue = $" = {GetDefaultValueCode(parameter.DefaultValue, parameter.ParameterType)}";
+                }
+                else if (parameter.ParameterType.IsValueType)
+                {
+                    defaultValue = $" = default({GetTypeDisplayName(parameter.ParameterType)})";
+                }
+                else
+                {
+                    defaultValue = " = null";
+                }
+            }
+            
+            return $"{typeName} {paramName}{defaultValue}";
+        }
+
+        /// <summary>
+        /// 获取类型的显示名称
+        /// </summary>
+        private static string GetTypeDisplayName(Type type)
+        {
+            if (type == null) return "object";
+            
+            if (type == typeof(void)) return "void";
+            if (type == typeof(int)) return "int";
+            if (type == typeof(float)) return "float";
+            if (type == typeof(double)) return "double";
+            if (type == typeof(string)) return "string";
+            if (type == typeof(bool)) return "bool";
+            if (type == typeof(char)) return "char";
+            if (type == typeof(byte)) return "byte";
+            if (type == typeof(object)) return "object";
+            if (type == typeof(Task)) return "Task";
+            
+            if (type.IsArray)
+            {
+                return $"{GetTypeDisplayName(type.GetElementType())}[]";
+            }
+            
+            if (type.IsGenericType)
+            {
+                string name = type.Name.Split('`')[0];
+                var args = type.GetGenericArguments().Select(GetTypeDisplayName);
+                
+                if (name == "Nullable")
+                {
+                    return $"{args.First()}?";
+                }
+                
+                if (name == "Task" && type.GetGenericArguments().Length == 1)
+                {
+                    return $"Task<{args.First()}>";
+                }
+                
+                // 处理 Action<T> 等委托类型
+                if (name.StartsWith("Action") || name.StartsWith("Func"))
+                {
+                    return $"{name}<{string.Join(", ", args)}>";
+                }
+                
+                return $"{name}<{string.Join(", ", args)}>";
+            }
+            
+            return type.Name;
+        }
+
+        /// <summary>
+        /// 获取默认值的代码表示
+        /// </summary>
+        private static string GetDefaultValueCode(object defaultValue, Type type)
+        {
+            if (defaultValue == null)
+                return "null";
+            
+            if (type == typeof(string))
+                return $"\"{defaultValue}\"";
+            
+            if (type == typeof(bool))
+                return defaultValue.ToString().ToLower();
+            
+            if (type == typeof(float))
+                return $"{defaultValue}f";
+            
+            if (type == typeof(char))
+                return $"'{defaultValue}'";
+            
+            if (type.IsEnum)
+                return $"{GetTypeDisplayName(type)}.{defaultValue}";
+            
+            return defaultValue.ToString();
+        }
+
+        /// <summary>
+        /// 检查是否为异步方法
+        /// </summary>
+        private static bool IsAsyncMethod(MethodInfo method)
+        {
+            return typeof(Task).IsAssignableFrom(method.ReturnType) ||
+                   (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
+        }
+
+        /// <summary>
+        /// 获取方法签名（用于去重）
+        /// </summary>
+        private static string GetMethodSignature(BridgeMethodInfo bridgeInfo, string suffix)
+        {
+            var parameters = bridgeInfo.Method.GetParameters()
+                .Where(p => p.GetCustomAttribute<BridgeParameterAttribute>() == null)
+                .Select(p => $"{GetTypeDisplayName(p.ParameterType)}_{p.Name}");
+                
+            return $"{bridgeInfo.Method.Name}With{suffix}_{string.Join("_", parameters)}";
         }
 
         /// <summary>
@@ -532,121 +690,6 @@ namespace VerveEditor.UniEx
             }
         }
 
-        /// <summary>
-        /// 查找类型所需的命名空间
-        /// </summary>
-        private static void FindTypeNamespaces(Type type, HashSet<string> namespaces)
-        {
-            if (type == null || type.Namespace == null) 
-                return;
-
-            string ns = type.Namespace;
-            if (!ns.StartsWith("System") || 
-                ns == "System.Collections" || 
-                ns == "System.Collections.Generic" ||
-                ns == "System.Threading.Tasks")
-            {
-                namespaces.Add(ns);
-            }
-
-            if (type.IsArray)
-            {
-                FindTypeNamespaces(type.GetElementType(), namespaces);
-                return;
-            }
-
-            if (type.IsGenericType)
-            {
-                foreach (var argType in type.GetGenericArguments())
-                {
-                    FindTypeNamespaces(argType, namespaces);
-                }
-            }
-
-            if (typeof(Task).IsAssignableFrom(type) && type.IsGenericType)
-            {
-                namespaces.Add("System.Threading.Tasks");
-            }
-        }
-
-        /// <summary>
-        /// 获取类型的显示名称
-        /// </summary>
-        private static string GetTypeDisplayName(Type type)
-        {
-            if (type == typeof(void)) return "void";
-            if (type == typeof(int)) return "int";
-            if (type == typeof(float)) return "float";
-            if (type == typeof(double)) return "double";
-            if (type == typeof(string)) return "string";
-            if (type == typeof(bool)) return "bool";
-            if (type == typeof(char)) return "char";
-            if (type == typeof(byte)) return "byte";
-            if (type == typeof(object)) return "object";
-            if (type == typeof(Task)) return "Task";
-
-            if (type.IsArray)
-            {
-                return $"{GetTypeDisplayName(type.GetElementType())}[]";
-            }
-            
-            if (type.IsGenericType)
-            {
-                string name = type.Name.Split('`')[0];
-                var args = type.GetGenericArguments().Select(GetTypeDisplayName);
-                
-                if (name == "Nullable")
-                {
-                    return $"{args.First()}?";
-                }
-                
-                return $"{name}<{string.Join(", ", args)}>";
-            }
-
-            return type.Name;
-        }
-
-        /// <summary>
-        /// 获取默认值的代码表示
-        /// </summary>
-        private static string GetDefaultValueCode(object defaultValue, Type type)
-        {
-            if (defaultValue == null)
-                return "null";
-            
-            if (type == typeof(string))
-                return $"\"{defaultValue}\"";
-            
-            if (type == typeof(bool))
-                return defaultValue.ToString().ToLower();
-            
-            if (type == typeof(float))
-                return $"{defaultValue}f";
-            
-            if (type.IsEnum)
-                return $"{type.Name}.{defaultValue}";
-            
-            return defaultValue.ToString();
-        }
-
-        /// <summary>
-        /// 检查是否为异步方法
-        /// </summary>
-        private static bool IsAsyncMethod(MethodInfo method)
-        {
-            return typeof(Task).IsAssignableFrom(method.ReturnType) ||
-                   (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
-        }
-
-        /// <summary>
-        /// 获取方法签名（用于去重）
-        /// </summary>
-        private static string GetMethodSignature(MethodInfo method)
-        {
-            var parameters = method.GetParameters().Select(p => $"{p.ParameterType.Name}_{p.Name}");
-            return $"{method.Name}_{string.Join("_", parameters)}";
-        }
-
         #region Helper Classes
 
         private class BridgeMethodInfo
@@ -654,14 +697,7 @@ namespace VerveEditor.UniEx
             public Type ModuleType { get; set; }
             public Type SubmoduleType { get; set; }
             public MethodInfo Method { get; set; }
-            public List<BridgeAttributeInfo> BridgeAttributes { get; set; }
-        }
-
-        private class BridgeAttributeInfo
-        {
-            public int ParameterIndex { get; set; }
-            public ParameterInfo Parameter { get; set; }
-            public ModuleMethodBridgeAttribute Attribute { get; set; }
+            public ModuleMethodBridgeAttribute BridgeAttribute { get; set; }
         }
 
         #endregion

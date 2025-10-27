@@ -1,13 +1,9 @@
-namespace Verve.MVC
+#if UNITY_5_3_OR_NEWER
+
+namespace Verve.UniEx.MVC
 {
-    /// <summary>
-    /// MVC模型接口，用于存储共享数据
-    /// </summary>
-    public interface IModel
-    {
-        void Initialize();
-    }
-    
+    using Verve.MVC;
+
     
     /// <summary>
     /// MVC模型基类，用于存储共享数据
@@ -19,3 +15,5 @@ namespace Verve.MVC
         protected virtual void OnInitialized() { }
     }
 }
+
+#endif

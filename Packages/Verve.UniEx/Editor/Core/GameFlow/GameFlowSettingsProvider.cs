@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.Flow
+namespace VerveEditor
 {
     using UnityEditor;
     using UnityEngine;

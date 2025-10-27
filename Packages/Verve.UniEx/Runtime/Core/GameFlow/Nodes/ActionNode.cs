@@ -20,7 +20,7 @@ namespace Verve.UniEx
         
         public ActionNode() : base() { }
         
-        public ActionNode(Action callback, string actionID = null) : base(actionID)
+        public ActionNode(Action callback, string nodeID = null) : base(nodeID)
         {
             m_RuntimeCallback = callback;
             m_SerializedCallback = null;

@@ -19,7 +19,7 @@ namespace Verve.UniEx.MVC
     [Serializable, GameFeatureSubmodule(typeof(MVCGameFeature), Description = "视图控制器子模块 - 用于管理视图")]
     public sealed partial class ViewController : GameFeatureSubmodule<MVCGameFeatureComponent>
     {
-        [SerializeField, Tooltip("View根节点")] private Transform m_ViewRoot;
+        // [SerializeField, Tooltip("View根节点")] private Transform m_ViewRoot;
         [Tooltip("View缓存")] private readonly Dictionary<Type, WeakReference<IView>> m_CachedView = 
             new Dictionary<Type, WeakReference<IView>>();
         [Tooltip("View堆栈")] private readonly Stack<WeakReference<IView>> m_ViewStack = 
@@ -28,32 +28,33 @@ namespace Verve.UniEx.MVC
 
         protected override IEnumerator OnStartup()
         {
-            Assert.IsNotNull(Component.ViewRoot);
-            if (Application.isPlaying)
-            {
-                if (m_ViewRoot != null)
-                {
-                    Object.Destroy(m_ViewRoot.gameObject);
-                    yield return null;
-                }
-                m_ViewRoot = Object.Instantiate(Component.ViewRoot);
-                Object.DontDestroyOnLoad(m_ViewRoot.gameObject);
-                var views = m_ViewRoot.GetComponentsInChildren<ViewBase>();
-                for (int i = 0; i < views.Length; i++)
-                {
-                    m_CachedView[views[i].GetType()] = new WeakReference<IView>(views[i]);
-                }
-            }
+            // Assert.IsNotNull(Component.ViewRoot);
+            // if (Application.isPlaying)
+            // {
+            //     if (m_ViewRoot != null)
+            //     {
+            //         Object.Destroy(m_ViewRoot.gameObject);
+            //         yield return null;
+            //     }
+            //     m_ViewRoot = Object.Instantiate(Component.ViewRoot);
+            //     Object.DontDestroyOnLoad(m_ViewRoot.gameObject);
+            //     var views = m_ViewRoot.GetComponentsInChildren<ViewBase>();
+            //     for (int i = 0; i < views.Length; i++)
+            //     {
+            //         m_CachedView[views[i].GetType()] = new WeakReference<IView>(views[i]);
+            //     }
+            // }
+            yield break;
         }
 
         protected override void OnShutdown()
         {
             base.OnShutdown();
             CloseViewAll();
-            if (Application.isPlaying && m_ViewRoot != null)
-            {
-                Object.Destroy(m_ViewRoot.gameObject);
-            }
+            // if (Application.isPlaying && m_ViewRoot != null)
+            // {
+            //     Object.Destroy(m_ViewRoot.gameObject);
+            // }
         }
 
         /// <summary>
@@ -65,7 +66,7 @@ namespace Verve.UniEx.MVC
         /// <param name="onOpened">打开回调</param>
         /// <param name="args">参数</param>
         /// <returns></returns>
-        public bool OpenView<T>(
+        public void OpenView<T>(
             GameObject viewPrefab,
             bool isCloseAllOther = false,
             Transform parent = null,
@@ -73,10 +74,11 @@ namespace Verve.UniEx.MVC
             params object[] args)
             where T : ViewBase
         {
-            var viewObj = Object.Instantiate(viewPrefab, parent ?? m_ViewRoot);
-            if (!viewObj.TryGetComponent(out T viewInstance))
+            var viewObj = Object.Instantiate(viewPrefab, parent);
+            if (!viewObj.TryGetComponent(out T viewInstance)) return;
+            if (viewInstance.GetActivity() is MonoBehaviour activity && activity.gameObject != null && activity.TryGetComponent(out Transform activityParent))
             {
-                return false;
+                viewObj.transform.SetParent(activityParent, false);
             }
             if (m_CachedView.TryGetValue(viewInstance.GetType(), out var weakRef) && 
                 weakRef.TryGetTarget(out var existingView))
@@ -89,7 +91,6 @@ namespace Verve.UniEx.MVC
             onOpened?.Invoke(viewInstance);
             m_CachedView[viewInstance.GetType()] = new WeakReference<IView>(viewInstance);
             m_ViewStack.Push(new WeakReference<IView>(viewInstance));
-            return true;
         }
 
         /// <summary>
@@ -140,7 +141,8 @@ namespace Verve.UniEx.MVC
             {
                 if (weakRef.TryGetTarget(out var view))
                 {
-                    view?.Close();
+                    view.OnClosed -= UnregisterView;
+                    view.Close();
                     m_CachedView.Remove(viewType);
                 }
             }

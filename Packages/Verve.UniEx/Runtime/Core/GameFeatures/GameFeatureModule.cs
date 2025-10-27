@@ -171,15 +171,6 @@ namespace Verve.UniEx
             m_Submodules?.Clear();
             isDirty = true;
         }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            Clear();
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing) { }
     }
 }
 

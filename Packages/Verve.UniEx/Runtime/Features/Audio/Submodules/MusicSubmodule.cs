@@ -55,7 +55,9 @@ namespace Verve.UniEx.Audio
             }
         }
 
-        public async Task Play(AudioClip clip, float fadeDuration = 0)
+        [ModuleMethodBridge("LoaderGameFeature.AddressablesLoader.LoadAsset")]
+        [ModuleMethodBridge("LoaderGameFeature.AddressablesLoader.LoadAssetAsync")]
+        public async Task Play([BridgeParameter] AudioClip clip, float fadeDuration = 0)
         {
             if (clip == null || m_Source == null) return;
 

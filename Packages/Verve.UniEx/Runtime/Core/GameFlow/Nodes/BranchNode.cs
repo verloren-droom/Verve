@@ -8,6 +8,9 @@ namespace Verve.UniEx
     using System.Threading;
     using System.Threading.Tasks;
     
+    /// <summary>
+    ///  <para>判断条件事件</para>
+    /// </summary>
     [Serializable]
     public class BranchConditionEvent : UnityEvent<System.Action<bool>> { }
 
@@ -26,7 +29,7 @@ namespace Verve.UniEx
         
         public BranchNode(): base() { }
         
-        public BranchNode(Func<bool> condition, IGameFlowNode trueNode, IGameFlowNode falseNode = null, string actionID = null) : base(actionID)
+        public BranchNode(Func<bool> condition, IGameFlowNode trueNode, IGameFlowNode falseNode = null, string nodeID = null) : base(nodeID)
         {
             m_Condition = condition;
             m_TrueNode = trueNode;

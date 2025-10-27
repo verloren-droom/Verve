@@ -14,7 +14,11 @@ namespace Verve.UniEx
     ///  <para>游戏流程节点</para>
     /// </summary>
     [Serializable]
+#if UNITY_2019_4_OR_NEWER
     public abstract class GameFlowNode : IGameFlowNode, ISerializationCallbackReceiver
+#else
+    public class GameFlowNode : IGameFlowNode, ISerializationCallbackReceiver
+#endif
     {
         [SerializeField, Tooltip("游戏流程节点ID"), ReadOnly] private string m_NodeID;
         
@@ -24,9 +28,9 @@ namespace Verve.UniEx
 
         private static string GenerateNodeID() => $"node_{Guid.NewGuid().ToString("N")[..32]}";
         
-        protected GameFlowNode(string actionID = null)
+        protected GameFlowNode(string nodeID = null)
         {
-            m_NodeID = actionID ?? GenerateNodeID();
+            m_NodeID = nodeID ?? GenerateNodeID();
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -62,7 +66,11 @@ namespace Verve.UniEx
         /// <summary>
         ///  <para>执行</para>
         /// </summary>
+#if UNITY_2019_4_OR_NEWER
         protected abstract Task OnExecute(CancellationToken ct);
+#else
+        protected virtual void OnExecute(CancellationToken ct) {}
+#endif
         /// <summary>
         ///  <para>取消</para>
         /// </summary>

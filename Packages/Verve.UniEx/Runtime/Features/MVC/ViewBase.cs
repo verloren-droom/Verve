@@ -17,6 +17,7 @@ namespace Verve.UniEx.MVC
     public abstract partial class ViewBase : MonoBehaviour, IView
     {
         [SerializeField, Tooltip("视图名称"), ReadOnly] private string m_ViewName;
+        
         /// <summary> 视图名称 </summary>
         public virtual string ViewName
         {
@@ -30,9 +31,8 @@ namespace Verve.UniEx.MVC
         public event Action<IView> OnOpened;
         public event Action<IView> OnClosed;
 
-        public abstract IActivity Activity { get; set; }
-        
-        
+        public abstract IActivity GetActivity();
+
         protected virtual void OnOpening(params object[] args) { }
         protected virtual void OnClosing() { }
 
