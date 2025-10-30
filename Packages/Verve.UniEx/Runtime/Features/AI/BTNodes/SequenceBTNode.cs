@@ -8,31 +8,33 @@ namespace Verve.UniEx.AI
     
     
     /// <summary>
-    /// 顺序节点数据
+    ///   <para>顺序节点数据</para>
     /// </summary>
     [Serializable]
     public struct SequenceBTNodeData : INodeData
     {
-        /// <summary> 子节点 </summary>
+        /// <summary>
+        ///   <para>子节点</para>
+        /// </summary>
         [NotNull] public IBTNode[] children;
     }
     
 
     /// <summary>
-    /// 顺序节点
+    ///   <para>顺序节点</para>
+    ///   <para>按照顺序执行所有子节点，直到一个子节点返回失败或者完成，或者所有子节点都返回成功或者完成</para>
     /// </summary>
-    /// <remarks>
-    /// 按照顺序执行所有子节点，直到一个子节点返回失败或者完成，或者所有子节点都返回成功或者完成
-    /// </remarks>
     [CustomBTNode(nameof(SequenceBTNode)), Serializable]
     public struct SequenceBTNode : ICompositeBTNode, IBTNodeResettable
     {
         public SequenceBTNodeData data;
         public BTNodeResult LastResult { get; private set; }
 
-        /// <summary> 当前节点索引值 </summary>
         private int m_CurrentChildIndex;
 
+        /// <summary>
+        ///   <para>当前节点索引值</para>
+        /// </summary>
         public readonly int CurrentChildIndex => m_CurrentChildIndex;
 
         

@@ -9,12 +9,14 @@ namespace Verve.UniEx.Timer
 
     
     /// <summary>
-    /// 时间回溯记录器
+    ///   <para>时间回溯记录器</para>
     /// </summary>
     [Serializable]
     internal class TimeRewindRecorder : IDisposable
     {
-        /// <summary> 快照数据 </summary>
+        /// <summary>
+        ///   <para>快照数据</para>
+        /// </summary>
         private readonly RewindSnapshot[] m_Buffer;
         private readonly int m_Capacity;
         private int m_WriteIndex;
@@ -23,16 +25,26 @@ namespace Verve.UniEx.Timer
         private bool m_IsRewinding;
         private int m_LastAppliedIndex = -1;
         
-        /// <summary> 目标可回溯对象 </summary>
+        /// <summary>
+        ///   <para>目标可回溯对象</para>
+        /// </summary>
         public ITimeRewindable Target { get; }
-        /// <summary> 当前快照数量 </summary>
+        /// <summary>
+        ///   <para>当前快照数量</para>
+        /// </summary>
         public int SnapshotCount => m_Count;
-        /// <summary> 快照缓冲区容量 </summary>
+        /// <summary>
+        ///   <para>快照缓冲区容量</para>
+        /// </summary>
         public int BufferCapacity => m_Capacity;
         
-        /// <summary> 最早的快照时间戳 </summary>
+        /// <summary>
+        ///   <para>最早的快照时间戳</para>
+        /// </summary>
         public float OldestTimestamp => m_Count > 0 ? GetSnapshotAt(0).timestamp : 0f;
-        /// <summary> 最新快照时间戳 </summary>
+        /// <summary>
+        ///   <para>最新快照时间戳</para>
+        /// </summary>
         public float NewestTimestamp => m_Count > 0 ? GetSnapshotAt(m_Count - 1).timestamp : 0f;
 
         
@@ -99,7 +111,7 @@ namespace Verve.UniEx.Timer
         }
         
         /// <summary>
-        /// 开始回溯
+        ///   <para>开始回溯</para>
         /// </summary>
         /// <param name="startTime">开始时间</param>
         public void StartRewind(float startTime)
@@ -114,7 +126,7 @@ namespace Verve.UniEx.Timer
         }
         
         /// <summary>
-        /// 停止回溯
+        ///   <para>停止回溯</para>
         /// </summary>
         public void StopRewind()
         {
@@ -123,7 +135,7 @@ namespace Verve.UniEx.Timer
         }
         
         /// <summary>
-        /// 根据时间查找快照索引
+        ///   <para>根据时间查找快照索引</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int FindSnapshotIndex(float targetTime)
@@ -176,15 +188,18 @@ namespace Verve.UniEx.Timer
         }
         
         /// <summary>
-        /// 检查是否已经倒放到最早状态
+        ///   <para>检查是否已经倒放到最早状态</para>
         /// </summary>
+        /// <returns>
+        ///   <para>是否已经倒放到最早状态</para>
+        /// </returns>
         public bool HasReachedOldest()
         {
             return m_LastAppliedIndex == 0;
         }
         
         /// <summary>
-        /// 清空快照
+        ///   <para>清空快照</para>
         /// </summary>
         public void Clear()
         {

@@ -7,7 +7,7 @@ namespace Verve.UniEx.Timer
     
     
     /// <summary>
-    /// 计算器子模块基类
+    ///   <para>计算器子模块基类</para>
     /// </summary>
     public abstract class TimerSubmodule : TickableGameFeatureSubmodule, ITimer
     {

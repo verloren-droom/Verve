@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx.Gameplay
+namespace VerveEditor.Gameplay
 {
     using System;
     using UnityEngine;
@@ -8,11 +8,14 @@ namespace VerveEditor.UniEx.Gameplay
     using Verve.UniEx.Gameplay;
 
     
+    /// <summary>
+    ///   <para>玩家控制器编辑器</para>
+    /// </summary>
     [CustomEditor(typeof(PlayerController))]
     public class PlayerControllerEditor : Editor
     {
         /// <summary>
-        /// 创建玩家实体（包含Pawn和Controller）
+        ///   <para>创建玩家实体（包含Pawn和Controller）</para>
         /// </summary>
         [MenuItem("GameObject/Verve/Gameplay/Character/Player", false, 10)]
         private static void CreatePlayer(MenuCommand menuCommand)

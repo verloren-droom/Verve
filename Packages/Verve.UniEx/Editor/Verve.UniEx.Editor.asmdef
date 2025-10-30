@@ -1,6 +1,6 @@
 {
     "name": "Verve.UniEx.Editor",
-    "rootNamespace": "VerveEditor.UniEx",
+    "rootNamespace": "VerveEditor",
     "references": [
         "Verve.Core",
         "Verve.UniEx",
@@ -10,8 +10,6 @@
         "Verve.UniEx.AI",
         "Verve.UniEx.Platform",
         "Verve.UniEx.Serializable",
-        "Verve.File",
-        "Verve.UniEx.File",
         "Verve.Input",
         "Verve.UniEx.Input",
         "Verve.Storage",
@@ -22,6 +20,8 @@
         "Verve.Debug",
         "Verve.UniEx.Debug",
         "Verve.UniEx.ScriptRuntime",
+        "Verve.MVC",
+        "Verve.UniEx.MVC",
         "HybridCLR.Editor"
     ],
     "includePlatforms": [
@@ -30,9 +30,7 @@
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
-    "precompiledReferences": [
-        ""
-    ],
+    "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],

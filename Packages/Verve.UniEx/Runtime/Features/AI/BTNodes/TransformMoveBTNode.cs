@@ -11,7 +11,7 @@ namespace Verve.UniEx.AI
     
     
     /// <summary>
-    /// 变换移动节点数据
+    ///   <para>变换移动节点数据</para>
     /// </summary>
     [Serializable]
     public struct TransformMoveBTNodeData : INodeData
@@ -34,29 +34,39 @@ namespace Verve.UniEx.AI
     
     
     /// <summary>
-    /// 到达动作模式（仅目标点为多个生效）
+    ///   <para>到达动作模式（仅目标点为多个生效）</para>
     /// </summary>
     [Serializable]
     public enum ArrivalActionMode : byte
     {
-        /// <summary> 自动选择下一目标 </summary>
+        /// <summary>
+        ///   <para>自动选择下一目标</para>
+        /// </summary>
         Proceed,
-        /// <summary> 停止移动并保持状态 </summary>
+        /// <summary>
+        ///   <para>停止移动并保持状态</para>
+        /// </summary>
         Keep,
     }
         
         
     /// <summary>
-    /// 循环模式（仅目标点为多个生效）
+    ///   <para>循环模式（仅目标点为多个生效）</para>
     /// </summary>
     [Serializable]
     public enum LoopMode : byte
     {
-        /// <summary> 无循环 </summary>
+        /// <summary>
+        ///   <para>无循环</para>
+        /// </summary>
         None,
-        /// <summary> 从头循环 </summary>
+        /// <summary>
+        ///   <para>从头循环</para>
+        /// </summary>
         Repeat,
-        /// <summary> 往返循环 </summary>
+        /// <summary>
+        ///   <para>往返循环</para>
+        /// </summary>
         PingPong,
     }
 
@@ -64,21 +74,25 @@ namespace Verve.UniEx.AI
     [Flags, Serializable]
     public enum AxisFlags : byte
     {
-        /// <summary> X 轴 </summary>
+        /// <summary>
+        ///   <para>X 轴</para>
+        /// </summary>
         X = 1,
-        /// <summary> Y 轴 </summary>
+        /// <summary>
+        ///   <para>Y 轴</para>
+        /// </summary>
         Y = 2,
-        /// <summary> Z 轴 </summary>
+        /// <summary>
+        /// <para>Z 轴</para>
+        /// </summary>
         Z = 4,
     }
 
     
     /// <summary>
-    /// 变换移动节点
+    ///   <para>变换移动节点</para>
+    ///   <para>基于Transform的位移控制，适用于非导航网格场景</para>
     /// </summary>
-    /// <remarks>
-    /// 基于Transform的位移控制，适用于非导航网格场景
-    /// </remarks>
     [CustomBTNode(nameof(TransformMoveBTNode)), Serializable]
     public struct TransformMoveBTNode : IBTNode, IBTNodeResettable, IBTNodePreparable, IBTNodeDebuggable
     {

@@ -1,9 +1,7 @@
 #if UNITY_EDITOR
     
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
-    using System.IO;
-    using UnityEngine;
     using UnityEditor;
     using System.Linq;
     using UnityEditor.PackageManager;

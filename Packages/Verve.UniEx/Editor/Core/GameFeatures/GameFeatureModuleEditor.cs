@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using Verve;
     using System;
@@ -9,14 +9,20 @@ namespace VerveEditor.UniEx
     using UnityEngine;
     using Verve.UniEx;
     using System.Reflection;
-    using System.Collections.Generic;
     using Object = UnityEngine.Object;
 
     
+    /// <summary>
+    ///   <para>游戏功能模块编辑器</para>
+    /// </summary>
     [CustomEditor(typeof(GameFeatureModule), true), CanEditMultipleObjects]
     internal class GameFeatureModuleEditor : Editor
     {
         private GameFeatureModule m_Module;
+        
+        /// <summary>
+        ///   <para>排除绘制的字段</para>
+        /// </summary>
         private static readonly string[] s_ExcludedFields =
         {
             "m_IsActive",
@@ -25,12 +31,34 @@ namespace VerveEditor.UniEx
             "m_SubmoduleTypeNames"
         };
 
+        /// <summary>
+        ///   <para>样式</para>
+        /// </summary>
         private static class Styles
         {
+            /// <summary>
+            ///   <para>模块不支持多编辑信息</para>
+            /// </summary>
             public static string ModuleNotSupportMultiEditInfo { get; } = L10n.Tr("Modules cannot be edited in multi-editing mode.");
+            
+            /// <summary>
+            ///   <para>没有可用子模块信息</para>
+            /// </summary>
             public static string NoSubmoduleInfo { get; } = L10n.Tr("No available submodules found.");
+            
+            /// <summary>
+            ///   <para>子模块锁定信息</para>
+            /// </summary>
             public static string SubmoduleLockedInfo { get; } = L10n.Tr("This module is locked and cannot be modified.");
+            
+            /// <summary>
+            ///   <para>所有文本</para>
+            /// </summary>
             public static GUIContent AllText { get; } = EditorGUIUtility.TrTextContent("ALL", "Toggle all submodules on.");
+            
+            /// <summary>
+            ///   <para>无文本</para>
+            /// </summary>
             public static GUIContent NoneText { get; } = EditorGUIUtility.TrTextContent("NONE", "Toggle all submodules off.");
         }
 
@@ -62,6 +90,9 @@ namespace VerveEditor.UniEx
             serializedObject.ApplyModifiedProperties();
         }
 
+        /// <summary>
+        ///   <para>绘制可用子模块</para>
+        /// </summary>
         private void DrawAvailableSubmodules(GameFeatureModule module)
         {
             var availableTypes = CoreEditorUtility.GetSubmoduleTypes(module);
@@ -91,6 +122,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>绘制多选子模块</para>
+        /// </summary>
         private void DrawMultipleSelection(Type[] availableTypes, GameFeatureModule module)
         {
             int enabledCount = module.Submodules.Count;
@@ -129,6 +163,9 @@ namespace VerveEditor.UniEx
             }
         }
         
+        /// <summary>
+        ///   <para>绘制单选子模块</para>
+        /// </summary>
         private void DrawSingleSelection(Type[] availableTypes, GameFeatureModule module)
         {
             if (module.Submodules.Count > 1)
@@ -180,6 +217,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>绘制锁定子模块</para>
+        /// </summary>
         private void DrawLockedSelection(Type[] availableTypes, GameFeatureModule module)
         {
             EditorGUILayout.HelpBox(Styles.SubmoduleLockedInfo, MessageType.Info);
@@ -192,6 +232,9 @@ namespace VerveEditor.UniEx
             }
         }
         
+        /// <summary>
+        ///   <para>绘制子模块开关</para>
+        /// </summary>
         private void DrawSubmoduleToggle(Type submoduleType, bool isAdded, GameFeatureModule module)
         {
             string submoduleName = ObjectNames.NicifyVariableName(submoduleType.Name);
@@ -212,6 +255,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>添加子模块</para>
+        /// </summary>
         private void AddSubmodule(Type submoduleType, GameFeatureModule module)
         {
             try
@@ -228,6 +274,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>移除子模块</para>
+        /// </summary>
         private void RemoveSubmodule(Type submoduleType, GameFeatureModule module)
         {
             try
@@ -247,6 +296,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>绘制子模块字段</para>
+        /// </summary>
         private void DrawSubmoduleFields(IGameFeatureSubmodule submodule)
         {
             if (submodule == null) return;
@@ -274,6 +326,9 @@ namespace VerveEditor.UniEx
             }
         }
         
+        /// <summary>
+        ///   <para>将字段绘制为只读</para>
+        /// </summary>
         private void DrawReadOnlyField(object value, FieldInfo field)
         {
             using (new EditorGUILayout.HorizontalScope())

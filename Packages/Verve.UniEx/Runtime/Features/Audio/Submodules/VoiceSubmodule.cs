@@ -3,7 +3,8 @@
 namespace Verve.UniEx.Audio
 {
     /// <summary>
-    /// 语音子模块 - 用于叙事与玩家沟通
+    ///   <para>语音子模块</para>
+    ///   <para>用于叙事与玩家沟通</para>
     /// </summary>
     [System.Serializable, GameFeatureSubmodule(typeof(AudioGameFeature), Description = "语音子模块 - 用于叙事与玩家沟通")]
     public sealed partial class VoiceSubmodule : AudioSubmodule

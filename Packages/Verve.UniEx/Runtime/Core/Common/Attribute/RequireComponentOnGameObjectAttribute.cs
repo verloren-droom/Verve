@@ -3,17 +3,20 @@
 namespace Verve.UniEx
 {
     using System;
-    using UnityEditor;
     using UnityEngine;
     
     
     /// <summary>
-    /// 要求引用的 GameObject 上必须包含指定组件
+    ///   <para>引用的 GameObject 上必须包含指定组件</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]
     public class RequireComponentOnGameObjectAttribute : PropertyAttribute
     {
+        /// <summary>
+        ///   <para>需要 GameObject 上的组件类型</para>
+        /// </summary>
         public Type RequiredType { get; }
+        
         
         public RequireComponentOnGameObjectAttribute(Type requiredType)
         {

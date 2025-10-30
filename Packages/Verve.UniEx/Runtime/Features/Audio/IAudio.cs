@@ -2,19 +2,24 @@
 
 namespace Verve.UniEx.Audio
 {
-    using UnityEngine;
-
-    
     /// <summary>
-    /// 音频子模块
+    ///   <para>音频接口</para>
     /// </summary>
     public interface IAudio
     {
-        /// <summary> 音量 </summary>
+        /// <summary>
+        ///   <para>音量</para>
+        /// </summary>
         float Volume { get; set; }
-        /// <summary> 静音 </summary>
+        
+        /// <summary>
+        ///   <para>静音</para>
+        /// </summary>
         bool Mute { get; set; }
-        /// <summary> 是否播放中 </summary>
+        
+        /// <summary>
+        ///   <para>是否正在播放</para>
+        /// </summary>
         bool IsPlaying { get; }
     }
 }

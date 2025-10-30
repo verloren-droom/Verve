@@ -7,22 +7,22 @@ namespace Verve.UniEx.AI
 
 
     /// <summary>
-    /// 随机选择节点数据
+    ///   <para>随机选择节点数据</para>
     /// </summary>
     [Serializable]
     public struct RandomSelectorBTNodeData : INodeData
     {
-        /// <summary> 子节点 </summary>
+        /// <summary>
+        ///   <para>子节点</para>
+        /// </summary>
         public IBTNode[] children;
     }
     
     
     /// <summary>
-    /// 随机选择节点
+    ///   <para>随机选择节点</para>
+    ///   <para>随机选择一个子节点运行</para>
     /// </summary>
-    /// <remarks>
-    /// 随机选择一个子节点运行
-    /// </remarks>
     [CustomBTNode(nameof(RandomSelectorBTNode)), Serializable]
     public struct RandomSelectorBTNode : ICompositeBTNode, IBTNodeResettable
     {

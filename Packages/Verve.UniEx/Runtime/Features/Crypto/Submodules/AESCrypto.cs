@@ -8,7 +8,8 @@ namespace Verve.UniEx.Crypto
 
 
     /// <summary>
-    /// AES加解密子模块 - 对称加密
+    ///   <para>AES加解密子模块</para>
+    ///   <para>对称加密</para>
     /// </summary>
     [Serializable, GameFeatureSubmodule(typeof(CryptoGameFeature), Description = "AES加解密子模块 - 对称加密")]
     public sealed class AESCrypto : CryptoSubmodule
@@ -35,6 +36,12 @@ namespace Verve.UniEx.Crypto
             }
         }
 
+        /// <summary>
+        ///   <para>创建AES对象</para>
+        /// </summary>
+        /// <returns>
+        ///   <para>AES对象实例</para>
+        /// </returns>
         private Aes CreateAes()
         {
             Aes aes = Aes.Create();

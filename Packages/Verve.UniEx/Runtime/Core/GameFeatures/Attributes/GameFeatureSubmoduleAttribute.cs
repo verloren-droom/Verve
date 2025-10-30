@@ -6,11 +6,14 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    /// 游戏子模块特性 - 用于标识子模块
+    ///   <para>游戏子模块特性</para>
+    ///   <para>用于标识子模块</para>
     /// </summary>
     public sealed class GameFeatureSubmoduleAttribute : GameFeatureAttribute
     {
-        /// <summary> 子模块从属的模块类型 </summary>
+        /// <summary>
+        ///   <para>子模块所属的模块</para>
+        /// </summary>
         public Type BelongsToModule { get; }
         
         

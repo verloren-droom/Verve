@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx.AI
+namespace VerveEditor.AI
 {
     using UnityEditor;
     using UnityEngine;

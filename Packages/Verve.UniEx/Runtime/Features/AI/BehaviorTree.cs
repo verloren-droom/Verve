@@ -1,8 +1,11 @@
+#if UNITY_5_3_OR_NEWER
+
 namespace Verve.UniEx.AI
 {
     using System;
     using Verve.AI;
     using System.Text;
+    using UnityEngine;
     using System.Linq;
     using System.Buffers;
     using System.Threading;
@@ -16,7 +19,7 @@ namespace Verve.UniEx.AI
 
 
     /// <summary>
-    /// 行为树
+    ///   <para>行为树</para>
     /// </summary>
     [Serializable]
     public partial class BehaviorTree : IBehaviorTree
@@ -44,17 +47,17 @@ namespace Verve.UniEx.AI
         }
 
 
+        [SerializeField, Tooltip("唯一ID"), ReadOnly] private string m_TreeID;
         private NodeData[] m_ActiveNodes = new NodeData[64];
         private int m_NodeCount;
         private Blackboard m_Blackboard;
         private bool m_IsDisposed;
         private int m_CurrentExecutingIndex = -1;
-        private int m_ID;
         private BitArray m_PausedStateMask;
         private bool m_IsPaused;
         private int m_PausedAtIndex = -1;
         
-        public int ID => m_ID;
+        public string TreeID => m_TreeID;
         public bool IsDisposed => m_IsDisposed;
         
         public event Action<IBTNode, BTNodeResult> OnNodeResultChanged;
@@ -84,22 +87,23 @@ namespace Verve.UniEx.AI
 
         
         private static readonly ParallelOptions s_ParallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 8 };
+        
         private static readonly ArrayPool<NodeData> s_NodePool = ArrayPool<NodeData>.Create(
             maxArrayLength: 1024 * 1024,
             maxArraysPerBucket: 10
         );
         
-        private static int s_NextTreeId; 
-        private static int GenerateTreeId() => Interlocked.Increment(ref s_NextTreeId);
-        
         private static readonly List<BehaviorTree> s_AllBehaviorTrees = new();
-        /// <summary> 所有行为树 </summary>
+        
+        /// <summary>
+        ///   <para>所有行为树</para>
+        /// </summary>
         public static IReadOnlyList<BehaviorTree> AllBehaviorTrees => new ReadOnlyCollection<BehaviorTree>(s_AllBehaviorTrees);
 
 
         public BehaviorTree(int initialCapacity = 128, Blackboard blackboard = null)
         {
-            m_ID = GenerateTreeId();
+            m_TreeID = $"bt_{Guid.NewGuid().ToString("N")[..16]}";
             m_ActiveNodes = new NodeData[initialCapacity];
             m_Blackboard = blackboard ?? new Blackboard();
             s_AllBehaviorTrees.Add(this);
@@ -349,7 +353,7 @@ namespace Verve.UniEx.AI
 
         public override string ToString()
         {
-            var sb = new StringBuilder($"BehaviorTree(ID: {m_ID}, Children: {m_NodeCount})\n");
+            var sb = new StringBuilder($"BehaviorTree(ID: {m_TreeID}, Children: {m_NodeCount})\n");
             sb.AppendLine("Node Paths: ");
             
             foreach (var path in GenerateNodePaths())
@@ -361,3 +365,5 @@ namespace Verve.UniEx.AI
         }
     }
 }
+
+#endif

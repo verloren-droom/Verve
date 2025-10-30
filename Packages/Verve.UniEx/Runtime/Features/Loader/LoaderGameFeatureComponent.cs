@@ -7,7 +7,7 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    /// 加载器游戏功能组件
+    ///   <para>加载器游戏功能组件</para>
     /// </summary>
     [Serializable, GameFeatureComponentMenu("Verve/Loader")]
     public sealed class LoaderGameFeatureComponent : GameFeatureComponent
@@ -17,11 +17,19 @@ namespace Verve.UniEx
         [SerializeField, Tooltip("Manifest 包名（不带后缀）")] private GameFeatureParameter<string> m_ManifestBundleName = new GameFeatureParameter<string>("AssetBundleManifest");
         
         
-        /// <summary> 根文件夹 </summary>
+        /// <summary>
+        ///   <para>根文件夹</para>
+        /// </summary>
         public string RootFolder => m_RootFolder.Value;
-        /// <summary> 远程资源服务器地址 </summary>
+        
+        /// <summary>
+        ///   <para>远程资源服务器地址</para>
+        /// </summary>
         public string RemoteServerUrl => m_RemoteServerUrl.Value;
-        /// <summary> Manifest 包名（不带后缀） </summary>
+        
+        /// <summary>
+        ///   <para>Manifest 包名（不带后缀）</para>
+        /// </summary>
         public string ManifestBundleName => m_ManifestBundleName.Value;
     }
 }

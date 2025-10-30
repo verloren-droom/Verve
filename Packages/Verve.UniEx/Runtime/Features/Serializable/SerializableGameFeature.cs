@@ -3,7 +3,7 @@
 namespace Verve.UniEx.Serializable
 {
     /// <summary>
-    /// 序列化游戏功能模块
+    ///   <para>序列化游戏功能模块</para>
     /// </summary>
     [System.Serializable, GameFeatureModule("Verve/Serializable", Description = "序列化游戏功能模块")]
     internal sealed class SerializableGameFeature : GameFeatureModule

@@ -8,17 +8,19 @@ namespace Verve.UniEx
     using System.Threading;
     using System.Threading.Tasks;
     
+    
     /// <summary>
-    ///  <para>判断条件事件</para>
+    ///    <para>判断条件事件</para>
     /// </summary>
     [Serializable]
     public class BranchConditionEvent : UnityEvent<System.Action<bool>> { }
 
+    
     /// <summary>
     ///  <para>判断节点</para>
     /// </summary>
     [Serializable, GameFlowNode("Basic/Branch", "Branch", "判断节点")]
-    public class BranchNode : GameFlowNode
+    public sealed class BranchNode : GameFlowNode
     {
         [SerializeField, Tooltip("条件判断事件")] private BranchConditionEvent m_ConditionEvent = new BranchConditionEvent();
         

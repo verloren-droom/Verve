@@ -3,7 +3,6 @@
     "rootNamespace": "Verve",
     "references": [
         "Verve.Core",
-        "Verve.File",
         "Verve.Serializable",
         "Verve.Platform"
     ],

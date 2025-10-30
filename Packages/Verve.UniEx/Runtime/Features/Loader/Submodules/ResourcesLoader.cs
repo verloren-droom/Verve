@@ -8,11 +8,14 @@ namespace Verve.UniEx.Loader
 
     
     /// <summary>
-    /// 资源加载器
+    ///   <para>资源加载器</para>
     /// </summary>
     [System.Serializable, GameFeatureSubmodule(typeof(LoaderGameFeature), Description = "资源加载器")]
     public sealed partial class ResourcesLoader : LoaderSubmodule
     {
+        /// <summary>
+        ///   <para>已加载的资源</para>
+        /// </summary>
         private readonly Dictionary<string, UnityEngine.Object> m_LoadedAssets = new Dictionary<string, UnityEngine.Object>();
         
         

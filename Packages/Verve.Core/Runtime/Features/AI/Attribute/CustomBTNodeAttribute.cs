@@ -4,11 +4,14 @@ namespace Verve.AI
     
 
     /// <summary>
-    /// 自定义行为树节点属性
+    ///   <para>自定义行为树节点属性</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Struct, AllowMultiple = false)]
     public sealed class CustomBTNodeAttribute : Attribute
     {
+        /// <summary>
+        ///   <para>节点名称</para>
+        /// </summary>
         public string NodeName { get; }
         
         

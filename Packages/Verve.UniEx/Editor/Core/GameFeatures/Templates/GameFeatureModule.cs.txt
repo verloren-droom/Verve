@@ -6,6 +6,9 @@ using Verve.UniEx;
 
 
     #ROOTNAMESPACEBEGIN#
+/// <summary>
+///   <para>#SCRIPTNAME#.cs</para>
+/// </summary>
 [Serializable, GameFeatureModule("#SCRIPTNAME#")]
 internal sealed class #SCRIPTNAME# : GameFeatureModule
 {

@@ -1,7 +1,7 @@
 namespace Verve.MVC
 {
     /// <summary>
-    /// MVC控制接口
+    ///   <para>MVC控制接口</para>
     /// </summary>
     public interface IController : IBelongToActivity { }
 }

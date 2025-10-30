@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using System;
     using UnityEditor;
@@ -8,7 +8,8 @@ namespace VerveEditor.UniEx
 
     
     /// <summary>
-    /// 简单单选下拉框弹窗 - 注意：此窗口不会阻塞线程，使用回调函数处理结果
+    ///   <para>简单单选下拉框弹窗</para>
+    ///   <para>注意：此窗口不会阻塞线程，使用回调函数处理结果</para>
     /// </summary>
     public class SingleSelectionDialog : EditorWindow
     {
@@ -46,6 +47,9 @@ namespace VerveEditor.UniEx
             padding = new RectOffset(6, 6, 2, 2)
         };
         
+        /// <summary>
+        ///   <para>显示单选弹窗</para>
+        /// </summary>
         public static void Show(string title, string description, string[] options, Action<int> onSelectedCallback, string selectedText = "Ok", Action onCancelCallback = null, string cancelText = "Cancel")
         {
             if (options == null || options.Length == 0)

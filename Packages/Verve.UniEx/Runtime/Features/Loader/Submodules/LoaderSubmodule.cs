@@ -12,7 +12,7 @@ namespace Verve.UniEx.Loader
 
 
     /// <summary>
-    /// 加载器子模块基类
+    ///   <para>加载器子模块基类</para>
     /// </summary>
     [Serializable]
     public abstract class LoaderSubmodule : GameFeatureSubmodule<LoaderGameFeatureComponent>, ILoaderSubmodule

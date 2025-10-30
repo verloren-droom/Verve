@@ -12,7 +12,7 @@ namespace Verve.UniEx.Storage
 
     
     /// <summary>
-    /// JSON文件存储
+    ///   <para>JSON文件存储</para>
     /// </summary>
     [Serializable, GameFeatureSubmodule(typeof(StorageGameFeature), Description = "JSON文件存储")]
     public sealed partial class JsonStorage : StorageSubmodule

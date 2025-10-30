@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using System;
     using Verve.UniEx;
@@ -12,6 +12,9 @@ namespace VerveEditor.UniEx
     using Object = UnityEngine.Object;
 
 
+    /// <summary>
+    ///   <para>游戏功能组件配置编辑</para>
+    /// </summary>
     [CustomEditor(typeof(GameFeatureComponentProfile), true)]
     internal class GameFeatureComponentProfileEditor : Editor
     {
@@ -22,12 +25,34 @@ namespace VerveEditor.UniEx
         private bool m_NeedsRefresh;
 
         
+        /// <summary>
+        ///   <para>样式</para>
+        /// </summary>
         private static class Styles
         {
+            /// <summary>
+            ///   <para>没有组件信息</para>
+            /// </summary>
             public static string NoComponentsInfo { get; } = L10n.Tr("No components added to this profile.");
+            
+            /// <summary>
+            ///   <para>组件文本</para>
+            /// </summary>
             public static GUIContent ComponentsText { get; } = EditorGUIUtility.TrTextContent("Components");
+            
+            /// <summary>
+            ///   <para>添加组件</para>
+            /// </summary>
             public static GUIContent RemoveComponent { get; } = EditorGUIUtility.TrTextContent("Remove");
+            
+            /// <summary>
+            ///   <para>重置组件</para>
+            /// </summary>
             public static GUIContent ResetComponent { get; } = EditorGUIUtility.TrTextContent("Reset");
+            
+            /// <summary>
+            ///   <para>添加组件</para>
+            /// </summary>
             public static GUIContent AddComponent { get; } = EditorGUIUtility.TrTextContent("Add Game Feature Component", "Adds a new component to this profile.");
         }
 
@@ -45,12 +70,6 @@ namespace VerveEditor.UniEx
         {
             ClearEditors();
             Undo.undoRedoPerformed -= OnUndoRedoPerformed;
-        }
-
-        private void OnUndoRedoPerformed()
-        {
-            m_NeedsRefresh = true;
-            Repaint();
         }
 
         public override void OnInspectorGUI()
@@ -72,6 +91,15 @@ namespace VerveEditor.UniEx
             serializedObject.ApplyModifiedProperties();
         }
         
+        private void OnUndoRedoPerformed()
+        {
+            m_NeedsRefresh = true;
+            Repaint();
+        }
+        
+        /// <summary>
+        ///   <para>绘制添加组件</para>
+        /// </summary>
         private void DrawComponentsList()
         {
             EditorGUILayout.LabelField(Styles.ComponentsText, EditorStyles.boldLabel);
@@ -124,6 +152,9 @@ namespace VerveEditor.UniEx
                 CoreEditorUtility.DrawSplitter();
         }
 
+        /// <summary>
+        ///   <para>清理空元素</para>
+        /// </summary>
         private void CleanNullElements()
         {
             if (m_ComponentsProperty == null) return;
@@ -158,6 +189,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>右键菜单</para>
+        /// </summary>
         private void OnContextClick(Vector2 position, int index)
         {
             var menu = new GenericMenu();
@@ -167,6 +201,9 @@ namespace VerveEditor.UniEx
             menu.DropDown(new Rect(position, Vector2.zero));
         }
 
+        /// <summary>
+        ///   <para>绘制添加组件</para>
+        /// </summary>
         private void DrawAddComponentButton()
         {
             EditorGUILayout.Space();
@@ -176,6 +213,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>显示添加组件菜单</para>
+        /// </summary>
         private void ShowAddComponentMenu()
         {
             var menu = new GenericMenu();
@@ -200,6 +240,9 @@ namespace VerveEditor.UniEx
             menu.ShowAsContext();
         }
 
+        /// <summary>
+        ///   <para>获取组件菜单路径</para>
+        /// </summary>
         private static string GetComponentMenuPath(Type type)
         {
             var attr = type.GetCustomAttribute<GameFeatureComponentMenuAttribute>();
@@ -212,6 +255,9 @@ namespace VerveEditor.UniEx
             return attr.MenuPath;
         }
 
+        /// <summary>
+        ///   <para>添加组件</para>
+        /// </summary>
         private void AddComponent(Type type)
         {
             if (m_Profile == null) return;
@@ -236,6 +282,8 @@ namespace VerveEditor.UniEx
             }
         }
         
+        /// <summary>
+        ///   <para>移除组件</para>
         private void RemoveComponent(int index)
         {
             if (index < 0 || index >= m_ComponentsProperty.arraySize) return;
@@ -267,6 +315,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>重置组件</para>
+        /// </summary>
         private void ResetComponent(int index)
         {
             if (index < 0 || index >= m_ComponentsProperty.arraySize) return;
@@ -299,6 +350,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>刷新编辑器</para>
+        /// </summary>
         private void RefreshEditors()
         {
             ClearEditors();
@@ -325,6 +379,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>清理编辑器</para>
+        /// </summary>
         private void ClearEditors()
         {
             foreach (var editor in m_Editors)
@@ -334,7 +391,9 @@ namespace VerveEditor.UniEx
             m_Editors.Clear();
         }
 
-        
+        /// <summary>
+        ///   <para>组件编辑器</para>
+        /// </summary>
         internal class ComponentEditor
         {
             private Editor m_Editor;
@@ -343,7 +402,9 @@ namespace VerveEditor.UniEx
             internal GameFeatureComponent Target { get; private set; }
             internal SerializedProperty ActiveProperty { get; private set; }
 
-            
+            /// <summary>
+            ///   <para>初始化组件编辑器</para>
+            /// </summary>
             public void Init(GameFeatureComponent target, GameFeatureComponentProfileEditor parentEditor)
             {
                 Target = target;
@@ -379,6 +440,9 @@ namespace VerveEditor.UniEx
                 m_SerializedObject.ApplyModifiedProperties();
             }
 
+            /// <summary>
+            ///   <para>获取显示标题</para>
+            /// </summary>
             public GUIContent GetDisplayTitle()
             {
                 if (Target == null)

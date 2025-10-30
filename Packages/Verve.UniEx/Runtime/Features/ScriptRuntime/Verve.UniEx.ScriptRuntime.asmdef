@@ -4,19 +4,7 @@
     "references": [
         "Verve.Core",
         "Verve.UniEx",
-        "Verve.Loader",
-        "Verve.UniEx.Loader",
-        "Verve.Platform",
-        "Verve.UniEx.Platform",
-        "Verve.Serializable",
-        "Verve.UniEx.Serializable",
-        "Verve.Net",
-        "Verve.UniEx.Net",
-        "HybridCLR.Runtime",
-        "Verve.Application",
-        "Verve.UniEx.Application",
-        "Verve.File",
-        "Verve.UniEx.File"
+        "HybridCLR.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

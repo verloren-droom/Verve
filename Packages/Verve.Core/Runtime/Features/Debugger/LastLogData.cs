@@ -1,14 +1,19 @@
 namespace Verve.Debug
 {
     /// <summary>
-    /// 日志数据
+    ///   <para>日志数据</para>
     /// </summary>
     [System.Serializable]
     public struct LastLogData
     {
-        /// <summary> 日志消息 </summary>
+        /// <summary>
+        ///   <para>日志消息</para>
+        /// </summary>
         public string Message;
-        /// <summary> 日志等级 </summary>
+        
+        /// <summary>
+        ///   <para>日志等级</para>
+        /// </summary>
         public LogLevel Level;
     }
 }

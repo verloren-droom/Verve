@@ -7,7 +7,7 @@ namespace Verve.UniEx.AI
     
     
     /// <summary>
-    /// 重复执行节点数据
+    ///   <para>重复执行节点数据</para>
     /// </summary>
     [Serializable]
     public struct RepeaterBTNodeData : INodeData
@@ -15,36 +15,50 @@ namespace Verve.UniEx.AI
         [Serializable]
         public enum RepeatMode : byte
         {
-            /// <summary> 无限 </summary>
+            /// <summary>
+            ///   <para>无限</para>
+            /// </summary>
             Infinite,
-            /// <summary> 次数限制 </summary>
+            /// <summary>
+            ///   <para>次数限制</para>
+            /// </summary>
             CountLimited,
-            /// <summary> 直到成功 </summary>
+            /// <summary>
+            ///   <para>直到成功</para>
+            /// </summary>
             UntilSuccess,
-            /// <summary> 直到失败 </summary>
+            /// <summary>
+            ///   <para>直到失败</para>
+            /// </summary>
             UntilFailure
         }
         
         
-        /// <summary> 子节点 </summary>
+        /// <summary>
+        ///   <para>子节点</para>
+        /// </summary>
         public IBTNode child;
-        /// <summary> 循环次数（仅限 RepeatMode.CountLimited 模式） </summary>
+        /// <summary>
+        ///   <para>循环次数（仅限 RepeatMode.CountLimited 模式）</para>
+        /// </summary>
         public int repeatCount;
-        /// <summary> 重复模式 </summary>
+        /// <summary>
+        ///   <para>重复模式</para>
+        /// </summary>
         public RepeatMode repeatMode;
     }
     
     
     /// <summary>
-    /// 重复执行节点
+    ///   <para>重复执行节点</para>
+    ///   <para>循环执行子节点，直到子节点返回成功或失败</para>
     /// </summary>
-    /// <remarks>
-    /// 循环执行子节点，直到子节点返回成功或失败
-    /// </remarks>
     [CustomBTNode(nameof(RepeaterBTNode)), Serializable]
     public struct RepeaterBTNode : ICompositeBTNode, IBTNodeResettable, IBTNodePreparable
     {
-        /// <summary> 黑板数据键 </summary>
+        /// <summary>
+        ///   <para>黑板数据键</para>
+        /// </summary>
         public string dataKey;
         public RepeaterBTNodeData data;
         public BTNodeResult LastResult { get; private set; }

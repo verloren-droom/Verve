@@ -7,7 +7,7 @@ namespace Verve.UniEx.MVC
     
     
     /// <summary>
-    /// MVC游戏功能组件
+    ///   <para>MVC游戏功能组件</para>
     /// </summary>
     [Serializable, GameFeatureComponentMenu("Verve/MVC")]
     public sealed class MVCGameFeatureComponent : GameFeatureComponent
@@ -15,7 +15,9 @@ namespace Verve.UniEx.MVC
         [SerializeField, Tooltip("视图根节点")] private GameFeatureParameter<GameObject> m_ViewRoot = new GameFeatureParameter<GameObject>();
         
         
-        /// <summary> 视图根节点 </summary>
+        /// <summary>
+        ///   <para>视图根节点</para>
+        /// </summary>
         public Transform ViewRoot => m_ViewRoot.Value.transform;
     }
 }

@@ -6,7 +6,7 @@ namespace Verve.UniEx.Event
 
     
     /// <summary>
-    /// 事件游戏功能模块
+    ///   <para>事件游戏功能模块</para>
     /// </summary>
     [Serializable, GameFeatureModule("Verve/Event", Description = "事件功能模块")]
     internal sealed class EventGameFeature : GameFeatureModule

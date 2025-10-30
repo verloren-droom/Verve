@@ -4,13 +4,19 @@ namespace Verve
 
     
     /// <summary>
-    /// 游戏功能模块接口 - 用于管理创建功能子模块，仅负责创建或注册子模块
+    ///   <para>游戏功能模块接口</para>
+    ///   <para>用于管理创建功能子模块，仅负责创建或注册子模块</para>
     /// </summary>
     public interface IGameFeatureModule
     {
-        /// <summary> 获取或设置模块的激活状态 </summary>
+        /// <summary>
+        ///   <para>获取或设置模块的激活状态</para>
+        /// </summary>
         bool IsActive { get; set; }
-        /// <summary> 功能子模块 </summary>
+        
+        /// <summary>
+        ///   <para>所有功能子模块</para>
+        /// </summary>
         IReadOnlyCollection<IGameFeatureSubmodule> Submodules { get; }
     }
 }

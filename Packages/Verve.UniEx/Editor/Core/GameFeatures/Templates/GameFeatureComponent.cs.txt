@@ -6,10 +6,18 @@ using Verve.UniEx;
 
 
     #ROOTNAMESPACEBEGIN#
+/// <summary>
+///   <para>#SCRIPTNAME#.cs</para>
+/// </summary>
 [Serializable, GameFeatureComponentMenu("#SCRIPTNAME#")]
 public sealed class #SCRIPTNAME# : GameFeatureComponent
 {
-    #NOTRIM#
+    [SerializeField, Tooltip("文本")] private GameFeatureParameter<string> m_Text = new GameFeatureParameter<string>("Hello world!");
+    
+    /// <summary>
+    ///   <para>文本</para>
+    /// </summary>
+    public string Text => m_Text.Value;
 }
 #ROOTNAMESPACEEND#
 

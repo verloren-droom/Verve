@@ -1,21 +1,23 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using System;
     using UnityEditor;
     using UnityEngine;
-    using System.Linq;
     using Verve.UniEx;
     using System.Collections.Generic;
     
     
     /// <summary>
-    /// 参数绘制器属性
+    ///   <para>参数绘制器特性</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public sealed class GameFeatureParameterDrawerAttribute : Attribute
     {
+        /// <summary>
+        ///   <para>参数类型</para>
+        /// </summary>
         public readonly Type parameterType;
 
         
@@ -27,7 +29,7 @@ namespace VerveEditor.UniEx
 
     
     /// <summary>
-    /// 参数绘制器
+    ///   <para>参数绘制器基类</para>
     /// </summary>
     public abstract class GameFeatureParameterDrawer
     {
@@ -35,6 +37,9 @@ namespace VerveEditor.UniEx
     }
     
 
+    /// <summary>
+    ///   <para>浮点数限制参数绘制器</para>
+    /// </summary>
     [GameFeatureParameterDrawer(typeof(ClampedFloatParameter))]
     internal sealed class ClampedFloatParameterDrawer : GameFeatureParameterDrawer
     {
@@ -49,6 +54,9 @@ namespace VerveEditor.UniEx
     }
     
     
+    /// <summary>
+    ///   <para>整数限制参数绘制器</para>
+    /// </summary>
     [GameFeatureParameterDrawer(typeof(ClampedIntParameter))]
     internal sealed class ClampedIntParameterDrawer : GameFeatureParameterDrawer
     {
@@ -63,6 +71,9 @@ namespace VerveEditor.UniEx
     }
 
     
+    /// <summary>
+    ///   <para>路径参数绘制器</para>
+    /// </summary>
     [GameFeatureParameterDrawer(typeof(PathParameter))]
     internal sealed class PathParameterDrawer : GameFeatureParameterDrawer
     {

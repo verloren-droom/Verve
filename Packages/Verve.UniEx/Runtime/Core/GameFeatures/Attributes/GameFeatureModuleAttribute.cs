@@ -6,7 +6,8 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    /// 游戏模块特性 - 用于标识模块
+    ///   <para>游戏模块特性</para>
+    ///   <para>用于标识模块</para>
     /// </summary>
     public sealed class GameFeatureModuleAttribute : GameFeatureAttribute
     {

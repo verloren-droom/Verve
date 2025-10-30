@@ -10,7 +10,7 @@ namespace Verve.UniEx.AI
     
     
     /// <summary>
-    /// 视角检测节点数据
+    ///   <para>视角检测节点数据</para>
     /// </summary>
     [Serializable]
     public struct VisionCheckBTNodeData : INodeData
@@ -30,11 +30,9 @@ namespace Verve.UniEx.AI
 
     
     /// <summary>
-    /// 视角检测节点
+    ///   <para>视角检测节点</para>
+    ///   <para>带视线追踪和视锥体检测，基于物理射线的范围检测</para>
     /// </summary>
-    /// <remarks>
-    /// 带视线追踪和视锥体检测，基于物理射线的范围检测
-    /// </remarks>
     [CustomBTNode(nameof(VisionCheckBTNode)), Serializable]
     public struct VisionCheckBTNode : IBTNode, IBTNodeResettable, IBTNodePreparable, IBTNodeDebuggable
     {

@@ -1,9 +1,12 @@
+#if UNITY_5_3_OR_NEWER
+
 namespace Verve.UniEx
 {
     using System;
     
     /// <summary>
-    /// 模块方法桥接特性 - 标记需要生成桥接扩展的方法
+    ///   <para>模块方法桥接特性</para>
+    ///   <para>标记需要生成桥接扩展的方法</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class ModuleMethodBridgeAttribute : Attribute
@@ -45,7 +48,8 @@ namespace Verve.UniEx
     }
     
     /// <summary>
-    /// 桥接参数特性 - 标记方法中需要桥接的参数
+    ///   <para>模块桥接参数特性</para>
+    ///   <para>标记方法中需要桥接的参数</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
     public class BridgeParameterAttribute : Attribute
@@ -59,3 +63,5 @@ namespace Verve.UniEx
         }
     }
 }
+
+#endif

@@ -7,7 +7,7 @@ namespace Verve.UniEx.Input
     
     
     /// <summary>
-    /// 输入子模块基类
+    ///   <para>输入子模块基类</para>
     /// </summary>
     public abstract class InputSubmodule : TickableGameFeatureSubmodule<InputGameFeatureComponent>, IInput
     {

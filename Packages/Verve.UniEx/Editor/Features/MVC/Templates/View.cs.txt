@@ -1,0 +1,37 @@
+#if UNITY_5_3_OR_NEWER
+
+using System;
+using Verve.MVC;
+using Verve.UniEx.MVC;
+
+
+    #ROOTNAMESPACEBEGIN#
+/// <summary>
+///   <para>#SCRIPTNAME#.cs</para>
+/// </summary>
+public class #SCRIPTNAME# : ViewBase
+{
+    /// <summary>
+    ///   <para>获取活动接口</para>
+    /// </summary>
+    public override IActivity GetActivity() => #ACTIVITY#.Instance;
+
+    /// <summary>
+    ///   <para>当视图被打开</para>
+    /// </summary>
+    protected override void OnOpening(params object[] args)
+    {
+        #NOTRIM#
+    }
+    
+    /// <summary>
+    ///   <para>当视图被关闭</para>
+    /// </summary>
+    protected override void OnClosing()
+    {
+        #NOTRIM#
+    }
+}
+#ROOTNAMESPACEEND#
+
+#endif

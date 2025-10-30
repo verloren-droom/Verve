@@ -8,7 +8,8 @@ namespace Verve.UniEx.Storage
     
     
     /// <summary>
-    /// PlayerPrefs 存储
+    ///   <para>PlayerPrefs 存储</para>
+    ///   <para>使用 PlayerPrefs 存储数据</para>
     /// </summary>
     [System.Serializable, GameFeatureSubmodule(typeof(StorageGameFeature), Description = "PlayerPrefs 存储")]
     public sealed partial class PlayerPrefsStorage : StorageSubmodule

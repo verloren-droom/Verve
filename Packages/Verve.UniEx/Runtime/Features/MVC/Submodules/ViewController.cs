@@ -14,7 +14,7 @@ namespace Verve.UniEx.MVC
 
     
     /// <summary>
-    ///  <para>视图控制器子模块 - 用于管理视图</para>
+    ///   <para>视图控制器子模块 - 用于管理视图</para>
     /// </summary>
     [Serializable, GameFeatureSubmodule(typeof(MVCGameFeature), Description = "视图控制器子模块 - 用于管理视图")]
     public sealed partial class ViewController : GameFeatureSubmodule<MVCGameFeatureComponent>
@@ -58,14 +58,14 @@ namespace Verve.UniEx.MVC
         }
 
         /// <summary>
-        /// 打开视图
+        ///   <para>打开视图</para>
         /// </summary>
         /// <param name="viewPrefab">视图预制体</param>
         /// <param name="isCloseAllOther">是否关闭其他页面</param>
         /// <param name="parent">父物体</param>
         /// <param name="onOpened">打开回调</param>
         /// <param name="args">参数</param>
-        /// <returns></returns>
+        /// <typeparam name="T">视图类型</typeparam>
         public void OpenView<T>(
             GameObject viewPrefab,
             bool isCloseAllOther = false,
@@ -94,7 +94,7 @@ namespace Verve.UniEx.MVC
         }
 
         /// <summary>
-        /// 返回上一个视图
+        ///   <para>返回上一个视图</para>
         /// </summary>
         public void GoBackView()
         {
@@ -110,7 +110,7 @@ namespace Verve.UniEx.MVC
         }
 
         /// <summary>
-        /// 获取指定类型的视图
+        ///   <para>获取指定类型的视图</para>
         /// </summary>
         public bool TryGetView(Type viewType, out IView view)
         {
@@ -119,7 +119,7 @@ namespace Verve.UniEx.MVC
         }
        
         /// <summary>
-        /// 获取指定类型的视图
+        ///   <para>获取指定类型的视图</para>
         /// </summary>
         public bool TryGetView<T>(out T view)
         {
@@ -133,7 +133,7 @@ namespace Verve.UniEx.MVC
         }
         
         /// <summary>
-        /// 关闭指定类型的视图
+        ///   <para>关闭指定类型的视图</para>
         /// </summary>
         public void CloseView(Type viewType)
         {
@@ -149,14 +149,14 @@ namespace Verve.UniEx.MVC
         }
 
         /// <summary>
-        /// 关闭指定类型的视图类型
+        ///   <para>关闭指定类型的视图类型</para>
         /// </summary>
-        /// <typeparam name="TView"></typeparam>
+        /// <typeparam name="TView">视图类型</typeparam>
         public void CloseView<TView>() where TView : ViewBase
             => CloseView(typeof(TView));
 
         /// <summary>
-        /// 关闭所有视图
+        ///   <para>关闭所有视图</para>
         /// </summary>
         public void CloseViewAll()
         {
@@ -179,6 +179,10 @@ namespace Verve.UniEx.MVC
             }
         }
 
+        /// <summary>
+        ///   <para>注销视图</para>
+        /// </summary>
+        /// <param name="view">视图实例</param>
         private void UnregisterView(IView view)
         {
             var viewType = view.GetType();
@@ -190,14 +194,6 @@ namespace Verve.UniEx.MVC
                 }
             }
         }
-
-        // private ViewInfoAttribute GetViewInfo(Type viewType)
-        // {
-        //     return Attribute.GetCustomAttribute(viewType, typeof(ViewInfoAttribute)) as ViewInfoAttribute ?? throw new MissingComponentException($"Missing {nameof(ViewInfoAttribute)} on {viewType.Name}");
-        // }
-        //
-        // private ViewInfoAttribute GetViewInfo<T>()
-        //     => GetViewInfo(typeof(T));
     }
 }
 

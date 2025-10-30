@@ -1,12 +1,19 @@
 namespace Verve.Loader
 {
     /// <summary>
-    /// 资源加载回调上下文
+    ///   <para>资源加载回调上下文</para>
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">结果类型</typeparam>
     public struct AssetLoaderCallbackContext<T>
     {
+        /// <summary>
+        ///   <para>结果</para>
+        /// </summary>
         public T Result { get; }
+        
+        /// <summary>
+        ///   <para>是否完成</para>
+        /// </summary>
         public bool IsDone { get; }
 
         public AssetLoaderCallbackContext(bool isDone = false)

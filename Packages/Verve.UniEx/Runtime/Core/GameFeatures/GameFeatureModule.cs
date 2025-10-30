@@ -10,7 +10,8 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    /// 游戏功能模块基类 - 用于管理创建功能子模块，仅负责创建或注册子模块
+    ///   <para>游戏功能模块基类</para>
+    ///   <para>用于管理创建功能子模块，仅负责创建或注册子模块</para>
     /// </summary>
     [Serializable]
     public class GameFeatureModule : ScriptableObject, IGameFeatureModule
@@ -46,7 +47,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 重新构建子模块实例列表
+        ///   <para>重新构建子模块实例列表</para>
         /// </summary>
         private void RebuildSubmodules()
         {
@@ -71,8 +72,10 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 添加子模块
+        ///   <para>添加子模块</para>
         /// </summary>
+        /// <param name="type">子模块类型</param>
+        /// <param name="overrides">是否覆盖</param>
         public virtual void Add(Type type, bool overrides = false)
         {
             if (type == null || !typeof(IGameFeatureSubmodule).IsAssignableFrom(type))
@@ -92,14 +95,23 @@ namespace Verve.UniEx
             isDirty = true;
         }
 
+        /// <summary>
+        ///   <para>添加子模块</para>
+        /// </summary>
+        /// <param name="overrides">是否覆盖</param>
+        /// <typeparam name="T"></typeparam>
         public void Add<T>(bool overrides = false)
             where T : class, IGameFeatureSubmodule
             => Add(typeof(T), overrides);
 
         /// <summary>
-        /// 移除子模块
+        ///   <para>移除子模块</para>
         /// </summary>
-        public virtual bool Remove(System.Type type)
+        /// <param name="type">子模块类型</param>
+        /// <returns>
+        ///   <para>是否成功移除</para>
+        /// </returns>
+        public virtual bool Remove(Type type)
         {
             if (type == null || !typeof(IGameFeatureSubmodule).IsAssignableFrom(type))
                 return false;
@@ -115,13 +127,24 @@ namespace Verve.UniEx
             return removed;
         }
 
+        /// <summary>
+        ///   <para>移除指定类型的子模块</para>
+        /// </summary>
+        /// <typeparam name="T">子模块类型</typeparam>
+        /// <returns>
+        ///   <para>是否成功移除</para>
+        /// </returns>
         public bool Remove<T>()
             where T : class, IGameFeatureSubmodule
             => Remove(typeof(T));
 
         /// <summary>
-        /// 获取指定类型的子模块
+        ///   <para>获取指定类型的子模块</para>
         /// </summary>
+        /// <param name="type">子模块类型</param>
+        /// <returns>
+        ///   <para>子模块实例</para>
+        /// </returns>
         public IGameFeatureSubmodule Get(System.Type type)
         {
             if (type == null || !typeof(IGameFeatureSubmodule).IsAssignableFrom(type))
@@ -144,10 +167,24 @@ namespace Verve.UniEx
             return null;
         }
 
+        /// <summary>
+        ///   <para>获取指定类型的子模块</para>
+        /// </summary>
+        /// <typeparam name="T">子模块类型</typeparam>
+        /// <returns>
+        ///   <para>子模块实例</para>
+        /// </returns>
         public T Get<T>()
             where T : class, IGameFeatureSubmodule
             => (T)Get(typeof(T));
         
+        /// <summary>
+        ///   <para>检查是否有指定类型的子模块</para>
+        /// </summary>
+        /// <param name="type">子模块类型</param>
+        /// <returns>
+        ///   <para>是否包含指定类型的子模块</para>
+        /// </returns>
         public bool Has(Type type)
         {
             if (type == null || !typeof(IGameFeatureSubmodule).IsAssignableFrom(type))
@@ -157,14 +194,19 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 检查是否有指定类型的子模块
+        ///   <para>检查是否有指定类型的子模块</para>
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
+        /// <typeparam name="T">子模块类型</typeparam>
+        /// <returns>
+        ///   <para>是否包含指定类型的子模块</para>
+        /// </returns>
         public bool Has<T>()
             where T : IGameFeatureSubmodule
             => Has(typeof(T));
 
+        /// <summary>
+        ///   <para>清空所有子模块</para>
+        /// </summary>
         public void Clear()
         {
             m_SubmoduleTypeNames?.Clear();

@@ -12,13 +12,12 @@ namespace Verve.UniEx.MVC
     
     
     /// <summary>
-    ///  <para>MVC视图基类</para>
+    ///   <para>MVC视图基类</para>
     /// </summary>
     public abstract partial class ViewBase : MonoBehaviour, IView
     {
         [SerializeField, Tooltip("视图名称"), ReadOnly] private string m_ViewName;
         
-        /// <summary> 视图名称 </summary>
         public virtual string ViewName
         {
             get => m_ViewName ??= 
@@ -29,11 +28,20 @@ namespace Verve.UniEx.MVC
         private bool m_IsOpened;
     
         public event Action<IView> OnOpened;
+        
         public event Action<IView> OnClosed;
 
         public abstract IActivity GetActivity();
 
+        /// <summary>
+        ///   <para>当视图被打开</para>
+        /// </summary>
+        /// <param name="args">参数</param>
         protected virtual void OnOpening(params object[] args) { }
+        
+        /// <summary>
+        ///   <para>当视图被关闭</para>
+        /// </summary>
         protected virtual void OnClosing() { }
 
         private void OnEnable()
@@ -75,8 +83,11 @@ namespace Verve.UniEx.MVC
         }
 
         /// <summary>
-        /// 添加事件监听
+        ///   <para>添加事件监听</para>
         /// </summary>
+        /// <param name="eventTrigger">事件触发器</param>
+        /// <param name="type">事件类型</param>
+        /// <param name="callback">回调方法</param>
         protected void AddEventTrigger(EventTrigger eventTrigger, EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)
         {
             if (eventTrigger == null || callback == null) return;
@@ -92,14 +103,22 @@ namespace Verve.UniEx.MVC
             entry.callback.AddListener(callback);
         }
 
+        /// <summary>
+        ///   <para>添加事件监听</para>
+        /// </summary>
+        /// <param name="graphic">UI元素</param>
+        /// <param name="type">事件类型</param>
+        /// <param name="callback">回调方法</param>
         protected void AddEventTrigger(MaskableGraphic graphic, EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)
         {
             AddEventTrigger(graphic?.gameObject.GetComponent<EventTrigger>() ?? graphic?.gameObject.AddComponent<EventTrigger>(), type, callback);
         }
 
         /// <summary>
-        /// 批量添加多个事件类型
+        ///   <para>批量添加多个事件类型</para>
         /// </summary>
+        /// <param name="graphic">UI元素</param>
+        /// <param name="events">事件类型和回调方法</param>
         public void AddEventTriggerRange(
             EventTrigger eventTrigger,
             params (EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)[] events)
@@ -110,12 +129,23 @@ namespace Verve.UniEx.MVC
             }
         }
         
+        /// <summary>
+        ///   <para>移除事件监听</para>
+        /// </summary>
+        /// <param name="eventTrigger">事件触发器</param>
+        /// <param name="type">事件类型</param>
         protected void RemoveEventTrigger(EventTrigger eventTrigger, EventTriggerType type)
         {
             if (eventTrigger == null) return;
             eventTrigger.triggers.RemoveAll(entry => entry.eventID == type);
         }
         
+        /// <summary>
+        ///   <para>移除事件监听</para>
+        /// </summary>
+        /// <param name="eventTrigger">事件触发器</param>
+        /// <param name="type">事件类型</param>
+        /// <param name="callback">回调方法</param>
         protected void RemoveEventTrigger(EventTrigger eventTrigger, EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)
         {
             if (eventTrigger == null || callback == null) return;
@@ -129,6 +159,12 @@ namespace Verve.UniEx.MVC
             }
         }
         
+        /// <summary>
+        ///   <para>移除事件监听</para>
+        /// </summary>
+        /// <param name="graphic">UI元素</param>
+        /// <param name="type">事件类型</param>
+        /// <param name="callback">回调方法</param>
         protected void RemoveEventTrigger(MaskableGraphic graphic, EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> callback)
         {
             if (graphic == null || !graphic.TryGetComponent<EventTrigger>(out var eventTrigger)) return;
@@ -144,8 +180,9 @@ namespace Verve.UniEx.MVC
         }
         
         /// <summary>
-        /// 清除所有事件监听
+        ///   <para>清除所有事件监听</para>
         /// </summary>
+        /// <param name="eventTrigger">事件触发器</param>
         public void RemoveAllTriggers(EventTrigger eventTrigger)
         {
             if (eventTrigger != null)
@@ -158,6 +195,10 @@ namespace Verve.UniEx.MVC
             }
         }
         
+        /// <summary>
+        ///   <para>清除所有事件监听</para>
+        /// </summary>
+        /// <param name="graphic">UI元素</param>
         public void RemoveAllTriggers(MaskableGraphic graphic)
         {
             if (graphic == null || !graphic.TryGetComponent<EventTrigger>(out var eventTrigger)) return;

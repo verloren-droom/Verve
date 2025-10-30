@@ -8,7 +8,6 @@ namespace Verve.UniEx.Debug
     using Verve.Debug;
     using System.Text;
     using System.Reflection;
-    using System.Diagnostics;
     using System.Collections;
     using System.Collections.Generic;
     using System.Text.RegularExpressions;
@@ -17,7 +16,7 @@ namespace Verve.UniEx.Debug
 
 
     /// <summary>
-    /// 默认调试器
+    ///   <para>默认调试器</para>
     /// </summary>
     [System.Serializable, SkipInStackTrace, GameFeatureSubmodule(typeof(DebugGameFeature), Description = "默认调试器")]
     public sealed partial class DefaultDebugger : DebuggerSubmodule, IDrawableSubmodule
@@ -31,19 +30,37 @@ namespace Verve.UniEx.Debug
             new Dictionary<string, CommandInfo>(StringComparer.OrdinalIgnoreCase);
 
         
+        /// <summary>
+        ///   <para>控制台命令信息</para>
+        /// </summary>
         private class CommandInfo
         {
+            /// <summary>
+            ///   <para>命令名称</para>
+            /// </summary>
             public string Description;
+            /// <summary>
+            ///   <para>方法</para>
+            /// </summary>
             public MethodInfo Method;
         }
         
         /// <summary>
-        /// 命令控制台信息
+        ///   <para>命令控制台信息</para>
         /// </summary>
         private struct ConsoleMessage
         {
+            /// <summary>
+            ///   <para>文本</para>
+            /// </summary>
             public string Text;
+            /// <summary>
+            ///   <para>级别</para>
+            /// </summary>
             public LogLevel Level;
+            /// <summary>
+            ///   <para>时间戳</para>
+            /// </summary>
             public float Timestamp;
             
             public ConsoleMessage(string text, LogLevel level = LogLevel.Log)
@@ -174,8 +191,9 @@ namespace Verve.UniEx.Debug
         void IDrawableSubmodule.DrawGizmos() { }
 
         /// <summary>
-        /// 处理控制台输入事件
+        ///   <para>处理控制台输入事件</para>
         /// </summary>
+        /// <param name="e">事件</param>
         private void HandleConsoleInputEvents(Event e)
         {
             if (e.isKey && e.type == EventType.KeyDown && e.keyCode == Component.CommandToggleKey)
@@ -206,7 +224,7 @@ namespace Verve.UniEx.Debug
         }
 
         /// <summary>
-        /// 执行控制台输入
+        ///   <para>执行控制台输入</para>
         /// </summary>
         private void ExecuteConsoleInput()
         {
@@ -233,8 +251,10 @@ namespace Verve.UniEx.Debug
         }
         
         /// <summary>
-        /// 添加消息到控制台
+        ///   <para>添加消息到控制台</para>
         /// </summary>
+        /// <param name="message">消息</param>
+        /// <param name="level">日志级别</param>
         private void AddToConsoleOutput(string message, LogLevel level = LogLevel.Log)
         {
             m_ConsoleOutput.Add(new ConsoleMessage(message, level));
@@ -246,8 +266,12 @@ namespace Verve.UniEx.Debug
         }
         
         /// <summary>
-        /// 根据日志级别获取消息颜色
+        ///   <para>根据日志级别获取消息颜色</para>
         /// </summary>
+        /// <param name="level">日志级别</param>
+        /// <returns>
+        ///   <para>消息颜色</para>
+        /// </returns>
         private Color GetMessageColor(LogLevel level)
         {
             switch (level)
@@ -260,8 +284,14 @@ namespace Verve.UniEx.Debug
         }
         
         /// <summary>
-        /// 创建纯色纹理
+        ///   <para>创建纯色纹理</para>
         /// </summary>
+        /// <param name="width">宽度</param>
+        /// <param name="height">高度</param>
+        /// <param name="col">颜色</param>
+        /// <returns>
+        ///   <para>纹理实例</para>
+        /// </returns>
         private Texture2D MakeTex(int width, int height, Color col)
         {
             Color[] pix = new Color[width * height];
@@ -298,8 +328,11 @@ namespace Verve.UniEx.Debug
         }
         
         /// <summary>
-        /// 查找所有控制台命令
+        ///   <para>查找所有控制台命令</para>
         /// </summary>
+        /// <returns>
+        ///   <para>控制台命令字典</para>
+        /// </returns>
         private static Dictionary<string, CommandInfo> FindAllConsoleCommand()
         {
             var commands = new Dictionary<string, CommandInfo>(StringComparer.OrdinalIgnoreCase);
@@ -342,10 +375,12 @@ namespace Verve.UniEx.Debug
         }
 
         /// <summary>
-        /// 执行命令
+        ///   <para>执行命令</para>
         /// </summary>
         /// <param name="commandLine">命令行</param>
-        /// <returns></returns>
+        /// <returns>
+        ///   <para>执行结果</para>
+        /// </returns>
         private static object ExecuteCommand(string commandLine)
         {
             if (string.IsNullOrWhiteSpace(commandLine)) return null;

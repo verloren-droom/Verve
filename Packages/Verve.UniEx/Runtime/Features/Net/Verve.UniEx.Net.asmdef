@@ -4,9 +4,7 @@
   "references": [
     "Verve.Core",
     "Verve.UniEx",
-    "Verve.Net",
-    "Verve.File",
-    "Verve.UniEx.File"
+    "Verve.Net"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

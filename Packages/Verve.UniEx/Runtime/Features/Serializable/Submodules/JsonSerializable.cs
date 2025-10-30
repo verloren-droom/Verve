@@ -8,7 +8,8 @@ namespace Verve.UniEx.Serializable
 
 
     /// <summary>
-    /// JSON序列化 - 采用Newtonsoft.Json库
+    ///   <para>JSON序列化</para>
+    ///   <para>采用Newtonsoft.Json库</para>
     /// </summary>
     [System.Serializable, GameFeatureSubmodule(typeof(SerializableGameFeature), Description = "JSON序列化 - 采用Newtonsoft.Json库")]
     public sealed partial class JsonSerializable : SerializableSubmodule

@@ -9,13 +9,14 @@ namespace Verve.UniEx
     using System.Runtime.CompilerServices;
 
     
+    /// <summary>
+    ///   <para>协程扩展类</para>
+    /// </summary>
     public static class AwaitExtensions
     {
         /// <summary>
-        /// 为WaitForSeconds添加GetAwaiter扩展方法，这样就能直接await了
+        ///   <para>为WaitForSeconds添加GetAwaiter扩展方法，这样就能直接await了</para>
         /// </summary>
-        /// <param name="instruction"></param>
-        /// <returns></returns>
         public static TaskAwaiter<object> GetAwaiter(this WaitForSeconds instruction)
         {
             return GetAwaiterReturn(instruction);
@@ -57,16 +58,6 @@ namespace Verve.UniEx
             {
                 tcs.TrySetResult(null);
             }
-        }
-    }
-
-    
-    internal class CoroutineRunner : ComponentInstanceBase<CoroutineRunner>
-    {
-        protected override void OnInitialized()
-        {
-            base.OnInitialized();
-            gameObject.hideFlags = HideFlags.HideAndDontSave;
         }
     }
 }

@@ -10,7 +10,7 @@ namespace Verve.UniEx.Storage
     
     
     /// <summary>
-    /// 存储子模块基类
+    ///   <para>存储子模块基类</para>
     /// </summary>
     public abstract class StorageSubmodule : GameFeatureSubmodule<StorageGameFeatureComponent>, IStorage
     {
@@ -64,14 +64,6 @@ namespace Verve.UniEx.Storage
             }
             catch { }
         }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing) { }
     }
 }
 

@@ -9,7 +9,8 @@ namespace Verve.UniEx
     
 
     /// <summary>
-    /// 类型引用 - 用于序列化类型
+    ///   <para>类型引用</para>
+    ///   <para>用于序列化类型</para>
     /// </summary>
     [Serializable]
     public class TypeReference<T> : ISerializationCallbackReceiver where T : class

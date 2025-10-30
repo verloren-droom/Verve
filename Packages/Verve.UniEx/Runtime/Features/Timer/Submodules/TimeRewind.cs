@@ -13,7 +13,7 @@ namespace Verve.UniEx.Timer
     
     
     /// <summary>
-    /// 时间回溯子模块
+    ///   <para>时间回溯子模块</para>
     /// </summary>
     [Serializable, GameFeatureSubmodule(typeof(TimerGameFeature), Description = "时间回溯子模块")]
     public sealed partial class TimeRewind : TickableGameFeatureSubmodule<TimerGameFeatureComponent>, ITimeRewind
@@ -52,6 +52,11 @@ namespace Verve.UniEx.Timer
             // ClearAllRecorders();
         }
 
+        /// <summary>
+        ///   <para>定点回溯</para>
+        /// </summary>
+        /// <param name="targetTime">目标时间</param>
+        /// <param name="speedMultiplier">回溯速度</param>
         public void RewindToTime(float targetTime, float speedMultiplier = 1.0f)
         {
             if (m_IsRewinding || m_Recorders.Count == 0) { return; }
@@ -78,6 +83,9 @@ namespace Verve.UniEx.Timer
             Debug.Log($"[TimeRewind] 开始定点回溯: 从 {CurrentRewindTime:F2} 到 {m_TargetRewindTime:F2}, 速度: {m_RewindSpeed}x");
         } 
         
+        /// <summary>
+        ///   <para>停止回溯</para>
+        /// </summary>
         public void StopRewind()
         {
             if (!m_IsRewinding) return;
@@ -91,6 +99,10 @@ namespace Verve.UniEx.Timer
             m_TargetRewindTime = 0f;
         }
 
+        /// <summary>
+        ///   <para>添加倒流对象</para>
+        /// </summary>
+        /// <param name="rewindable">倒流对象</param>
         public void AddRewindable(ITimeRewindable rewindable)
         {
             if (rewindable == null || m_Recorders.ContainsKey(rewindable)) return;
@@ -102,6 +114,10 @@ namespace Verve.UniEx.Timer
             m_ActiveRewindables.Add(rewindable);
         }
 
+        /// <summary>
+        ///   <para>移除倒流对象</para>
+        /// </summary>
+        /// <param name="rewindable">倒流对象</param>
         public void RemoveRewindable(ITimeRewindable rewindable)
         {
             if (rewindable == null) return;
@@ -116,7 +132,7 @@ namespace Verve.UniEx.Timer
         }
         
         /// <summary>
-        /// 清空所有记录器
+        ///   <para>清空所有记录器</para>
         /// </summary>
         public void ClearAllRecorders()
         {
@@ -129,7 +145,7 @@ namespace Verve.UniEx.Timer
         }
 
         /// <summary>
-        /// 清理无效的倒流对象
+        ///   <para>清理无效的倒流对象</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void CleanupInvalidRewindables()
@@ -142,9 +158,9 @@ namespace Verve.UniEx.Timer
         }
         
         /// <summary>
-        /// 更新回溯状态
+        ///   <para>更新回溯状态</para>
         /// </summary>
-        /// <param name="deltaTime"></param>
+        /// <param name="deltaTime">时间间隔</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void UpdateRewind(float deltaTime)
         {
@@ -215,8 +231,9 @@ namespace Verve.UniEx.Timer
         }
         
         /// <summary>
-        /// 为指定时间应用所有对象的状态
+        ///   <para>为指定时间应用所有对象的状态</para>
         /// </summary>
+        /// <param name="targetTime">目标时间</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ApplyRewindForTime(float targetTime)
         {

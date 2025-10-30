@@ -1,12 +1,15 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using System;
     using UnityEditor;
     using System.Reflection;
     
     
+    /// <summary>
+    ///   <para>可序列化数据参数</para>
+    /// </summary>
     public class SerializedDataParameter
     {
         public SerializedProperty property { get; private set; }
@@ -22,6 +25,9 @@ namespace VerveEditor.UniEx
             return GetTargetObject(property);
         }
         
+        /// <summary>
+        ///   <para>获取目标对象</para>
+        /// </summary>
         public T GetTargetObject<T>()
         {
             return (T)GetTargetObject(property);

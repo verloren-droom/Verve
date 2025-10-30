@@ -9,16 +9,22 @@ namespace Verve.UniEx
 
 
     /// <summary>
-    /// 组件单例
+    ///   <para>组件实例基类</para>
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">组件类型</typeparam>
     [DisallowMultipleComponent]
     public abstract class ComponentInstanceBase<T> : MonoBehaviour where T : MonoBehaviour
     {
+        /// <summary>
+        ///   <para>单例初始化状态</para>
+        /// </summary>
         private static bool s_IsInitialized;
         
         private static readonly Lazy<T> s_Lazy = new Lazy<T>(CreateInstance, LazyThreadSafetyMode.ExecutionAndPublication);
         
+        /// <summary>
+        ///   <para>单例实例</para>
+        /// </summary>
         public static T Instance
         {
             get
@@ -40,6 +46,12 @@ namespace Verve.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>创建实例</para>
+        /// </summary>
+        /// <returns>
+        ///   <para>实例</para>
+        /// </returns>
         private static T CreateInstance()
         {
             T instance = null;
@@ -85,7 +97,8 @@ namespace Verve.UniEx
 
 
         /// <summary>
-        /// 初始化（单例首次被创建后调用）
+        ///   <para>单例初始化</para>
+        ///   <para>仅在单例首次被创建后调用</para>
         /// </summary>
         protected virtual void OnInitialized() { }
     }

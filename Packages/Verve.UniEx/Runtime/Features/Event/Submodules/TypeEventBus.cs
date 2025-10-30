@@ -8,7 +8,7 @@ namespace Verve.UniEx.Event
 
     
     /// <summary>
-    /// 类型事件总线
+    ///   <para>类型事件总线</para>
     /// </summary>
     [Serializable, GameFeatureSubmodule(typeof(EventGameFeature), Description = "类型事件总线")]
     public sealed partial class TypeEventBus : GameFeatureSubmodule
@@ -22,6 +22,11 @@ namespace Verve.UniEx.Event
             base.OnShutdown();
         }
 
+        /// <summary>
+        ///   <para>添加事件监听</para>
+        /// </summary>
+        /// <param name="handler">事件处理函数</param>
+        /// <typeparam name="T">事件参数类型</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddListener<T>(Action<T> handler)
         {
@@ -33,6 +38,11 @@ namespace Verve.UniEx.Event
                     : throw new ArgumentException($"Handler parameter type must be {typeof(T).Name}"));
         }
         
+        /// <summary>
+        ///   <para>添加弱事件监听</para>
+        /// </summary>
+        /// <param name="handler">事件处理函数</param>
+        /// <typeparam name="T">事件参数类型</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddWeakListener<T>(Action<T> handler)
         {
@@ -48,6 +58,11 @@ namespace Verve.UniEx.Event
             AddListener(weakHandler);
         }
         
+        /// <summary>
+        ///   <para>移除事件监听</para>
+        /// </summary>
+        /// <param name="handler">事件处理函数</param>
+        /// <typeparam name="T">事件参数类型</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveListener<T>(Action<T> handler)
         {
@@ -66,6 +81,11 @@ namespace Verve.UniEx.Event
             }
         }
 
+        /// <summary>
+        ///   <para>触发事件</para>
+        /// </summary>
+        /// <param name="eventArgs">事件参数</param>
+        /// <typeparam name="T">事件参数类型</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Invoke<T>(T eventArgs)
         {
@@ -76,6 +96,9 @@ namespace Verve.UniEx.Event
             }
         }
         
+        /// <summary>
+        ///   <para>移除所有事件监听</para>
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveAllListener()
         {

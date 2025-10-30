@@ -3,17 +3,17 @@
 namespace Verve.UniEx
 {
     /// <summary>
-    /// 可绘制子模块接口
+    ///   <para>可绘制子模块接口</para>
     /// </summary>
     public interface IDrawableSubmodule : IGameFeatureSubmodule
     {
         /// <summary>
-        /// 绘制 IMGUI
+        ///   <para>绘制IMGUI</para>
         /// </summary>
         void DrawGUI();
 
         /// <summary>
-        /// 绘制 Gizmos
+        ///   <para>绘制Gizmos</para>
         /// </summary>
         void DrawGizmos();
     }

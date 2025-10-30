@@ -10,7 +10,7 @@ namespace Verve.UniEx.AI
     
     
     /// <summary>
-    /// 两点距离条件节点数据
+    ///   <para>两点距离条件节点数据</para>
     /// </summary>
     [Serializable]
     public struct VectorDistanceConditionBTNodeData : INodeData
@@ -27,11 +27,9 @@ namespace Verve.UniEx.AI
 
     
     /// <summary>
-    /// 两点距离条件节点
+    ///   <para>两点距离条件节点</para>
+    ///   <para>检测两个点之间的距离，并返回结果</para>
     /// </summary>
-    /// <remarks>
-    /// 检测两个点之间的距离，并返回结果
-    /// </remarks>
     [CustomBTNode(nameof(VectorDistanceConditionBTNode)), Serializable]
     public struct VectorDistanceConditionBTNode : IBTNode, IBTNodePreparable, IBTNodeDebuggable
     {

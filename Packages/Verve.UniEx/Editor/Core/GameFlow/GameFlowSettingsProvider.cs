@@ -9,7 +9,7 @@ namespace VerveEditor
     
     
     /// <summary>
-    ///  <para>游戏流程设置</para>
+    ///   <para>游戏流程设置</para>
     /// </summary>
     internal class GameFlowSettingsProvider : SettingsProvider
     {
@@ -35,6 +35,10 @@ namespace VerveEditor
             }
         }
         
+        /// <summary>
+        ///   <para>创建游戏流程设置</para>
+        /// </summary>
+        /// <returns></returns>
         [SettingsProvider]
         public static SettingsProvider CreateGameFeaturesSettingsProvider()
         {

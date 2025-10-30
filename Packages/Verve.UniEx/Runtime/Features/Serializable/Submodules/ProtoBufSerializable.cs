@@ -7,7 +7,8 @@ namespace Verve.UniEx.Serializable
 
 
     /// <summary>
-    /// ProtoBuf序列化 - 采用ProtoBuf库
+    ///   <para>ProtoBuf序列化</para>
+    ///   <para>采用ProtoBuf库</para>
     /// </summary>
     [System.Serializable, GameFeatureSubmodule(typeof(SerializableGameFeature), Description = "ProtoBuf序列化 - 采用ProtoBuf库")]
     public sealed partial class ProtoBufSerializable : SerializableSubmodule

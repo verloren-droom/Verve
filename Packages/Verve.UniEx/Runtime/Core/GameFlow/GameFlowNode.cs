@@ -11,7 +11,7 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    ///  <para>游戏流程节点</para>
+    ///   <para>游戏流程节点</para>
     /// </summary>
     [Serializable]
 #if UNITY_2019_4_OR_NEWER
@@ -64,24 +64,25 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>执行</para>
+        ///   <para>执行</para>
         /// </summary>
+        /// <param name="ct">取消令牌</param>
 #if UNITY_2019_4_OR_NEWER
         protected abstract Task OnExecute(CancellationToken ct);
 #else
         protected virtual void OnExecute(CancellationToken ct) {}
 #endif
         /// <summary>
-        ///  <para>取消</para>
+        ///   <para>取消</para>
         /// </summary>
         protected virtual void OnCancel() { }
         /// <summary>
-        ///  <para>重置</para>
+        ///   <para>重置</para>
         /// </summary>
         protected virtual void OnReset() { }
         
         /// <summary>
-        ///  <para>标记为完成</para>
+        ///   <para>标记为完成</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected void MarkCompleted()

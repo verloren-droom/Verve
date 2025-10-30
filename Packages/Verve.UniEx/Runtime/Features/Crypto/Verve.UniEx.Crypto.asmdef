@@ -4,9 +4,7 @@
   "references": [
     "Verve.Core",
     "Verve.UniEx",
-    "Verve.Crypto",
-    "Verve.Application",
-    "Verve.UniEx.Application"
+    "Verve.Crypto"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

@@ -2,8 +2,7 @@
   "name": "com.verloren-droom.verve-core",
   "displayName": "Verve Core",
   "version": "0.0.1-prerelease",
-  "unity": "2017.1",
-  "description": "Development Framework",
+  "description": "Development Framework.",
   "author": {
     "name": "Benfach"
   },

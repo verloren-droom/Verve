@@ -8,24 +8,26 @@ namespace Verve.UniEx.AI
 
     
     /// <summary>
-    /// 并行节点数据
+    ///   <para>并行节点数据</para>
     /// </summary>
     [Serializable]
     public struct ParallelBTNodeData : INodeData
     {
-        /// <summary> 子节点 </summary>
+        /// <summary>
+        ///   <para>子节点</para>
+        /// </summary>
         public IBTNode[] children;
-        /// <summary> 允许所有子节点成功 </summary>
+        /// <summary>
+        ///   <para>允许所有子节点成功</para>
+        /// </summary>
         public bool requireAllSuccess;
     }
     
     
     /// <summary>
-    /// 并行节点
+    ///   <para>并行节点</para>
+    ///   <para>同时执行所有子节点</para>
     /// </summary>
-    /// <remarks>
-    /// 同时执行所有子节点
-    /// </remarks>
     [CustomBTNode(nameof(ParallelBTNode)), Serializable]
     public struct ParallelBTNode : ICompositeBTNode, IBTNodeResettable
     {

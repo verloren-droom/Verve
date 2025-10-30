@@ -9,9 +9,18 @@ namespace Verve.UniEx
     using System.Threading.Tasks;
     
     
+    /// <summary>
+    ///   <para>协程扩展</para>
+    /// </summary>
     public static class CoroutineExtension
     {
-        /// <summary> 将Task异步转为Unity协程 </summary>
+        /// <summary>
+        ///   <para>将异步转为Unity协程</para>
+        /// </summary>
+        /// <param name="self">异步任务</param>
+        /// <param name="onComplete">任务完成回调</param>
+        /// <param name="onError">任务错误回调</param>
+        /// <param name="token">取消任务</param>
         public static IEnumerator AsIEnumerator(this Task self, Action onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
         {
             if (self == null) yield break;
@@ -42,7 +51,14 @@ namespace Verve.UniEx
             }
         }
         
-        /// <summary> 将Task异步转为Unity协程 </summary>
+        /// <summary>
+        ///   <para>将异步转为Unity协程</para>
+        /// </summary>
+        /// <typeparam name="T">异步结果类型</typeparam>
+        /// <param name="self">异步任务</param>
+        /// <param name="onComplete">任务完成回调</param>
+        /// <param name="onError">任务错误回调</param>
+        /// <param name="token">取消任务</param>
         public static IEnumerator AsIEnumerator<T>(this Task<T> self, Action<T> onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
         {
             if (self == null) yield break;
@@ -87,13 +103,32 @@ namespace Verve.UniEx
             else context.Post(_ => action(arg), null);
         }
         
-        /// <summary> 将Task异步转为Unity协程 </summary>
+        /// <summary>
+        ///   <para>将异步转为Unity协程</para>
+        /// </summary>
+        /// <param name="self">异步任务</param>
+        /// <param name="onComplete">任务完成回调</param>
+        /// <param name="onError">任务错误回调</param>
+        /// <param name="token">取消任务</param>
+        /// <returns>
+        ///   <para>协程</para>
+        /// </returns>
         public static Coroutine AsCoroutine(this Task self, Action onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
         {
             return CoroutineRunner.Instance.StartCoroutine(self.AsIEnumerator(onComplete, onError, token));
         }
         
-        /// <summary> 将Task异步转为Unity协程 </summary>
+        /// <summary>
+        ///   <para>将异步转为Unity协程</para>
+        /// </summary>
+        /// <typeparam name="T">异步结果类型</typeparam>
+        /// <param name="self">异步任务</param>
+        /// <param name="onComplete">任务完成回调</param>
+        /// <param name="onError">任务错误回调</param>
+        /// <param name="token">取消任务</param>
+        /// <returns>
+        ///   <para>协程</para>
+        /// </returns>
         public static Coroutine AsCoroutine<T>(this Task<T> self, Action<T> onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
         {
             return CoroutineRunner.Instance.StartCoroutine(self.AsIEnumerator(onComplete, onError, token));

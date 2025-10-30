@@ -3,7 +3,7 @@
   "displayName": "Verve UniEx",
   "version": "0.0.1-prerelease",
   "unity": "2018.3",
-  "description": "Development Framework Extension for Unity",
+  "description": "Unity Development Framework Extension.",
   "dependencies": {
     "com.verloren-droom.verve-core": "0.0.1-prerelease",
     "com.unity.addressables": "1.19.19",
@@ -16,5 +16,12 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/verloren-droom/Verve.git"
-  }
+  },
+  "samples": [
+    {
+      "displayName": "VirtualJoystick",
+      "description": "This sample contains a virtual joystick implementation.",
+      "path": "Samples~/VirtualJoystick"
+    }
+  ]
 }

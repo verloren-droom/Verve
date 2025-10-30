@@ -11,10 +11,10 @@ namespace Verve.UniEx
 
     
     /// <summary>
-    ///  <para>序列节点</para>
+    ///    <para>序列节点</para>
     /// </summary>
     [Serializable, GameFlowNode("Basic/Sequence", "Sequence", "序列节点")]
-    public class SequenceNode : GameFlowNode, ICompositeGameFlowNode
+    public sealed class SequenceNode : GameFlowNode, ICompositeGameFlowNode
     {
 #if UNITY_2019_4_OR_NEWER
         [SerializeReference, Tooltip("节点列表"), HideInInspector] private List<IGameFlowNode> m_Nodes = new List<IGameFlowNode>();

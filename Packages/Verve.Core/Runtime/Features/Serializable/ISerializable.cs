@@ -4,18 +4,24 @@ namespace Verve.Serializable
 
     
     /// <summary>
-    /// 序列化接口
+    ///   <para>序列化接口</para>
     /// </summary>
     public interface ISerializable
     {
         /// <summary>
-        /// 序列化
+        ///   <para>序列化</para>
         /// </summary>
+        /// <param name="stream">数据流</param>
+        /// <param name="obj">对象</param>
         void Serialize(Stream stream, object obj);
         
         /// <summary>
-        /// 反序列化
+        ///   <para>反序列化</para>
         /// </summary>
+        /// <param name="stream">数据流</param>
+        /// <returns>
+        ///   <para>对象</para>
+        /// </returns>
         T Deserialize<T>(Stream stream);
     }
 }

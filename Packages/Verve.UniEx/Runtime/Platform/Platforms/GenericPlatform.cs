@@ -10,7 +10,7 @@ namespace Verve.UniEx
 
     
     /// <summary>
-    /// 通用平台子模块
+    ///   <para>通用平台子模块</para>
     /// </summary>
     internal class GenericPlatform : GameFeatureSubmodule, IGamePlatform
     {

@@ -3,7 +3,7 @@
 namespace Verve.UniEx.Debug
 {
     /// <summary>
-    /// 调试功能模块
+    ///   <para>调试功能模块</para>
     /// </summary>
     [System.Serializable, GameFeatureModule("Verve/Debug", Description = "调试功能模块")]
     internal sealed class DebugGameFeature : GameFeatureModule

@@ -6,7 +6,7 @@ namespace Verve.UniEx.Crypto
 
 
     /// <summary>
-    /// 加解密游戏功能组件
+    ///   <para>加解密游戏功能组件</para>
     /// </summary>
     [System.Serializable, GameFeatureComponentMenu("Verve/Crypto")]
     public sealed class CryptoGameFeatureComponent : GameFeatureComponent
@@ -14,7 +14,9 @@ namespace Verve.UniEx.Crypto
         [SerializeField, Tooltip("加密密钥")] private GameFeatureParameter<string> m_EncryptionKey = new GameFeatureParameter<string>("XXXXXXXXXXXXXXXX");
 
 
-        /// <summary> 加密密钥 </summary>
+        /// <summary>
+        ///   <para>加密密钥</para>
+        /// </summary>
         public string EncryptionKey => m_EncryptionKey.Value;
     }
 }

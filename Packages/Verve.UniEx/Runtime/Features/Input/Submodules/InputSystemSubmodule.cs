@@ -17,7 +17,7 @@ namespace Verve.UniEx.Input
     
     
     /// <summary>
-    /// 新版输入系统（Input System）
+    ///   <para>新版输入系统（Input System）</para>
     /// </summary>
     [Serializable, GameFeatureSubmodule(typeof(InputGameFeature), Description = "新版输入系统（Input System）")]
     public sealed partial class InputSystemSubmodule : InputSubmodule
@@ -70,10 +70,10 @@ namespace Verve.UniEx.Input
         }
 
         /// <summary>
-        /// 绑定玩家输入
+        ///   <para>绑定玩家输入</para>
         /// </summary>
-        /// <param name="playerInput"></param>
-        /// <param name="enable">是否直接启动</param>
+        /// <param name="playerInput">玩家输入</param>
+        /// <param name="enable">是否启用</param>
         public void BindPlayerInput(PlayerInput playerInput, bool enable = true)
         {
             m_PlayerInput = playerInput;

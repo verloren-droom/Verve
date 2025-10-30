@@ -1,13 +1,13 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using UnityEngine;
     using UnityEditor;
     
     
     /// <summary>
-    /// 页签翻页控件
+    ///   <para>页签翻页控件</para>
     /// </summary>
     public sealed class TabPagerBox
     {
@@ -47,7 +47,9 @@ namespace VerveEditor.UniEx
             m_Selected = startPage;
         }
 
-        /// <summary>开始绘制，返回新选中的索引</summary>
+        /// <summary>
+        ///   <para>开始绘制，返回新选中的索引</para>
+        /// </summary>
         public int Begin(params GUIContent[] titles)
         {
             if (titles == null || titles.Length == 0) return m_Selected;
@@ -87,9 +89,14 @@ namespace VerveEditor.UniEx
             return m_Selected;
         }
         
+        /// <summary>
+        ///   <para>开始绘制，返回新选中的索引</para>
+        /// </summary>
         public int Begin(params string[] titles) => Begin(System.Array.ConvertAll(titles, x => new GUIContent(x)));
     
-        /// <summary>结束包围框</summary>
+        /// <summary>
+        ///   <para>结束包围框</para>
+        /// </summary>
         public void End()
         {
             GUILayout.EndVertical();

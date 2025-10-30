@@ -7,7 +7,7 @@ namespace VerveEditor
 
     
     /// <summary>
-    ///  <para>流程节点包装器编辑</para>
+    ///   <para>流程节点包装器编辑</para>
     /// </summary>
     [CustomEditor(typeof(GameFlowNodeWrapper))]
     internal class GameFlowNodeWrapperEditor : Editor

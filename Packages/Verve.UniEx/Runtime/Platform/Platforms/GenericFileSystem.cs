@@ -11,7 +11,7 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    /// <para>通用文件系统</para>
+    ///   <para>通用文件系统</para>
     /// </summary>
     internal class GenericFileSystem : IGamePlatformFileSystem
     {
@@ -256,8 +256,12 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 生成临时文件路径
+        ///   <para>生成临时文件路径</para>
         /// </summary>
+        /// <param name="targetFilePath">目标文件路径</param>
+        /// <returns>
+        ///   <para>临时文件路径</para>
+        /// </returns>
         protected string GetTempFilePath(string targetFilePath)
         {
             string fileName = Path.GetFileName(targetFilePath);

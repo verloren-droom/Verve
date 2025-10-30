@@ -8,7 +8,7 @@ namespace VerveEditor
     
     
     /// <summary>
-    ///  <para>流程图资源编辑器</para>
+    ///   <para>流程图资源编辑器</para>
     /// </summary>
     [CustomEditor(typeof(GameFlowGraphAsset))]
     internal class GameFlowGraphAssetEditor : Editor

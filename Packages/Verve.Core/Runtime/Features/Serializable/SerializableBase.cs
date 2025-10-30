@@ -4,12 +4,11 @@ namespace Verve.Serializable
     
     
     /// <summary>
-    /// 序列化基类
+    ///   <para>序列化基类</para>
     /// </summary>
     public abstract class SerializableBase : ISerializable
     {
         public abstract void Serialize(Stream stream, object obj);
-        
         public abstract T Deserialize<T>(Stream stream);
     }
 }

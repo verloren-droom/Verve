@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using System;
     using System.IO;
@@ -12,10 +12,28 @@ namespace VerveEditor.UniEx
     
     
     /// <summary>
-    ///  <para>游戏特性配置文件工厂</para>
+    ///   <para>游戏特性配置文件工厂</para>
     /// </summary>
     internal static class GameFeatureProfileFactory
     {
+        /// <summary>
+        ///   <para>功能组件模版文件名</para>
+        ///   <para>不包含.txt文件后缀</para>
+        /// </summary>
+        const string COMPONENT_TEMPLATE_FILENAME = "GameFeatureComponent.cs";
+        
+        /// <summary>
+        ///   <para>功能模块模版文件名</para>
+        ///   <para>不包含.txt文件后缀</para>
+        /// </summary>
+        const string MODULE_TEMPLATE_FILENAME = "GameFeatureModule.cs";
+        
+        /// <summary>
+        ///   <para>功能子模块模版文件名</para>
+        ///   <para>不包含.txt文件后缀</para>
+        /// </summary>
+        const string SUBMODULE_TEMPLATE_FILENAME = "GameFeatureSubmodule.cs";
+        
         public static GameFeatureComponentProfile CreateGameFeaturesProfile(string path = null, bool saveAsset = true)
         {
             if (!AssetDatabase.IsValidFolder(path))
@@ -55,48 +73,26 @@ namespace VerveEditor.UniEx
         }
         
         /// <summary>
-        ///  <para>创建游戏功能组件</para>
+        ///   <para>创建游戏功能组件</para>
         /// </summary>
         [MenuItem("Assets/Create/Verve/Game Feature Component")]
         private static void CreateNewGameFeatureComponentScript()
-        {
-            string[] guids = AssetDatabase.FindAssets("GameFeatureComponent.cs t:TextAsset", new []{ UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(GameFeatureProfileFactory).Assembly).assetPath });
-            if (guids.Length > 0)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-                ProjectWindowUtil.CreateScriptAssetFromTemplateFile(path, "NewGameFeatureComponent.cs");
-            }
-            else
-            {
-                EditorUtility.DisplayDialog("Error", "GameFeatureComponent Template file not found", "OK");
-            }
-        }
-        
+            => CoreEditorUtility.CreateNewScriptFromTemplate(typeof(GameFeatureProfileFactory), COMPONENT_TEMPLATE_FILENAME);
+
         /// <summary>
-        ///  <para>创建游戏功能模块</para>
+        ///   <para>创建游戏功能模块</para>
         /// </summary>
         [MenuItem("Assets/Create/Verve/Game Feature Module")]
-        private static void CreateNewGameFeatureModuleScript()
-        {
-            string[] guids = AssetDatabase.FindAssets("GameFeatureModule.cs t:TextAsset", new []{ UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(GameFeatureProfileFactory).Assembly).assetPath });
-            if (guids.Length > 0)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-                ProjectWindowUtil.CreateScriptAssetFromTemplateFile(path, "NewGameFeatureModule.cs");
-            }
-            else
-            {
-                EditorUtility.DisplayDialog("Error", "GameFeatureModule Template file not found", "OK");
-            }
-        }
-        
+        private static void CreateNewGameFeatureModuleScript() 
+            => CoreEditorUtility.CreateNewScriptFromTemplate(typeof(GameFeatureProfileFactory), MODULE_TEMPLATE_FILENAME);
+
         /// <summary>
-        ///  <para>创建游戏功能子模块</para>
+        ///   <para>创建游戏功能子模块</para>
         /// </summary>
         [MenuItem("Assets/Create/Verve/Game Feature Submodule")]
         private static void CreateNewGameFeatureSubmoduleScript()
         {
-            string[] guids = AssetDatabase.FindAssets("GameFeatureSubmodule.cs t:TextAsset", new []{ UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(GameFeatureProfileFactory).Assembly).assetPath });
+            string[] guids = AssetDatabase.FindAssets($"{SUBMODULE_TEMPLATE_FILENAME} t:TextAsset", new []{ UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(GameFeatureProfileFactory).Assembly).assetPath });
             if (guids.Length > 0)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guids[0]);
@@ -104,12 +100,12 @@ namespace VerveEditor.UniEx
             }
             else
             {
-                EditorUtility.DisplayDialog("Error", "GameFeatureSubmodule Template file not found", "OK");
+                EditorUtility.DisplayDialog("Error", $"{SUBMODULE_TEMPLATE_FILENAME} Template file not found", "OK");
             }
         }
         
         /// <summary>
-        ///  <para>创建子模块脚本</para>
+        ///   <para>创建子模块脚本</para>
         /// </summary>
         private static void CreateSubmoduleScript(string path)
         {
@@ -119,7 +115,9 @@ namespace VerveEditor.UniEx
 
                 SingleSelectionDialog.Show("Select Belong to Module", null, moduleTypeNames, (selectedModuleIndex) =>
                 {
-                    var componentTypeNames = TypeCache.GetTypesDerivedFrom<GameFeatureComponent>().Where(t => t.IsClass && !t.IsAbstract && t.IsPublic && t.GetCustomAttribute<GameFeatureComponentMenuAttribute>() != null).Select(t => t.Name).ToArray();
+                    var componentTypeNames = TypeCache.GetTypesDerivedFrom<GameFeatureComponent>()
+                        .Where(t => t.IsClass && !t.IsAbstract && t.IsPublic && t.GetCustomAttribute<GameFeatureComponentMenuAttribute>() != null)
+                        .Select(t => t.Name).ToArray();
                     
                     string[] componentOptions = new string[componentTypeNames.Length + 1];
                     componentOptions[0] = "None";
@@ -127,7 +125,7 @@ namespace VerveEditor.UniEx
                     
                     SingleSelectionDialog.Show("Select Bind Component", null, componentOptions, (selectedCompIndex) =>
                     {
-                        string tempTemplatePath = Path.Combine(Application.temporaryCachePath, "GameFeatureSubmodule.cs.txt");
+                        string tempTemplatePath = Path.Combine(Application.temporaryCachePath, $"{SUBMODULE_TEMPLATE_FILENAME}.txt");
                         string templateContent = File.ReadAllText(path);
                         
                         string processedContent = templateContent
@@ -138,7 +136,7 @@ namespace VerveEditor.UniEx
                         
                         ProjectWindowUtil.CreateScriptAssetFromTemplateFile(
                             tempTemplatePath, 
-                            "NewGameFeatureSubmodule.cs"
+                            $"New{SUBMODULE_TEMPLATE_FILENAME}"
                         );
         
                         // if (File.Exists(tempTemplatePath))

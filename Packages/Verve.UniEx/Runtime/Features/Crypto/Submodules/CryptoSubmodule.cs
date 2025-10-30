@@ -6,7 +6,7 @@ namespace Verve.UniEx.Crypto
 
     
     /// <summary>
-    /// 加解密子模块基类
+    ///   <para>加解密子模块基类</para>
     /// </summary>
     public abstract class CryptoSubmodule: GameFeatureSubmodule<CryptoGameFeatureComponent>, ICrypto
     {

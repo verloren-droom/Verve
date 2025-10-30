@@ -14,7 +14,8 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    /// 游戏功能运行器 - 负责遍历已注册模块并调用功能模块其中的子模块的生命周期
+    ///   <para>游戏功能运行器</para>
+    ///   <para>负责遍历已注册模块并调用功能模块其中的子模块的生命周期</para>
     /// </summary>
     [DisallowMultipleComponent, ExecuteAlways, DefaultExecutionOrder(-1000), AddComponentMenu("Verve/Game Features Runner")]
     public sealed class GameFeaturesRunner : ComponentInstanceBase<GameFeaturesRunner>
@@ -26,7 +27,13 @@ namespace Verve.UniEx
         
         private IGameFeatureContext m_Context;
         
+        /// <summary>
+        ///   <para>游戏功能组件管理器</para>
+        /// </summary>
         public GameFeatureComponentProfile ComponentProfile => m_ComponentProfile;
+        /// <summary>
+        ///   <para>游戏功能模块管理器</para>
+        /// </summary>
         public GameFeatureModuleProfile ModuleProfile => m_ModuleProfile;
 
         #region 存储子模块
@@ -174,7 +181,7 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 设置配置文件
+        ///   <para>设置配置文件</para>
         /// </summary>
         /// <param name="moduleProfile">模块配置</param>
         /// <param name="componentProfile">组件配置</param>
@@ -190,7 +197,7 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 处理待添加/移除的模块
+        ///   <para>处理待添加/移除的模块</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ProcessPendingModules()
@@ -232,7 +239,7 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 检查模块激活状态变化
+        ///   <para>检查模块激活状态变化</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void CheckModuleActiveStateChanges()
@@ -295,7 +302,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 重新构建子模块列表
+        ///   <para>重新构建子模块列表</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RebuildSubmodules()
@@ -333,8 +340,9 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 检查子模块的父模块是否激活
+        ///   <para>检查子模块的父模块是否激活</para>
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool IsParentModuleActive(IGameFeatureSubmodule submodule)
         {
             foreach (var module in m_Modules)
@@ -346,7 +354,7 @@ namespace Verve.UniEx
             }
             return false;
         }
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void AddModulesWithDependencies()
         {
@@ -392,7 +400,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 启动所有模块
+        ///   <para>启动所有模块</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private IEnumerator StartupAllModules()
@@ -484,7 +492,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 更新所有模块
+        ///   <para>更新所有模块</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void TickAllModules()
@@ -504,8 +512,9 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 绘制所有模块GUI
+        ///   <para>绘制所有模块GUI</para>
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DrawGUIAllModules()
         {
             if (m_ActiveDrawableSubmodules.Count == 0) return;
@@ -519,8 +528,9 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 绘制所有模块Gizmos
+        ///   <para>绘制所有模块Gizmos</para>
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DrawGizmosAllModules()
         {
             if (m_ActiveDrawableSubmodules.Count == 0) return;
@@ -534,7 +544,7 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 关闭所有模块
+        ///   <para>关闭所有模块</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ShutdownAllModules()
@@ -560,7 +570,7 @@ namespace Verve.UniEx
         }
               
         /// <summary>
-        /// 刷新所有模块
+        ///   <para>刷新所有模块</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RefreshAllModules()
@@ -574,7 +584,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 启动单个模块及其子模块
+        ///   <para>启动所有模块及其子模块</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StartupModule(GameFeatureModule module)
@@ -626,6 +636,10 @@ namespace Verve.UniEx
             s_StartupSampler.End();
         }
         
+        /// <summary>
+        ///   <para>等待所有异步启动完成</para>
+        /// </summary>
+        /// <param name="asyncStartups">异步启动列表</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private IEnumerator WaitForAsyncStartups(List<IEnumerator> asyncStartups)
         {
@@ -641,7 +655,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 关闭单个模块及其子模块
+        ///   <para>关闭单个模块及其子模块</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ShutdownModule(GameFeatureModule module)
@@ -678,7 +692,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 绑定组件到子模块中
+        ///   <para>绑定组件到子模块中</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void BindComponentToSubmodule(IGameFeatureSubmodule sub)
@@ -696,7 +710,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 检查依赖是否满足
+        ///   <para>检查依赖是否满足</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool CheckDependencies(object target)
@@ -748,6 +762,10 @@ namespace Verve.UniEx
             return true;
         }
         
+        /// <summary>
+        ///   <para>添加模块</para>
+        /// </summary>
+        /// <param name="module">模块资源</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddModule(GameFeatureModule module)
         {
@@ -759,7 +777,7 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 添加模块
+        ///   <para>添加模块</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool AddModule(string menuPath)
@@ -776,6 +794,10 @@ namespace Verve.UniEx
             return false;
         }
 
+        /// <summary>
+        ///   <para>移除模块</para>
+        /// </summary>
+        /// <param name="module">功能模块</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RemoveModule(GameFeatureModule module)
         {
@@ -786,8 +808,9 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 移除模块
+        ///   <para>移除模块</para>
         /// </summary>
+        /// <param name="menuPath">模块菜单路径</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool RemoveModule(string menuPath)
         {
@@ -802,6 +825,11 @@ namespace Verve.UniEx
             return false;
         }
 
+        /// <summary>
+        ///   <para>激活或禁用功能模块</para>
+        /// </summary>
+        /// <param name="module">功能模块</param>
+        /// <param name="isActive">是否激活</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void SetModuleActive(GameFeatureModule module, bool isActive)
         {
@@ -815,8 +843,13 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 激活或禁用功能模块
+        ///   <para>激活或禁用功能模块</para>
         /// </summary>
+        /// <param name="menuPath">模块菜单路径</param>
+        /// <param name="isActive">是否激活</param>
+        /// <returns>
+        ///   <para>是否成功</para>
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool SetModuleActive(string menuPath, bool isActive)
         {
@@ -832,6 +865,13 @@ namespace Verve.UniEx
             return false;
         }
         
+        /// <summary>
+        ///   <para>获取模块是否激活</para>
+        /// </summary>
+        /// <param name="module"功能模块></param>
+        /// <returns>
+        ///   <para>模块是否激活</para>
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool GetModuleActive(GameFeatureModule module)
         {
@@ -841,8 +881,12 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 获取模块是否激活
+        ///   <para>获取模块是否激活</para>
         /// </summary>
+        /// <param name="menuPath">模块菜单路径</param>
+        /// <returns>
+        ///   <para>模块是否激活</para>
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool GetModuleActive(string menuPath)
         {

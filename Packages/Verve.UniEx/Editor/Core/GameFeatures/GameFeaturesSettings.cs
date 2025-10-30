@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using System;
     using System.IO;
@@ -15,7 +15,8 @@ namespace VerveEditor.UniEx
 
     
     /// <summary>
-    /// 游戏功能设置 - 用于管理和保存游戏功能模块和配置文件
+    ///   <para>游戏功能设置</para>
+    ///   <para>用于管理和保存游戏功能模块和配置文件</para>
     /// </summary>
     [FilePath("ProjectSettings/Packages/com.verloren-droom.verve-unity-extension/GameFeaturesSettings.asset", FilePathAttribute.Location.ProjectFolder)]
     internal class GameFeaturesSettings : ScriptableSingleton<GameFeaturesSettings>
@@ -29,7 +30,7 @@ namespace VerveEditor.UniEx
         public GameFeatureModuleProfile ModuleProfile => m_ModuleProfile;
         public bool SkipRuntimeDependencyChecks => m_SkipRuntimeDependencyChecks;
         
-        [SerializeField, SerializeReference] private List<ModuleEditorDrawer> m_Drawers = new List<ModuleEditorDrawer>();
+        [SerializeField, Tooltip("模块编辑器"), SerializeReference] private List<ModuleEditorDrawer> m_Drawers = new List<ModuleEditorDrawer>();
         public IReadOnlyCollection<ModuleEditorDrawer> Drawers => m_Drawers.AsReadOnly();
 
         
@@ -43,6 +44,9 @@ namespace VerveEditor.UniEx
             Save();
         }
 
+        /// <summary>
+        ///   <para>获取或创建模块编辑器</para>
+        /// </summary>
         public ModuleEditorDrawer GetOrCreateModuleEditor(Type type)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
@@ -60,11 +64,17 @@ namespace VerveEditor.UniEx
             return t;
         }
 
+        /// <summary>
+        ///   <para>保存设置</para>
+        /// </summary>
         public void Save()
         {
             Save(true);
         }
         
+        /// <summary>
+        ///   <para>获取或创建模块编辑器</para>
+        /// </summary>
         public T GetOrCreateModuleEditor<T>() where T : ModuleEditorDrawer, new() => (T)GetOrCreateModuleEditor(typeof(T));
     }
 }

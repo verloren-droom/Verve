@@ -7,10 +7,12 @@ namespace Verve.UniEx
     using System.Linq;
     using System.Reflection;
     using System.Collections.Generic;
-    
+    using System.Runtime.CompilerServices;
+
     
     /// <summary>
-    /// 游戏功能模块配置文件 - 管理所有游戏功能模块的注册和注销
+    ///   <para>游戏功能模块配置文件</para>
+    ///   <para>用于管理所有游戏功能模块的注册和注销</para>
     /// </summary>
     [Serializable]
     public sealed partial class GameFeatureModuleProfile : ScriptableObject, IGameFeatureModuleProfile
@@ -20,7 +22,9 @@ namespace Verve.UniEx
         [NonSerialized, Tooltip("是否为脏")] public bool isDirty = true;
 
         public IReadOnlyCollection<IGameFeatureModule> Modules => m_Modules.AsReadOnly();
-        /// <summary> 菜单路径对照表 </summary>
+        /// <summary>
+        ///   <para>菜单路径和功能模块对照表</para>
+        /// </summary>
         public IReadOnlyDictionary<string, GameFeatureModule> MenuPathLookup => m_MenuPathLookup;
 
 
@@ -30,6 +34,9 @@ namespace Verve.UniEx
             RebuildMenuPathLookup();
         }
         
+        /// <summary>
+        ///   <para>重建菜单路径和功能模块对照表</para>
+        /// </summary>
         private void RebuildMenuPathLookup()
         {
             m_MenuPathLookup.Clear();
@@ -47,9 +54,9 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 添加游戏功能模块
+        ///   <para>添加游戏功能模块</para>
         /// </summary>
-        /// <param name="module">要添加的游戏功能模块实例</param>
+        /// <param name="module">游戏功能模块实例</param>
         /// <param name="overrides">是否覆盖模块</param>
         public void Add(GameFeatureModule module, bool overrides = false)
         {
@@ -73,10 +80,12 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 移除游戏功能模块
+        ///   <para>移除游戏功能模块</para>
         /// </summary>
-        /// <param name="module">要移除的游戏功能模块实例</param>
-        /// <returns>是否成功移除</returns>
+        /// <param name="module">游戏功能模块实例</param>
+        /// <returns>
+        ///   <para>是否成功移除</para>
+        /// </returns>
         public bool Remove(GameFeatureModule module)
         {
             if (module == null) return false;
@@ -96,26 +105,34 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 检查是否包含指定的模块
+        ///   <para>检查是否包含指定的模块</para>
         /// </summary>
         /// <param name="module">要检查的模块实例</param>
-        /// <returns>是否包含</returns>
+        /// <returns>
+        ///   <para>是否包含</para>
+        /// </returns>
         public bool Has(GameFeatureModule module)
         {
             return m_Modules.Contains(module);
         }
 
         /// <summary>
-        /// 检查是否包含指定类型的模块
+        ///   <para>检查是否包含指定类型的模块</para>
         /// </summary>
-        /// <param name="type">要检查的模块类型</param>
-        /// <returns>是否包含</returns>
+        /// <param name="type">功能模块类型</param>
+        /// <returns>
+        ///   <para>是否包含</para>
+        /// </returns>
         public bool Has(Type type)
         {
             if (type == null || m_Modules == null || !typeof(GameFeatureModule).IsAssignableFrom(type)) return false;
             return m_Modules.Any(m => m?.GetType() == type);
         }
 
+        /// <summary>
+        ///   <para>验证模块的依赖关系</para>
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ValidateDependencies(GameFeatureModule module)
         {
             var visited = new HashSet<Type>();
@@ -124,6 +141,7 @@ namespace Verve.UniEx
             CheckDependenciesRecursive(module.GetType(), visited, stack);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void CheckDependenciesRecursive(Type moduleType, 
             ISet<Type> visited, Stack<Type> stack)
         {
@@ -148,9 +166,10 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 插入模块
+        ///   <para>插入模块</para>
         /// </summary>
-        /// <param name="module"></param>
+        /// <param name="module">功能模块</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void InsertModuleWithDependencies(GameFeatureModule module)
         {
             var dependencies = GetDependencies(module.GetType()).ToList();
@@ -174,6 +193,11 @@ namespace Verve.UniEx
             m_Modules.Insert(insertIndex, module);
         }
 
+        /// <summary>
+        ///   <para>检查模块的依赖关系</para>
+        /// </summary>
+        /// <param name="module"></param>
+        /// <exception cref="InvalidOperationException"></exception>
         internal void CheckModuleDependents(GameFeatureModule module)
         {
             var moduleType = module.GetType();
@@ -195,6 +219,14 @@ namespace Verve.UniEx
             return moduleType?.GetCustomAttribute<GameFeatureAttribute>()?.Dependencies ?? Enumerable.Empty<Type>();
         }
         
+        /// <summary>
+        ///   <para>获取模块的菜单路径</para>
+        /// </summary>
+        /// <param name="module">功能模块</param>
+        /// <returns>
+        ///   <para>菜单路径</para>
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private string GetMenuPathForModule(GameFeatureModule module)
         {
             var attr = module.GetType().GetCustomAttribute<GameFeatureAttribute>();

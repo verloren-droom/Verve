@@ -4,13 +4,10 @@
     "references": [
         "Verve.Core",
         "Verve.Platform",
-        "Verve.File",
         "Verve.Loader",
-        "Verve.Application",
         "Verve.AI",
         "Verve.Timer",
         "Verve.Input",
-        "Verve.Event",
         "Verve.Serializable",
         "Verve.Storage",
         "Verve.MVC",

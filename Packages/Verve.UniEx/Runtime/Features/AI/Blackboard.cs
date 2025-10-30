@@ -1,8 +1,10 @@
+#if UNITY_5_3_OR_NEWER
+
 namespace Verve.UniEx.AI
 {
     using System;
     using Verve.AI;
-    using System.Threading;
+    using UnityEngine;
     using System.Collections.Generic;
     using System.Runtime.InteropServices;
     using System.Collections.ObjectModel;
@@ -10,7 +12,7 @@ namespace Verve.UniEx.AI
     
     
     /// <summary>
-    /// AI共享数据存储
+    ///   <para>AI共享数据存储</para>
     /// </summary>
     [Serializable]
     public sealed class Blackboard : IBlackboard
@@ -29,24 +31,23 @@ namespace Verve.UniEx.AI
         }
 
         
-        private int m_ID;
+        [SerializeField, Tooltip("黑板ID"), ReadOnly] private string m_ID;
         private BBEntry[] m_Data;
         private int m_Count;
         private Dictionary<int, int> m_KeyIndexMap;
         public event Action<string, object> OnValueChanged;
-        public int ID => m_ID;
+        public string ID => m_ID;
 
-        private static int s_NextBBId; 
-        public static int GenerateBBId() => Interlocked.Increment(ref s_NextBBId);
-        
         private static readonly List<Blackboard> s_AllBlackboards = new();
-        /// <summary> 所有黑板数据 </summary>
+        /// <summary>
+        ///   <para>所有黑板数据</para>
+        /// </summary>
         public static IReadOnlyList<Blackboard> AllBlackboards => new ReadOnlyCollection<Blackboard>(s_AllBlackboards);
 
 
         public Blackboard(int initialSize = 32)
         {
-            m_ID = GenerateBBId();
+            m_ID = $"bb_{Guid.NewGuid().ToString("N")[..16]}";
             m_Data = new BBEntry[initialSize];
             m_KeyIndexMap = new Dictionary<int, int>(initialSize);
             s_AllBlackboards.Add(this);
@@ -169,3 +170,5 @@ namespace Verve.UniEx.AI
         }
     }
 }
+
+#endif

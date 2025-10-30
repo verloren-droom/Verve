@@ -6,6 +6,30 @@ namespace Verve.UniEx
     using UnityEngine;
 
     
+    /// <summary>
+    ///   <para>可更新游戏功能子模块基类</para>
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// [Serializable, GameFeatureSubmodule(typeof(MyGameFeature))]
+    /// public class MyGameFeatureSubmodule : TickableGameFeatureSubmodule
+    /// {
+    ///     protected override IEnumerator OnStartup()
+    ///     {
+    ///         // 启动逻辑
+    ///         yield break;
+    ///     }
+    ///     protected override void OnTick(in GameFeatureContext ctx)
+    ///     {
+    ///         // 更新逻辑
+    ///     }
+    ///     protected override void OnShutdown()
+    ///     {
+    ///         // 停止逻辑
+    ///     }
+    /// }
+    /// </code>
+    /// </example>
     [Serializable]
     public abstract class TickableGameFeatureSubmodule : GameFeatureSubmodule, ITickableGameFeatureSubmodule
     {
@@ -24,10 +48,18 @@ namespace Verve.UniEx
             => OnTick(in context);
         
     
+        /// <summary>
+        ///   <para>每帧更新</para>
+        /// </summary>
+        /// <param name="ctx"> 游戏功能上下文 </param>
         protected virtual void OnTick(in GameFeatureContext ctx) { }
     }
     
     
+    /// <summary>
+    ///   <para>可更新游戏功能子模块基类</para>
+    /// </summary>
+    /// <typeparam name="T">游戏组件类型</typeparam>
     [Serializable]
     public abstract class TickableGameFeatureSubmodule<T> : TickableGameFeatureSubmodule, IComponentGameFeatureSubmodule
         where T : GameFeatureComponent
@@ -35,7 +67,9 @@ namespace Verve.UniEx
         [SerializeField, HideInInspector, Tooltip("绑定的模块组件")] private T m_Component;
         
         
-        /// <summary> 绑定的模块组件 </summary>
+        /// <summary>
+        ///   <para>绑定的模块组件</para>
+        /// </summary>
         public T Component 
         { 
             get

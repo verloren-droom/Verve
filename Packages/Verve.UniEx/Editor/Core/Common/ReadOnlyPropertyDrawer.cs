@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
     
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using Verve.UniEx;
     using UnityEditor;

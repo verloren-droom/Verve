@@ -7,24 +7,22 @@ namespace Verve.UniEx
     using System.Collections.Generic;
     
     
+    /// <summary>
+    ///   <para>游戏功能参数基类</para>
+    /// </summary>
     [Serializable]
     public abstract class GameFeatureParameter : IGameFeatureParameter
     {
         [NonSerialized] protected internal bool m_Overrides;
         
-        /// <summary> 是否重写 </summary>
         public bool Overrides
         {
             get => m_Overrides;
             set => m_Overrides = value;
         }
         
-        /// <summary> 获取值 </summary>
         public T GetValue<T>() => ((GameFeatureParameter<T>)this).Value;
-
-        /// <summary> 设置值 </summary>
         public abstract void SetValue(IGameFeatureParameter parameter);
-        /// <summary> 应用重写参数值 </summary>
         public abstract void ApplyOverride(IGameFeatureParameter other);
         
         /// <summary> 参数生命周期 </summary>
@@ -34,11 +32,18 @@ namespace Verve.UniEx
     }
 
     
+    /// <summary>
+    ///   <para>游戏功能参数基类</para>
+    /// </summary>
+    /// <typeparam name="T">参数类型</typeparam>
     [Serializable]
     public class GameFeatureParameter<T> : GameFeatureParameter, IEquatable<GameFeatureParameter<T>>
     {
         [SerializeField] protected T m_Value;
         
+        /// <summary>
+        ///   <summary> 参数值 </summary>
+        /// </summary>
         public virtual T Value
         {
             get => m_Value;
@@ -90,6 +95,10 @@ namespace Verve.UniEx
     }
     
     
+    /// <summary>
+    ///   <para>浮点数范围限制参数</para>
+    ///   <para>参数值会自动限制在指定范围</para>
+    /// </summary>
     [Serializable]
     public class ClampedFloatParameter : GameFeatureParameter<float>
     {
@@ -111,6 +120,10 @@ namespace Verve.UniEx
     }
     
     
+    /// <summary>
+    ///   <para>整数范围限制参数</para>
+    ///   <para>参数值会自动限制在指定范围</para>
+    /// </summary>
     [Serializable]
     public class ClampedIntParameter : GameFeatureParameter<int>
     {
@@ -132,10 +145,16 @@ namespace Verve.UniEx
     }
 
     
+    /// <summary>
+    ///   <para>路径参数</para>
+    ///   <para>自动添加路径前缀</para>
+    /// </summary>
     [Serializable]
     public class PathParameter : GameFeatureParameter<string>
     {
-        /// <summary> 路径前缀 </summary>
+        /// <summary>
+        ///   <para>路径前缀</para>
+        /// </summary>
         public string prefix = "";
         
         public override string Value

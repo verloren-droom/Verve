@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx.Features
+namespace VerveEditor
 {
     using System;
     using System.Linq;
@@ -11,6 +11,9 @@ namespace VerveEditor.UniEx.Features
     using System.Collections.Generic;
 
     
+    /// <summary>
+    ///   <para>游戏功能运行器编辑器</para>
+    /// </summary>
     [CustomEditor(typeof(GameFeaturesRunner))]
     internal class GameFeaturesRunnerEditor : Editor
     {
@@ -22,6 +25,9 @@ namespace VerveEditor.UniEx.Features
         
         private readonly List<GameFeatureModuleProfileEditor.ModuleEditor> m_Editors = new List<GameFeatureModuleProfileEditor.ModuleEditor>();
 
+        /// <summary>
+        ///   <para>排除绘制的字段</para>
+        /// </summary>
         private static readonly string[] s_ExcludedFields =
         {
             "m_Script",
@@ -30,11 +36,29 @@ namespace VerveEditor.UniEx.Features
             "m_Modules",
         };
 
+        /// <summary>
+        ///   <para>样式</para>
+        /// </summary>
         private static class Styles
         {
+            /// <summary>
+            ///   <para>添加游戏功能按钮</para>
+            /// </summary>
             public static GUIContent AddModuleButton { get; } = EditorGUIUtility.TrTextContent("Add Game Feature");
+            
+            /// <summary>
+            ///   <para>没有模块信息</para>
+            /// </summary>
             public static GUIContent NoModulesInfo { get; } = EditorGUIUtility.TrTextContent("No modules available. Assign a Module profile asset first.");
+            
+            /// <summary>
+            ///   <para>没有添加的模块信息</para>
+            /// </summary>
             public static string NoAddedModulesInfo { get; } = L10n.Tr("No modules. Click 'Add Game Feature' to add modules.");
+            
+            /// <summary>
+            ///   <para>运行器信息</para>
+            /// </summary>
             public static string RunnerInfo { get; } = L10n.Tr("Game Features Runner is responsible for managing and running game feature modules.");
         }
 
@@ -76,6 +100,9 @@ namespace VerveEditor.UniEx.Features
             serializedObject.ApplyModifiedProperties();
         }
 
+        /// <summary>
+        ///   <para>绘制模块列表</para>
+        /// </summary>
         private void DrawModulesList()
         {
             if (m_Runner.ModuleProfile == null)
@@ -149,6 +176,9 @@ namespace VerveEditor.UniEx.Features
             }
         }
 
+        /// <summary>
+        ///   <para>菜单点击</para>
+        /// </summary>
         private void OnContextClick(Vector2 position, int index)
         {
             var menu = new GenericMenu();
@@ -156,6 +186,9 @@ namespace VerveEditor.UniEx.Features
             menu.DropDown(new Rect(position, Vector2.zero));
         }
 
+        /// <summary>
+        ///   <para>显示添加模块菜单</para>
+        /// </summary>
         private void ShowAddModuleMenu()
         {
             var menu = new GenericMenu();
@@ -204,6 +237,9 @@ namespace VerveEditor.UniEx.Features
             menu.ShowAsContext();
         }
 
+        /// <summary>
+        ///   <para>判断模块是否已添加</para>
+        /// </summary>
         private bool IsModuleAdded(GameFeatureModule module)
         {
             for (int i = 0; i < m_ModulesProperty.arraySize; i++)
@@ -217,6 +253,9 @@ namespace VerveEditor.UniEx.Features
             return false;
         }
 
+        /// <summary>
+        ///   <para>添加模块</para>
+        /// </summary>
         private void AddModule(GameFeatureModule module)
         {
             if (module == null) return;
@@ -230,6 +269,9 @@ namespace VerveEditor.UniEx.Features
             RefreshEditors();
         }
 
+        /// <summary>
+        ///   <para>移除模块</para>
+        /// </summary>
         private void RemoveModule(int index)
         {
             if (index < 0 || index >= m_ModulesProperty.arraySize) return;
@@ -241,6 +283,9 @@ namespace VerveEditor.UniEx.Features
             RefreshEditors();
         }
 
+        /// <summary>
+        ///   <para>刷新编辑器</para>
+        /// </summary>
         private void RefreshEditors()
         {
             ClearEditors();
@@ -267,6 +312,9 @@ namespace VerveEditor.UniEx.Features
             }
         }
 
+        /// <summary>
+        ///   <para>清理空元素</para>
+        /// </summary>
         private void CleanNullElements()
         {
             if (m_ModulesProperty == null) return;
@@ -301,6 +349,9 @@ namespace VerveEditor.UniEx.Features
             }
         }
 
+        /// <summary>
+        ///   <para>清理编辑器</para>
+        /// </summary>
         private void ClearEditors()
         {
             foreach (var editor in m_Editors)

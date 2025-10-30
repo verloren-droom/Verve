@@ -4,8 +4,7 @@
   "references": [
     "Verve.Core",
     "Verve.Serializable",
-    "Verve.Platform",
-    "Verve.Application"
+    "Verve.Platform"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

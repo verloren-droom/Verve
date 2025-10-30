@@ -14,7 +14,7 @@ namespace VerveEditor
     
     
     /// <summary>
-    ///  <para>可视化流程节点图编辑窗口</para>
+    ///   <para>可视化流程节点图编辑窗口</para>
     /// </summary>
     internal class GameFlowGraphEditorWindow : EditorWindow
     {
@@ -24,11 +24,11 @@ namespace VerveEditor
         [NonSerialized, Tooltip("当前流程图输出端口")] private VisualFlowPort m_SelectedOutputPort;
 
         /// <summary>
-        ///  <para>当前选中的输入端口</para>
+        ///   <para>当前选中的输入端口</para>
         /// </summary>
         private GameFlowNodeWrapper m_SelectedNode;
         /// <summary>
-        ///  <para>当前选中的端口</para>
+        ///   <para>当前选中的端口</para>
         /// </summary>
         private VisualFlowPort m_SelectedPort;
         private bool m_IsDragging;
@@ -43,51 +43,51 @@ namespace VerveEditor
         private static Dictionary<string, Type> s_NodeTypeCache;
         
         /// <summary>
-        ///  <para>连接线宽度</para>
+        ///   <para>连接线宽度</para>
         /// </summary>
         private const float CONNECTION_LINE_WIDTH = 4f;
         
         /// <summary>
-        ///  <para>内部样式</para>
+        ///   <para>内部样式</para>
         /// </summary>
         private static class Styles
         {
             private static readonly List<Texture2D> s_CreatedTextures = new List<Texture2D>();
 
             /// <summary>
-            ///  <para>节点样式</para>
+            ///   <para>节点样式</para>
             /// </summary>
             public static GUIStyle NodeStyle { get; private set; }
             /// <summary>
-            ///  <para>已选节点样式</para>
+            ///   <para>已选节点样式</para>
             /// </summary>
             public static GUIStyle SelectedNodeStyle { get; private set; }
             /// <summary>
-            ///  <para>执行中节点样式</para>
+            ///   <para>执行中节点样式</para>
             /// </summary>
             public static GUIStyle ExecutingNodeStyle { get; private set; }
             /// <summary>
-            ///  <para>已完成节点样式</para>
+            ///   <para>已完成节点样式</para>
             /// </summary>
             public static GUIStyle CompletedNodeStyle { get; private set; }
             /// <summary>
-            ///  <para>节点标题样式</para>
+            ///   <para>节点标题样式</para>
             /// </summary>
             public static GUIStyle NodeTitleStyle { get; private set; }
             /// <summary>
-            ///  <para>端口样式</para>
+            ///   <para>端口样式</para>
             /// </summary>
             public static GUIStyle PortStyle { get; private set; }
             /// <summary>
-            ///  <para>端口标签样式</para>
+            ///   <para>端口标签样式</para>
             /// </summary>
             public static GUIStyle PortLabelStyle { get; private set; }
             /// <summary>
-            ///  <para>高亮端口样式</para>
+            ///   <para>高亮端口样式</para>
             /// </summary>
             public static GUIStyle HighlightPort { get; private set; }
             /// <summary>
-            ///  <para>根节点样式</para>
+            ///   <para>根节点样式</para>
             /// </summary>
             public static GUIStyle RootNodeStyle { get; private set; }
             
@@ -140,7 +140,7 @@ namespace VerveEditor
             }
             
             /// <summary>
-            ///  <para>创建颜色纹理</para>
+            ///   <para>创建颜色纹理</para>
             /// </summary>
             private static Texture2D CreateColorTexture(Color color, int width = 1, int height = 1)
             {
@@ -154,7 +154,7 @@ namespace VerveEditor
             }
             
             /// <summary>
-            ///  <para>清理纹理</para>
+            ///   <para>清理纹理</para>
             /// </summary>
             public static void Cleanup()
             {
@@ -168,7 +168,7 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///  <para>打开流程图编辑窗口</para>
+        ///   <para>打开流程图编辑窗口</para>
         /// </summary>
         public static void OpenWindow()
         {
@@ -210,7 +210,7 @@ namespace VerveEditor
         // }
 
         /// <summary>
-        ///  <para>刷新节点类型缓存</para>
+        ///   <para>刷新节点类型缓存</para>
         /// </summary>
         private void RefreshNodeTypeCache()
         {
@@ -232,7 +232,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>流程图资源发生改变时调用</para>
+        ///   <para>流程图资源发生改变时调用</para>
         /// </summary>
         private void OnGraphAssetChanged()
         {
@@ -248,7 +248,7 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///  <para>绘制复合节点的子节点控制按钮</para>
+        ///   <para>绘制复合节点的子节点控制按钮</para>
         /// </summary>
         private void DrawCompositeNodeControls(GameFlowNodeWrapper node, Rect nodeRect)
         {
@@ -298,7 +298,7 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///  <para>获取端口颜色</para>
+        ///   <para>获取端口颜色</para>
         /// </summary>
         private Color GetPortColor(VisualFlowPort port)
         {
@@ -316,7 +316,7 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///  <para>绘制侧边栏</para>
+        ///   <para>绘制侧边栏</para>
         /// </summary>
         private void DrawSidePanel()
         {
@@ -340,7 +340,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>绘制端口属性面板</para>
+        ///   <para>绘制端口属性面板</para>
         /// </summary>
         private void DrawPortInspector()
         {
@@ -361,7 +361,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>绘制流程图节点属性面板</para>
+        ///   <para>绘制流程图节点属性面板</para>
         /// </summary>
         private void DrawNodeInspector()
         {
@@ -409,7 +409,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>绘制流程图绘制工具栏面板</para>
+        ///   <para>绘制流程图绘制工具栏面板</para>
         /// </summary>
         private void DrawToolbar()
         {
@@ -439,7 +439,7 @@ namespace VerveEditor
         }
 
         /// <summary>
-        /// <para>绘制图形属性面板</para>
+        ///   <para>绘制图形属性面板</para>
         /// </summary>
         private void DrawGraphInspector()
         {
@@ -458,10 +458,9 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///  <para>获取指定位置的连接</para>
+        ///   <para>获取指定位置的连接</para>
         /// </summary>
         /// <param name="screenPosition">屏幕坐标</param>
-        /// <returns></returns>
         private VisualFlowConnection GetConnectionAtPosition(Vector2 screenPosition)
         {
             if (m_CurrentGraph?.nodes == null) return null;
@@ -485,7 +484,7 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///  <para>判断点是否接近连线</para>
+        ///   <para>判断点是否接近连线</para>
         /// </summary>
         private bool IsPointNearConnection(Vector2 point, VisualFlowConnection connection)
         {
@@ -496,7 +495,7 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///  <para>删除连线</para>
+        ///   <para>删除连线</para>
         /// </summary>
         private void DeleteConnection(VisualFlowConnection connection)
         {
@@ -512,7 +511,7 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///  <para>显示菜单内容</para>
+        ///   <para>显示菜单内容</para>
         /// </summary>
         private void ShowContextMenu(Vector2 position)
         {
@@ -575,7 +574,7 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///  <para>刷新流程图</para>
+        ///   <para>刷新流程图</para>
         /// </summary>
         private void RefreshGraph()
         {
@@ -588,7 +587,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>设置为根节点</para>
+        ///   <para>设置为根节点</para>
         /// </summary>
         /// <param name="node">节点</param>
         private void SetAsRootNode(GameFlowNodeWrapper node)
@@ -604,7 +603,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>绘制图形界面</para>
+        ///   <para>绘制图形界面</para>
         /// </summary>
         private void DrawGraphView()
         {
@@ -631,7 +630,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>绘制网格</para>
+        ///   <para>绘制网格</para>
         /// </summary>
         private void DrawGrid(float gridSpacing, float gridOpacity, Color gridColor)
         {
@@ -665,7 +664,7 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///  <para>绘制所有节点</para>
+        ///   <para>绘制所有节点</para>
         /// </summary>
         private void DrawNodes()
         {
@@ -678,7 +677,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>绘制单个节点</para>
+        ///   <para>绘制单个节点</para>
         /// </summary>
         private void DrawNode(GameFlowNodeWrapper node)
         {
@@ -730,7 +729,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>绘制节点的所有端口</para>
+        ///   <para>绘制节点的所有端口</para>
         /// </summary>
         private void DrawNodePorts(GameFlowNodeWrapper node, Rect nodeRect)
         {
@@ -778,7 +777,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>绘制所有连接</para>
+        ///   <para>绘制所有连接</para>
         /// </summary>
         private void DrawConnections()
         {
@@ -830,7 +829,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>绘制连接</para>
+        ///   <para>绘制连接</para>
         /// </summary>
         private void DrawConnection(VisualFlowConnection connection)
         {
@@ -877,7 +876,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>绘制挂起连接</para>
+        ///   <para>绘制挂起连接</para>
         /// </summary>
         private void DrawPendingConnection()
         {
@@ -900,7 +899,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>屏幕坐标转图形坐标</para>
+        ///   <para>屏幕坐标转图形坐标</para>
         /// </summary>
         private Vector2 ScreenToGraphPosition(Vector2 screenPosition)
         {
@@ -909,10 +908,9 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>获取节点</para>
+        ///   <para>获取节点</para>
         /// </summary>
         /// <param name="screenPosition">屏幕坐标</param>
-        /// <returns></returns>
         private GameFlowNodeWrapper GetNodeAtPosition(Vector2 screenPosition)
         {
             if (m_CurrentGraph?.nodes == null) return null;
@@ -933,10 +931,9 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>获取端口</para>
+        ///   <para>获取端口</para>
         /// </summary>
         /// <param name="screenPosition">屏幕坐标</param>
-        /// <returns></returns>
         private VisualFlowPort GetPortAtPosition(Vector2 screenPosition)
         {
             if (m_CurrentGraph?.nodes == null) return null;
@@ -975,7 +972,7 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///  <para>获取端口中心点</para>
+        ///   <para>获取端口中心点</para>
         /// </summary>
         private Vector2 GetPortCenter(VisualFlowPort port)
         {
@@ -1002,7 +999,7 @@ namespace VerveEditor
         }
                 
         /// <summary>
-        ///  <para>处理输入事件</para>
+        ///   <para>处理输入事件</para>
         /// </summary>
         private void HandleEvents()
         {
@@ -1031,7 +1028,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>处理鼠标点击事件</para>
+        ///   <para>处理鼠标点击事件</para>
         /// </summary>
         private void HandleMouseDown(Event e)
         {
@@ -1090,7 +1087,7 @@ namespace VerveEditor
         }
                 
         /// <summary>
-        /// 处理鼠标抬起事件
+        ///   <para>处理鼠标抬起事件</para>
         /// </summary>
         private void HandleMouseUp(Event e)
         {
@@ -1111,8 +1108,8 @@ namespace VerveEditor
         }
                 
         /// <summary>
-        ///  <para>处理鼠标拖拽事件</para>
-        ///  <para>鼠标中键或Alt+左键拖拽视图</para>
+        ///   <para>处理鼠标拖拽事件</para>
+        ///   <para>鼠标中键或Alt+左键拖拽视图</para>
         /// </summary>
         private void HandleMouseDrag(Event e)
         {
@@ -1133,9 +1130,9 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///  <para>处理按键按下事件</para>
-        ///  <para>按下F键聚焦图形</para>
-        ///  <para>按下Delete键删除选中节点</para>
+        ///   <para>处理按键按下事件</para>
+        ///   <para>按下F键聚焦图形</para>
+        ///   <para>按下Delete键删除选中节点</para>
         /// </summary>
         private void HandleKeyDown(Event e)
         {
@@ -1158,7 +1155,7 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///  <para>尝试创建连线</para>
+        ///   <para>尝试创建连线</para>
         /// </summary>
         private void TryCreateConnection(VisualFlowPort sourcePort, VisualFlowPort targetPort)
         {
@@ -1207,7 +1204,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>处理端口事件</para>
+        ///   <para>处理端口事件</para>
         /// </summary>
         private void OnPortClicked(VisualFlowPort port)
         {
@@ -1257,7 +1254,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>聚焦流程图</para>
+        ///   <para>聚焦流程图</para>
         /// </summary>
         private void FocusOnGraph()
         {
@@ -1280,7 +1277,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>清空端口选择</para>
+        ///   <para>清空端口选择</para>
         /// </summary>
         private void ClearPortSelection()
         {
@@ -1289,7 +1286,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>创建节点</para>
+        ///   <para>创建节点</para>
         /// </summary>
         /// <param name="nodeType">节点类型</param>
         /// <param name="position">位置</param>
@@ -1328,7 +1325,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>删除选中的节点</para>
+        ///   <para>删除选中的节点</para>
         /// </summary>
         private void DeleteSelectedNode()
         {
@@ -1371,7 +1368,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>创建新流程图形资源</para>
+        ///   <para>创建新流程图形资源</para>
         /// </summary>
         private void CreateNewGraph()
         {
@@ -1390,7 +1387,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>保存图形更改</para>
+        ///   <para>保存图形更改</para>
         /// </summary>
         private void SaveGraphChanges()
         {
@@ -1406,7 +1403,7 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///  <para>保存流程图</para>
+        ///   <para>保存流程图</para>
         /// </summary>
         private void SaveGraph()
         {

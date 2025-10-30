@@ -7,12 +7,13 @@ namespace Verve.UniEx.Serializable
     
     
     /// <summary>
-    /// 序列化子模块基类
+    ///   <para>序列化子模块基类</para>
     /// </summary>
     [System.Serializable]
     public abstract class SerializableSubmodule : GameFeatureSubmodule, ISerializable
     {
         public abstract void Serialize(Stream stream, object obj);
+        
         public abstract T Deserialize<T>(Stream stream);
     }
 }

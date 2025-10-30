@@ -8,7 +8,7 @@ namespace Verve.UniEx.Debug
     
     
     /// <summary>
-    /// 调试器子模块基类
+    ///   <para>调试器子模块基类</para>
     /// </summary>
     [Serializable, SkipInStackTrace]
     public abstract class DebuggerSubmodule : TickableGameFeatureSubmodule<DebuggerGameFeatureComponent>, IDebugger
@@ -47,6 +47,11 @@ namespace Verve.UniEx.Debug
             InternalLog_Implement(msg, level);
         }
         
+        /// <summary>
+        ///   <para>内部日志实现</para>
+        /// </summary>
+        /// <param name="msg">日志信息</param>
+        /// <param name="level">日志等级</param>
         [DebuggerHidden, DebuggerStepThrough]
         protected abstract void InternalLog_Implement(string msg, LogLevel level);
         

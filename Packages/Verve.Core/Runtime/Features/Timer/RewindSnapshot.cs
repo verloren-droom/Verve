@@ -4,22 +4,34 @@ namespace Verve.Timer
 
     
     /// <summary>
-    /// 时间回溯快照
+    ///   <para>时间回溯快照</para>
     /// </summary>
     [Serializable]
     public readonly struct RewindSnapshot : IEquatable<RewindSnapshot>
     {
+        /// <summary>
+        ///   <para>时间回溯快照数据</para>
+        /// </summary>
         public readonly object snapshot;
+        /// <summary>
+        ///   <para>时间戳</para>
+        /// </summary>
         public readonly float timestamp;
+        /// <summary>
+        ///   <para>帧数</para>
+        /// </summary>
         public readonly int frame;
-        public readonly bool isKeyFrame;
+        /// <summary>
+        ///   <para>快照是否为关键帧</para>
+        /// </summary>
+        public readonly bool keyFrame;
         
-        public RewindSnapshot(object snapshot, float timestamp, int frame, bool isKeyFrame = true)
+        public RewindSnapshot(object snapshot, float timestamp, int frame, bool keyFrame = true)
         {
             this.snapshot = snapshot;
             this.timestamp = timestamp;
             this.frame = frame;
-            this.isKeyFrame = isKeyFrame;
+            this.keyFrame = keyFrame;
         }
 
         public bool Equals(RewindSnapshot other)
@@ -47,7 +59,7 @@ namespace Verve.Timer
         
         public override string ToString()
         {
-            return $"RewindSnapshot(t: {timestamp:F2}, frame: {frame}, key: {isKeyFrame}, data: {snapshot})";
+            return $"RewindSnapshot(t: {timestamp:F2}, frame: {frame}, key: {keyFrame}, data: {snapshot})";
         }
     }
 }

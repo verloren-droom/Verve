@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx.HotFix
+namespace VerveEditor.ScriptRuntime
 {
     using System;
     using System.IO;
@@ -11,6 +11,9 @@ namespace VerveEditor.UniEx.HotFix
     using Object = UnityEngine.Object;
     
     
+    /// <summary>
+    ///   <para>脚本运行时GameFeature模块设置</para>
+    /// </summary>
     [Serializable, ModuleEditorDrawer(typeof(Verve.UniEx.ScriptRuntime.ScriptRuntimeGameFeature))]
     internal sealed class ScriptRuntimeGameModuleEditorSetting : ModuleEditorDrawer
     {
@@ -18,7 +21,7 @@ namespace VerveEditor.UniEx.HotFix
 
         
         /// <summary>
-        /// 准备热更GameFeature资源
+        ///   <para>准备热更GameFeature资源</para>
         /// </summary>
         private void PrepareHotUpdateGameFeatures()
         {
@@ -56,7 +59,7 @@ namespace VerveEditor.UniEx.HotFix
         }
         
          /// <summary>
-         /// 获取热更程序集名称列表
+         ///   <para>获取热更程序集名称列表</para>
          /// </summary>
          private HashSet<string> GetHotFixAssemblies()
          { 
@@ -78,7 +81,7 @@ namespace VerveEditor.UniEx.HotFix
          }
          
          /// <summary>
-         /// 检查程序集依赖关系
+         ///   <para>检查程序集依赖关系</para>
          /// </summary>
          private void CheckDependenciesAndThrow(HashSet<string> hotUpdateAssemblies)
          {
@@ -112,7 +115,7 @@ namespace VerveEditor.UniEx.HotFix
          }
         
         /// <summary>
-        /// 创建热更输出目录
+        ///   <para>创建热更输出目录</para>
         /// </summary>
         private void CreateHotUpdateOutputDirectory()
         {
@@ -128,7 +131,7 @@ namespace VerveEditor.UniEx.HotFix
         }
         
         /// <summary>
-        /// 处理模块配置文件
+        ///   <para>处理模块配置文件</para>
         /// </summary>
         private int ProcessModuleProfile(GameFeatureModuleProfile profile, HashSet<string> hotUpdateAssemblies)
         {
@@ -172,7 +175,7 @@ namespace VerveEditor.UniEx.HotFix
         }
         
         /// <summary>
-        /// 处理组件配置文件
+        ///   <para>处理组件配置文件</para>
         /// </summary>
         private int ProcessComponentProfile(GameFeatureComponentProfile profile, HashSet<string> hotUpdateAssemblies)
         {
@@ -216,7 +219,7 @@ namespace VerveEditor.UniEx.HotFix
         }
         
         /// <summary>
-        /// 复制资源到热更目录
+        ///   <para>复制资源到热更目录</para>
         /// </summary>
         private ScriptableObject CopyAssetToHotUpdateFolder(ScriptableObject asset)
         {

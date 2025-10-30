@@ -5,37 +5,38 @@ namespace Verve
 
 
     /// <summary>
-    ///  <para>游戏流程节点接口</para>
+    ///   <para>游戏流程节点接口</para>
     /// </summary>
     public interface IGameFlowNode
     {
         /// <summary>
-        ///  <para>节点ID</para>
+        ///   <para>节点ID</para>
         /// </summary>
         string NodeID { get; }
         
         /// <summary>
-        ///  <para>是否完成</para>
+        ///   <para>是否完成</para>
         /// </summary>
         bool IsCompleted { get; }
         
         /// <summary>
-        ///  <para>是否正在执行</para>
+        ///   <para>是否正在执行</para>
         /// </summary>
         bool IsExecuting { get; }
-    
+        
         /// <summary>
-        ///  <para>开始执行</para>
+        ///   <para>开始执行</para>
         /// </summary>
+        /// <param name="ct">取消令牌</param>
         Task Execute(CancellationToken ct = default);
         
         /// <summary>
-        ///  <para>取消执行</para>
+        ///   <para>取消执行</para>
         /// </summary>
         void Cancel();
         
         /// <summary>
-        ///  <para>重置</para>
+        ///   <para>重置</para>
         /// </summary>
         void Reset();
     }

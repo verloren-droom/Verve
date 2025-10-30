@@ -10,13 +10,13 @@ namespace Verve.UniEx
     
 
     /// <summary>
-    ///  <para>可视化端口</para>
+    ///   <para>可视化端口</para>
     /// </summary>
     [Serializable]
     public class VisualFlowPort
     {
         /// <summary>
-        ///  <para>端口方向</para>
+        ///   <para>端口方向</para>
         /// </summary>
         [Serializable]
         public enum Direction { Input, Output }
@@ -33,7 +33,7 @@ namespace Verve.UniEx
         [NonSerialized] private List<VisualFlowConnection> m_Connections;
 
         /// <summary>
-        /// 节点
+        ///   <para>节点</para>
         /// </summary>
         public GameFlowNodeWrapper Node 
         { 
@@ -42,15 +42,38 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        ///  <para>端口ID</para>
+        ///   <para>端口ID</para>
         /// </summary>
         public string PortID => m_PortID ??= $"port_{Guid.NewGuid().ToString("N")[..32]}";
+        
+        /// <summary>
+        ///   <para>端口显示名称</para>
+        /// </summary>
         public string DisplayName => m_DisplayName;
+        
+        /// <summary>
+        ///   <para>端口类型</para>
+        /// </summary>
         public GameFlowNodeWrapper.PortType PortType => m_PortType;
+        
+        /// <summary>
+        ///   <para>端口方向</para>
+        /// </summary>
         public Direction PortDirection => m_PortDirection;
+        
+        /// <summary>
+        ///   <para>是否允许多个连接</para>
+        /// </summary>
         public bool AllowMultipleConnections => m_AllowMultipleConnections;
+        
+        /// <summary>
+        ///   <para>连接ID列表</para>
+        /// </summary>
         public List<string> ConnectionIDs => m_ConnectionIDs;
         
+        /// <summary>
+        ///   <para>可读连接列表</para>
+        /// </summary>
         public IReadOnlyList<VisualFlowConnection> Connections 
         { 
             get 
@@ -63,6 +86,12 @@ namespace Verve.UniEx
             }
         }
         
+        /// <summary>
+        ///   <para>构造函数</para>
+        /// </summary>
+        /// <param name="node">节点</param>
+        /// <param name="portType">端口类型</param>
+        /// <param name="displayName">显示名称</param>
         public VisualFlowPort(GameFlowNodeWrapper node, GameFlowNodeWrapper.PortType portType, string displayName)
         {
             m_Node = node;
@@ -84,7 +113,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>断开所有连接</para>
+        ///   <para>断开所有连接</para>
         /// </summary>
         public void DisconnectAll()
         {
@@ -115,15 +144,19 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>获取连接的另一端端口</para>
+        ///   <para>获取连接的另一端端口</para>
         /// </summary>
+        /// <param name="connection">连接</param>
+        /// <returns>
+        ///   <para>连接的另一端端口</para>
+        /// </returns>
         public VisualFlowPort GetOtherPort(VisualFlowConnection connection)
         {
             return connection?.GetOtherPort(this);
         }
 
         /// <summary>
-        ///  <para>立即应用连接</para>
+        ///   <para>立即应用连接</para>
         /// </summary>
         private void ApplyImmediateConnection()
         {
@@ -149,7 +182,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>清除连接的赋值</para>
+        ///   <para>清除连接的赋值</para>
         /// </summary>
         private void ClearConnectionAssignment()
         {
@@ -167,7 +200,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>设置节点字段</para>
+        ///   <para>设置节点字段</para>
         /// </summary>
         /// <param name="outputNode">输出节点</param>
         /// <param name="inputNode">输入节点</param>
@@ -190,8 +223,11 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        ///  <para>获取子节点端口索引</para>
+        ///   <para>获取子节点端口索引</para>
         /// </summary>
+        /// <returns>
+        ///   <para>子节点端口索引</para>
+        /// </returns>
         private int GetChildPortIndex()
         {
             if (PortType != GameFlowNodeWrapper.PortType.Child) return -1;
@@ -205,7 +241,7 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        ///  <para>处理复合节点连接</para>
+        ///   <para>处理复合节点连接</para>
         /// </summary>
         /// <param name="compositeNode">复合节点</param>
         /// <param name="inputNode">输入节点</param>
@@ -231,8 +267,11 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        ///  <para>设置输出字段</para>
+        ///   <para>设置输出字段</para>
         /// </summary>
+        /// <param name="nodeType">节点类型</param>
+        /// <param name="outputNode">输出节点</param>
+        /// <param name="inputNode">输入节点</param>
         private void SetOutputField(Type nodeType, IGameFlowNode outputNode, IGameFlowNode inputNode)
         {
             var fields = nodeType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
@@ -259,8 +298,9 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>清除节点字段</para>
+        ///   <para>清除节点字段</para>
         /// </summary>
+        /// <param name="outputNode">输出节点</param>
         private void ClearNodeField(IGameFlowNode outputNode)
         {
             var nodeType = outputNode.GetType();
@@ -296,8 +336,12 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>是否可连接</para>
+        ///   <para>是否可连接</para>
         /// </summary>
+        /// <param name="targetPort">目标端口</param>
+        /// <returns>
+        ///   <para>是否可连接</para>
+        /// </returns>
         public bool CanConnectTo(VisualFlowPort targetPort)
         {
             if (targetPort == null || Node == null || targetPort.Node == null) 
@@ -339,8 +383,9 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        ///  <para>重建连接</para>
+        ///   <para>重建连接</para>
         /// </summary>
+        /// <param name="nodeLookup">节点对照表</param>
         public void RebuildConnections(Dictionary<string, GameFlowNodeWrapper> nodeLookup)
         {
             if (m_Connections == null)
@@ -349,7 +394,6 @@ namespace Verve.UniEx
             }
             else
             {
-                // 只清除连接对象，不清理连接ID
                 m_Connections.Clear();
             }
             
@@ -420,8 +464,9 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        ///  <para>连接到目标端口</para>
+        ///   <para>连接到目标端口</para>
         /// </summary>
+        /// <param name="targetPort">目标端口</param>
         public void ConnectTo(VisualFlowPort targetPort)
         {
             if (!CanConnectTo(targetPort)) 
@@ -502,8 +547,9 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        ///  <para>断开连接</para>
+        ///   <para>断开连接</para>
         /// </summary>
+        /// <param name="connection">要断开的连接对象</param>
         public void Disconnect(VisualFlowConnection connection)
         {
             if (connection == null) return;

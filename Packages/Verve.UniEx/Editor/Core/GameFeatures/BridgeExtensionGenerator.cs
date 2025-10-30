@@ -1,7 +1,6 @@
-// BridgeExtensionGenerator.cs
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using System;
     using System.IO;
@@ -15,7 +14,7 @@ namespace VerveEditor.UniEx
     using Verve.UniEx;
 
     /// <summary>
-    /// 修复泛型类型推断的桥接扩展代码生成器
+    ///   <para>桥接扩展代码生成器</para>
     /// </summary>
     public static class BridgeExtensionGenerator
     {
@@ -30,7 +29,7 @@ namespace VerveEditor.UniEx
 #endif";
 
         /// <summary>
-        /// 生成所有桥接扩展方法
+        ///   <para>生成所有桥接扩展方法</para>
         /// </summary>
         public static void GenerateAllBridgeExtensions(GameFeatureModuleProfile moduleProfile, string outputDir)
         {
@@ -117,7 +116,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 查找所有桥接信息
+        ///   <para>查找所有桥接信息</para>
         /// </summary>
         private static List<BridgeMethodInfo> FindBridgeInformation(GameFeatureModuleProfile moduleProfile)
         {
@@ -157,7 +156,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 为模块生成扩展类
+        ///   <para>为模块生成扩展类</para>
         /// </summary>
         private static string GenerateModuleExtensionClass(Type moduleType, List<BridgeMethodInfo> bridgeMethods, GameFeatureModuleProfile moduleProfile)
         {
@@ -217,7 +216,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 生成桥接扩展方法
+        ///   <para>生成桥接扩展方法</para>
         /// </summary>
         private static string GenerateBridgeExtensionMethod(BridgeMethodInfo bridgeInfo, HashSet<string> requiredNamespaces, GameFeatureModuleProfile moduleProfile)
         {
@@ -248,7 +247,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 解析目标方法信息
+        ///   <para>解析目标方法信息</para>
         /// </summary>
         private static MethodInfo ResolveTargetMethod(ModuleMethodBridgeAttribute bridgeAttr, GameFeatureModuleProfile moduleProfile)
         {
@@ -284,7 +283,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 查找桥接参数
+        ///   <para>查找桥接参数</para>
         /// </summary>
         private static ParameterInfo FindBridgeParameter(MethodInfo method)
         {
@@ -305,7 +304,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 生成扩展方法代码
+        ///   <para>生成扩展方法代码</para>
         /// </summary>
         private static string GenerateExtensionMethodCode(MethodInfo sourceMethod, MethodInfo targetMethod, 
             ModuleMethodBridgeAttribute bridgeAttr, ParameterInfo bridgeParameter, Type submoduleType)
@@ -368,7 +367,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 生成直接方法调用（不声明额外变量）
+        ///   <para>生成直接方法调用（不声明额外变量）</para>
         /// </summary>
         private static string GenerateDirectMethodCall(MethodInfo sourceMethod, MethodInfo targetMethod, 
             ParameterInfo bridgeParameter, bool isSourceAsync, bool isTargetAsync)
@@ -415,7 +414,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 生成目标方法调用表达式
+        ///   <para>生成目标方法调用表达式</para>
         /// </summary>
         private static string GenerateTargetMethodCallExpression(MethodInfo targetMethod, Type bridgeParameterType, bool isTargetAsync)
         {
@@ -445,7 +444,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 生成泛型约束
+        ///   <para>生成泛型约束</para>
         /// </summary>
         private static string GenerateGenericConstraints(MethodInfo method)
         {
@@ -493,7 +492,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 收集所需的命名空间
+        ///   <para>收集所需的命名空间</para>
         /// </summary>
         private static void CollectRequiredNamespaces(MethodInfo sourceMethod, MethodInfo targetMethod, HashSet<string> namespaces)
         {
@@ -540,7 +539,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 生成参数代码
+        ///   <para>生成参数代码</para>
         /// </summary>
         private static string GenerateParameterCode(ParameterInfo parameter)
         {
@@ -573,7 +572,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 获取类型的显示名称
+        ///   <para>获取类型的显示名称</para>
         /// </summary>
         private static string GetTypeDisplayName(Type type)
         {
@@ -623,7 +622,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 获取默认值的代码表示
+        ///   <para>获取默认值的代码表示</para>
         /// </summary>
         private static string GetDefaultValueCode(object defaultValue, Type type)
         {
@@ -649,7 +648,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 检查是否为异步方法
+        ///   <para>检查是否为异步方法</para>
         /// </summary>
         private static bool IsAsyncMethod(MethodInfo method)
         {
@@ -658,7 +657,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 获取方法签名（用于去重）
+        ///   <para>获取方法签名（用于去重）</para>
         /// </summary>
         private static string GetMethodSignature(BridgeMethodInfo bridgeInfo, string suffix)
         {
@@ -670,7 +669,7 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 检查文件是否需要更新
+        ///   <para>检查文件是否需要更新</para>
         /// </summary>
         private static bool ShouldUpdateFile(string tempFilePath, string targetFilePath)
         {

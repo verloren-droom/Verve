@@ -8,7 +8,7 @@ namespace Verve.UniEx.Event
     
     
     /// <summary>
-    /// 枚举事件总线
+    ///   <para>枚举事件总线</para>
     /// </summary>
     [Serializable, GameFeatureSubmodule(typeof(EventGameFeature), Description = "枚举事件总线")]
     public sealed partial class EnumEventBus : GameFeatureSubmodule
@@ -20,6 +20,12 @@ namespace Verve.UniEx.Event
             RemoveAllListener();
         }
 
+        /// <summary>
+        ///   <para>添加事件监听</para>
+        /// </summary>
+        /// <param name="tag">事件标签</param>
+        /// <param name="handler">事件处理函数</param>
+        /// <typeparam name="T">事件参数类型</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddListener<T>(Enum tag, Action<T> handler)
         {
@@ -31,6 +37,12 @@ namespace Verve.UniEx.Event
                     : throw new ArgumentException($"Handler parameter type must be {tag.ToString()}"));
         }
         
+        /// <summary>
+        ///   <para>添加弱事件监听</para>
+        /// </summary>
+        /// <param name="tag">事件标签</param>
+        /// <param name="handler">事件处理函数</param>
+        /// <typeparam name="T">事件参数类型</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddWeakListener<T>(Enum tag, Action<T> handler)
         {
@@ -46,6 +58,12 @@ namespace Verve.UniEx.Event
             AddListener(tag, weakHandler);
         }
 
+        /// <summary>
+        ///   <para>移除事件监听</para>
+        /// </summary>
+        /// <param name="tag">事件标签</param>
+        /// <param name="handler">事件处理函数</param>
+        /// <typeparam name="T">事件参数类型</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveListener<T>(Enum tag, Action<T> handler)
         {
@@ -64,6 +82,12 @@ namespace Verve.UniEx.Event
             }
         }
 
+        /// <summary>
+        ///   <para>触发事件</para>
+        /// </summary>
+        /// <param name="tag">事件标签</param>
+        /// <param name="eventArgs">事件参数</param>
+        /// <typeparam name="T">事件参数类型</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Invoke<T>(Enum tag, T eventArgs)
         {
@@ -74,6 +98,9 @@ namespace Verve.UniEx.Event
             }
         }
 
+        /// <summary>
+        ///   <para>移除所有事件监听</para>
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveAllListener()
         {

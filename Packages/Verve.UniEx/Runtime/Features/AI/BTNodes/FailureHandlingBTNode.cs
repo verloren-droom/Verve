@@ -8,45 +8,57 @@ namespace Verve.UniEx.AI
     
 
     /// <summary>
-    /// 失败处理模式
+    ///   <para>失败处理模式</para>
     /// </summary>
     [Serializable]
     public enum FailureHandlingMode : byte
     {
-        /// <summary> 跳过失败并返回成功 </summary>
+        /// <summary>
+        ///   <para>跳过失败并返回成功</para>
+        /// </summary>
         Skip,
-        /// <summary> 捕获失败并执行备用逻辑 </summary>
+        /// <summary>
+        ///   <para>捕获失败并执行备用逻辑</para>
+        /// </summary>
         Catch,
-        /// <summary> 抛出失败并中断执行 </summary>
+        /// <summary>
+        ///   <para>抛出失败并中断执行</para>
+        /// </summary>
         Throw
     }
     
     
     /// <summary>
-    /// 失败处理节点数据
+    ///   <para>失败处理节点数据</para>
     /// </summary>
     [Serializable]
     public struct FailureHandlingBTNodeData : INodeData
     {
-        /// <summary> 需要监控的子节点 </summary>
+        /// <summary>
+        ///   <para>需要监控的子节点</para>
+        /// </summary>
         [NotNull] public IBTNode child;
-        /// <summary> 失败处理模式 </summary>
+        /// <summary>
+        ///   <para>失败处理模式</para>
+        /// </summary>
         public FailureHandlingMode handlingMode;
-        /// <summary> 备用执行路径（仅在Catch模式下有效）</summary>
+        /// <summary>
+        ///   <para>备用执行路径（仅在Catch模式下有效）</para>
+        /// </summary>
         [NotNull] public IBTNode fallback;
     }
     
     
     /// <summary>
-    /// 失败处理节点
+    ///   <para>失败处理节点</para>
+    ///   <para>节点运行时，会尝试运行子节点，如果子节点运行失败，则根据模式处理错误</para>
     /// </summary>
-    /// <remarks>
-    /// 节点运行时，会尝试运行子节点，如果子节点运行失败，则根据模式处理错误
-    /// </remarks>
     [CustomBTNode(nameof(FailureHandlingBTNode)), Serializable]
     public struct FailureHandlingBTNode : ICompositeBTNode, IBTNodeResettable, IBTNodePreparable
     {
-        /// <summary> 黑板数据键 </summary>
+        /// <summary>
+        ///   <para>黑板数据键</para>
+        /// </summary>
         public string dataKey;
         public FailureHandlingBTNodeData data;
     

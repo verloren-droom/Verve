@@ -10,7 +10,7 @@ namespace Verve.Net
     
 
     /// <summary>
-    /// Http客户端网络
+    ///   <para>Http客户端网络</para>
     /// </summary>
     [System.Serializable]
     public partial class HttpClientNetwork : ITransientConnection
@@ -81,7 +81,7 @@ namespace Verve.Net
         }
         
         /// <summary>
-        /// 下载文件到指定路径
+        ///   <para>下载文件到指定路径</para>
         /// </summary>
         public virtual async Task DownloadFileAsync(
             string url, 

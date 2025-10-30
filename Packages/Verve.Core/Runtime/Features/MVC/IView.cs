@@ -4,28 +4,33 @@ namespace Verve.MVC
     
     
     /// <summary>
-    /// MVC视图接口
+    ///   <para>MVC视图接口</para>
     /// </summary>
     public interface IView : IBelongToActivity
     {
         /// <summary>
-        /// 视图名
+        ///   <para>视图名</para>
         /// </summary>
         string ViewName { get; }
+        
         /// <summary>
-        /// 视图打开事件
+        ///   <para>视图打开事件</para>
         /// </summary>
         event Action<IView> OnOpened;
+        
         /// <summary>
-        /// 视图关闭事件
+        ///   <para>视图关闭事件</para>
         /// </summary>
         event Action<IView> OnClosed;
+        
         /// <summary>
-        /// 打开视图
+        ///   <para>打开视图</para>
         /// </summary>
+        /// <param name="args">参数</param>
         void Open(params object[] args);
+        
         /// <summary>
-        /// 关闭视图
+        ///   <para>关闭视图</para>
         /// </summary>
         void Close();
     }

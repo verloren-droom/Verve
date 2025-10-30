@@ -10,10 +10,10 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    ///  <para>行为节点</para>
+    ///   <para>行为节点</para>
     /// </summary>
     [Serializable, GameFlowNode("Basic/Action", "Action", "行为节点")]
-    public class ActionNode : GameFlowNode
+    public sealed class ActionNode : GameFlowNode
     {
         [SerializeField, Tooltip("回调事件")] private UnityEvent m_SerializedCallback;
         private readonly Action m_RuntimeCallback;

@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx.Gameplay
+namespace VerveEditor.Gameplay
 {
     using System;
     using UnityEditor;
@@ -8,11 +8,14 @@ namespace VerveEditor.UniEx.Gameplay
     using Verve.UniEx.Gameplay;
 
     
+    /// <summary>
+    ///   <para>AI控制器编辑器</para>
+    /// </summary>
     [CustomEditor(typeof(AIController))]
     public class AIControllerEditor : Editor
     {
         /// <summary>
-        /// 创建AI
+        ///   <para>创建AI</para>
         /// </summary>
         [MenuItem("GameObject/Verve/Gameplay/Character/AI", false, 10)]
         private static void CreateAI(MenuCommand menuCommand)

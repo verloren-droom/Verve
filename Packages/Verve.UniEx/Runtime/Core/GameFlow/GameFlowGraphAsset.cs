@@ -8,16 +8,16 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    ///  <para>流程图形资源</para>
+    ///   <para>流程图形资源</para>
     /// </summary>
-    [System.Serializable, CreateAssetMenu(fileName = "New GameFlowGraph", menuName = "Verve/GameFlowGraph")]
+    [System.Serializable, CreateAssetMenu(fileName = "New GameFlowGraph", menuName = "Verve/GameFlow/GameFlowGraph")]
     public sealed class GameFlowGraphAsset : ScriptableObject
     {
         [SerializeField, Tooltip("节点")] public List<GameFlowNodeWrapper> nodes = new List<GameFlowNodeWrapper>();
         [SerializeField, Tooltip("根节点")] private GameFlowNodeWrapper m_RootNode;
 
         /// <summary>
-        ///  <para>根节点</para>
+        ///   <para>根节点</para>
         /// </summary>
         public GameFlowNodeWrapper RootNode 
         {
@@ -38,8 +38,12 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>通过节点ID获取节点</para>
+        ///   <para>通过节点ID获取节点</para>
         /// </summary>
+        /// <param name="nodeID">节点ID</param>
+        /// <returns>
+        ///   <para>节点包装器实例</para>
+        /// </returns>
         public GameFlowNodeWrapper GetNodeByID(string nodeID)
         {
             if (string.IsNullOrEmpty(nodeID) || nodes == null) 
@@ -49,8 +53,12 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>通过端口ID获取端口</para>
+        ///   <para>通过端口ID获取端口</para>
         /// </summary>
+        /// <param name="portID">端口ID</param>
+        /// <returns>
+        ///   <para>端口实例</para>
+        /// </returns>
         public VisualFlowPort GetPortByID(string portID)
         {
             if (string.IsNullOrEmpty(portID) || nodes == null) 
@@ -69,7 +77,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>重建图形中的所有运行时引用</para>
+        ///   <para>重建图形中的所有运行时引用</para>
         /// </summary>
         public void RebuildGraphReferences()
         {

@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using System;
     using Verve;
@@ -15,10 +15,13 @@ namespace VerveEditor.UniEx
     
     
     /// <summary>
-    /// 编辑器工具类
+    ///   <para>编辑器工具类</para>
     /// </summary>
     public static class CoreEditorUtility
     {
+        /// <summary>
+        ///   <para>版本Badge样式</para>
+        /// </summary>
         public static GUIStyle VersionBadgeStyle
         {
             get
@@ -42,8 +45,9 @@ namespace VerveEditor.UniEx
         }
 
         /// <summary>
-        /// 绘制分割线
+        ///   <para>绘制分割线</para>
         /// </summary>
+        /// <param name="isBoxed">是否绘制边框</param>
         public static void DrawSplitter(bool isBoxed = false)
         {
             var rect = GUILayoutUtility.GetRect(1f, 1f);
@@ -68,8 +72,13 @@ namespace VerveEditor.UniEx
         
         
         /// <summary>
-        /// 绘制带开关的头部
+        ///   <para>绘制带开关的头部</para>
         /// </summary>
+        /// <param name="title">标题</param>
+        /// <param name="property">属性</param>
+        /// <param name="activeProperty">激活属性</param>
+        /// <param name="contextClickCallback">右键点击回调</param>
+        /// <param name="version">版本</param>
         public static bool DrawHeaderToggle(
             GUIContent title, 
             SerializedProperty property, 
@@ -156,8 +165,9 @@ namespace VerveEditor.UniEx
         }
         
         /// <summary>
-        /// 创建上下文菜单
+        ///   <para>创建上下文菜单</para>
         /// </summary>
+        /// <param name="menuItems">菜单项</param>
         public static GenericMenu CreateContextMenu(
             (string, GenericMenu.MenuFunction2)[] menuItems)
         {
@@ -173,8 +183,9 @@ namespace VerveEditor.UniEx
         }
         
         /// <summary>
-        /// 创建上下文菜单
+        ///   <para>创建上下文菜单</para>
         /// </summary>
+        /// <param name="menuItems">菜单项</param>
         public static GenericMenu CreateContextMenu(
             (GUIContent, GenericMenu.MenuFunction2)[] menuItems)
         {
@@ -189,6 +200,10 @@ namespace VerveEditor.UniEx
             return menu;
         }
         
+        /// <summary>
+        ///   <para>标记对象为脏并保存</para>
+        /// </summary>
+        /// <param name="obj">对象</param>
         public static void MarkDirtyAndSave(Object obj)
         {
             EditorUtility.SetDirty(obj);
@@ -200,10 +215,12 @@ namespace VerveEditor.UniEx
         }
         
         /// <summary>
-        /// 获取游戏功能菜单路径
+        ///   <para>获取游戏功能菜单路径</para>
         /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="type">类型</param>
+        /// <returns>
+        ///   <para>游戏功能菜单路径</para>
+        /// </returns>
         public static string GetGameFeatureMenuPath(Type type)
         {
             var attr = type.GetCustomAttribute<GameFeatureAttribute>();
@@ -219,6 +236,9 @@ namespace VerveEditor.UniEx
         
         private static GUIStyle m_MiniLabelButton;
 
+        /// <summary>
+        ///   <para>小标签按钮样式</para>
+        /// </summary>
         public static GUIStyle MiniLabelButton
         {
             get
@@ -247,13 +267,14 @@ namespace VerveEditor.UniEx
                 return m_MiniLabelButton;
             }
         }
-        
 
         /// <summary>
-        /// 获取指定模块中的所有子模块类型
+        ///   <para>获取指定模块中的所有子模块类型</para>
         /// </summary>
         /// <param name="module">模块</param>
-        /// <returns></returns>
+        /// <returns>
+        ///   <para>子模块类型</para>
+        /// </returns>
         public static Type[] GetSubmoduleTypes(GameFeatureModule module)
         {
             var allSubmoduleTypes = TypeCache.GetTypesDerivedFrom<IGameFeatureSubmodule>()
@@ -294,7 +315,7 @@ namespace VerveEditor.UniEx
         }
         
         /// <summary>
-        /// 获取所有可添加的模块类型（包括普通模块和子模块组合）
+        ///   <para>获取所有可添加的模块类型（包括普通模块和子模块组合）</para>
         /// </summary>
         public static Dictionary<string, List<Type>> GetAvailableModuleTypes(GameFeatureModuleProfile profile = null)
         {
@@ -365,7 +386,7 @@ namespace VerveEditor.UniEx
         }
         
         /// <summary>
-        /// 获取父级对象
+        ///   <para>获取父级对象</para>
         /// </summary>
         public static GameObject GetParentObject(MenuCommand menuCommand)
         {
@@ -385,6 +406,24 @@ namespace VerveEditor.UniEx
             }
 
             return parent;
+        }
+        
+        /// <summary>
+        ///   <para>创建脚本文件</para>
+        ///   <para>通过包管理获取模版文件所在位置</para>
+        /// </summary>
+        public static void CreateNewScriptFromTemplate(Type t, string templateFileName)
+        {
+            string[] guids = AssetDatabase.FindAssets($"{templateFileName} t:TextAsset", new [] { UnityEditor.PackageManager.PackageInfo.FindForAssembly(t.Assembly).assetPath });
+            if (guids.Length > 0)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
+                ProjectWindowUtil.CreateScriptAssetFromTemplateFile(path, $"New{templateFileName}");
+            }
+            else
+            {
+                EditorUtility.DisplayDialog("Error", $"{templateFileName} Template file not found", "OK");
+            }
         }
     }
 }

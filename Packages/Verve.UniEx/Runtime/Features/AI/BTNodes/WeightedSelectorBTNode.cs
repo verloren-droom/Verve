@@ -7,35 +7,46 @@ namespace Verve.UniEx.AI
     using System.Runtime.CompilerServices;
     
     
+    /// <summary>
+    ///   <para>权重节点项</para>
+    /// </summary>
     [Serializable]
     public struct WeightedBTNodeItem
     {
+        /// <summary>
+        ///   <para>权重值</para>
+        /// </summary>
         public double weight;
+        /// <summary>
+        ///   <para>子节点</para>
+        /// </summary>
         public IBTNode child;
     }
 
     
     /// <summary>
-    /// 权重选择节点数据
+    ///   <para>权重选择节点数据</para>
     /// </summary>
     [Serializable]
     public struct WeightedSelectorBTNodeData : INodeData
     {
-        /// <summary> 权重节点 </summary>
+        /// <summary>
+        ///   <para>权重节点</para>
+        /// </summary>
         public WeightedBTNodeItem[] children;
     }
 
     
     /// <summary>
-    /// 权重选择节点
+    ///   <para>权重选择节点</para>
+    ///   <para>遍历所有子节点，并计算每个子节点的权重，然后根据权重进行选择</para>
     /// </summary>
-    /// <remarks>
-    /// 遍历所有子节点，并计算每个子节点的权重，然后根据权重进行选择
-    /// </remarks>
     [CustomBTNode(nameof(WeightedSelectorBTNode)), Serializable]
     public struct WeightedSelectorBTNode : ICompositeBTNode, IBTNodeResettable, IBTNodePreparable
     {
-        /// <summary> 黑板数据键 </summary>
+        /// <summary>
+        ///   <para>黑板数据键</para>
+        /// </summary>
         public string dataKey;
         public WeightedSelectorBTNodeData data;
         public BTNodeResult LastResult { get; private set; }

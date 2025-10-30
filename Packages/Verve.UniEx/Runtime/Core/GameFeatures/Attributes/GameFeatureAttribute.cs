@@ -1,5 +1,3 @@
-using UnityEngine;
-
 #if UNITY_5_3_OR_NEWER
 
 namespace Verve.UniEx
@@ -8,18 +6,26 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    /// 游戏功能特性基类
+    ///   <para>游戏功能特性基类</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public abstract class GameFeatureAttribute : Attribute
     {
-        /// <summary> 菜单路径 </summary>
+        /// <summary>
+        ///   <para>菜单路径</para>
+        /// </summary>
         public string MenuPath { get; protected set; }
-        /// <summary> 依赖的模块或子模块类型 </summary>
+        /// <summary>
+        ///   <para>依赖模块</para>
+        /// </summary>
         public Type[] Dependencies { get; protected set; }
-        /// <summary> 功能描述 </summary>
+        /// <summary>
+        ///   <para>描述</para>
+        /// </summary>
         public string Description { get; set; }
-        /// <summary> 选择模式 </summary>
+        /// <summary>
+        ///   <para>选择模式</para>
+        /// </summary>
         public SubmoduleSelectionMode SelectionMode { get; set; } = SubmoduleSelectionMode.Multiple;
         
         

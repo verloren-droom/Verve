@@ -7,7 +7,8 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    /// 只读属性
+    ///   <para>只读属性</para>
+    ///   <para>用于在Inspector窗口显示只读属性</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
     public sealed class ReadOnlyAttribute : PropertyAttribute { }

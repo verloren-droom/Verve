@@ -11,7 +11,7 @@ namespace Verve.UniEx.Input
 
 
     /// <summary>
-    /// 旧版输入系统（Input Manager） 
+    ///   <para>旧版输入系统（Input Manager） </para>
     /// </summary>
     [Serializable, GameFeatureSubmodule(typeof(InputGameFeature), Description = "旧版输入系统（Input Manager）")]
     public sealed partial class InputManagerSubmodule : InputSubmodule

@@ -7,12 +7,15 @@ namespace Verve.UniEx
 
     
     /// <summary>
-    /// 游戏功能组件菜单显示特性 - 用于可视化创建游戏功能模块组件
+    ///   <para>游戏功能组件菜单显示特性</para>
+    ///   <para>用于可视化创建游戏功能模块组件</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public sealed class GameFeatureComponentMenuAttribute : Attribute
     {
-        /// <summary> 菜单路径 </summary>
+        /// <summary>
+        ///   <para>菜单路径</para>
+        /// </summary>
         public string MenuPath { get; }
         
         
@@ -26,6 +29,11 @@ namespace Verve.UniEx
             MenuPath = menuPath;
         }
         
+        /// <summary>
+        ///   <para>验证菜单路径是否合法</para>
+        /// </summary>
+        /// <param name="path">路径</param>
+        /// <returns></returns>
         private static bool IsValidMenuPath(string path)
         {
             return Regex.IsMatch(path, @"^[a-zA-Z0-9\s_\-/]+$");

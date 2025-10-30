@@ -1,0 +1,36 @@
+{
+    "name": "Verve.UniEx.Tests",
+    "rootNamespace": "VerveUniEx.Tests",
+    "references": [
+        "Verve.Core",
+        "Verve.UniEx",
+        "Unity.InputSystem",
+        "Verve.Platform",
+        "Verve.Serializable",
+        "Verve.AI",
+        "Verve.UniEx.AI",
+        "Verve.UniEx.Platform",
+        "Verve.UniEx.Serializable",
+        "Verve.Input",
+        "Verve.UniEx.Input",
+        "Verve.Storage",
+        "Verve.UniEx.Storage",
+        "Verve.Loader",
+        "Verve.UniEx.Loader"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [
+        "Editor"
+    ],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using System;
     using Verve.UniEx;
@@ -10,6 +10,9 @@ namespace VerveEditor.UniEx
     using UnityEditorInternal;
     
     
+    /// <summary>
+    ///   <para>标签选择器属性绘制器</para>
+    /// </summary>
     [CustomPropertyDrawer(typeof(TagSelectorAttribute))]
     public class TagSelectorPropertyDrawer : PropertyDrawer
     {

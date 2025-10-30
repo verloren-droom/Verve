@@ -8,11 +8,22 @@ namespace Verve.Net
     
     
     /// <summary>
-    /// 网络短连接接口
+    ///   <para>网络短连接接口</para>
     /// </summary>
     public interface ITransientConnection : INetworkClient
     {
-        /// <summary> 发送请求并获取响应 </summary>
+        /// <summary>
+        ///   <para>异步发送请求并获取响应</para>
+        /// </summary>
+        /// <param name="method">请求方法</param>
+        /// <param name="url">网址</param>
+        /// <param name="data">数据</param>
+        /// <param name="contentType">内容类型</param>
+        /// <param name="headers">请求头</param>
+        /// <param name="ct">取消令牌</param>
+        /// <returns>
+        ///   <para>响应数据</para>
+        /// </returns>
         Task<string> RequestAsync(
             string method,
             string url, 
@@ -21,6 +32,17 @@ namespace Verve.Net
             Dictionary<string, string> headers = null,
             CancellationToken ct = default);
         
+        /// <summary>
+        ///  <para>发送请求并获取响应</para>
+        /// </summary>
+        /// <param name="method">请求方法</param>
+        /// <param name="url">网址</param>
+        /// <param name="data">数据</param>
+        /// <param name="contentType">内容类型</param>
+        /// <param name="headers">请求头</param>
+        /// <returns>
+        ///   <para>响应数据</para>
+        /// </returns>
         string Request(
             string method,
             string url, 
@@ -28,13 +50,14 @@ namespace Verve.Net
             string contentType = "application/json",
             Dictionary<string, string> headers = null);
 
-        /// <summary> 异步下载文件 </summary>
+        /// <summary>
+        ///   <para>异步下载文件</para>
+        /// </summary>
         /// <param name="url">网址</param>
         /// <param name="savePath">保存路径</param>
-        /// <param name="method"></param>
-        /// <param name="headers"></param>
-        /// <param name="progressCallback"></param>
-        /// <returns></returns>
+        /// <param name="method">请求方法</param>
+        /// <param name="headers">请求头</param>
+        /// <param name="progressCallback">进度回调</param>
         Task DownloadFileAsync(
             string url,
             string savePath,
@@ -45,7 +68,13 @@ namespace Verve.Net
             Func<byte[], string> computeHash = null,
             CancellationToken ct = default);
         
-        /// <summary> 异步下载文件并保存为内存 </summary>
+        /// <summary>
+        ///   <para>异步下载文件并保存为内存</para>
+        /// </summary>
+        /// <param name="url">网址</param>
+        /// <param name="method">请求方法</param>
+        /// <param name="headers">请求头</param>
+        /// <param name="progressCallback">进度回调</param>
         Task<byte[]> DownloadFileToMemoryAsync(
             string url,
             string method = "GET",
@@ -55,12 +84,14 @@ namespace Verve.Net
             Func<byte[], string> computeHash = null,
             CancellationToken ct = default);
         
-        /// <summary> 下载文件 </summary>
+        /// <summary>
+        ///   <para>下载文件</para>
+        /// </summary>
         /// <param name="url">网址</param>
         /// <param name="savePath">保存路径</param>
-        /// <param name="method"></param>
-        /// <param name="headers"></param>
-        /// <param name="progressCallback"></param>
+        /// <param name="method">请求方法</param>
+        /// <param name="headers">请求头</param>
+        /// <param name="progressCallback">进度回调</param>
         void DownloadFile(
             string url,
             string savePath,
@@ -71,14 +102,14 @@ namespace Verve.Net
             Func<byte[], string> computeHash = null);
         
         /// <summary>
-        /// 上传文件
+        ///   <para>上传文件</para>
         /// </summary>
         /// <param name="url">网址</param>
-        /// <param name="savePath">保存路径</param>
-        /// <param name="method"></param>
-        /// <param name="headers"></param>
-        /// <param name="contentType"></param>
-        /// <param name="progressCallback"></param>
+        /// <param name="filePath">本地文件路径</param>
+        /// <param name="method">请求方法</param>
+        /// <param name="headers">请求头</param>
+        /// <param name="contentType">内容类型</param>
+        /// <param name="progressCallback">进度回调</param>
         /// <returns></returns>
         string UploadFile(
             string url,
@@ -89,15 +120,15 @@ namespace Verve.Net
             System.Action<long, long> progressCallback = null);
 
         /// <summary>
-        /// 异步上传文件
+        ///   <para>异步上传文件</para>
         /// </summary>
         /// <param name="url">网址</param>
-        /// <param name="savePath">保存路径</param>
-        /// <param name="method"></param>
-        /// <param name="headers"></param>
-        /// <param name="contentType"></param>
-        /// <param name="progressCallback"></param>
-        /// <returns></returns>
+        /// <param name="filePath">本地文件路径</param>
+        /// <param name="method">请求方法</param>
+        /// <param name="headers">请求头</param>
+        /// <param name="contentType">内容类型</param>
+        /// <param name="progressCallback">进度回调</param>
+        /// <param name="ct">取消令牌</param>
         Task<string> UploadFileAsync(
             string url,
             string filePath,
@@ -107,9 +138,14 @@ namespace Verve.Net
             System.Action<long, long> progressCallback = null,
             CancellationToken ct = default);
         
-        /// <summary> 默认请求头 </summary>
+        /// <summary>
+        ///   <para>默认请求头</para>
+        /// </summary>
         Dictionary<string, string> DefaultHeader { get; }
-        /// <summary> Cookie容器 </summary>
+        
+        /// <summary>
+        ///   <para>Cookie容器</para>
+        /// </summary>
         CookieContainer Cookie { get; }
     }
 }

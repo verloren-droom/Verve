@@ -7,90 +7,109 @@ namespace Verve
     
 
     /// <summary>
-    /// 游戏平台文件系统接口
+    ///   <para>游戏平台文件系统接口</para>
     /// </summary>
     public interface IGamePlatformFileSystem
     {
-        /// <summary> 项目路径 </summary>
+        /// <summary>
+        ///   <para>项目路径</para>
+        /// </summary>
         string ProjectPath { get; }
         
-        /// <summary> 持久化数据路径 </summary>
+        /// <summary>
+        ///   <para>持久化数据路径</para>
+        /// </summary>
         string PersistentDataPath { get; }
         
-        /// <summary> 临时缓存路径 </summary>
+        /// <summary>
+        ///   <para>临时缓存路径</para>
+        /// </summary>
         string TemporaryCachePath { get; }
 
         #region 文件操作
         
         /// <summary>
-        /// 检查指定路径的文件是否存在
+        ///   <para>检查指定路径的文件是否存在</para>
         /// </summary>
         /// <param name="filePath">文件路径</param>
-        /// <returns>文件是否存在</returns>
+        /// <returns>
+        ///   <para>如果文件存在则为 true，否则为 false</para>
+        /// </returns>
         bool FileExists(string filePath);
         
         /// <summary>
-        /// 获取文件信息
+        ///   <para>获取文件信息</para>
         /// </summary>
         /// <param name="filePath">文件路径</param>
-        /// <returns>文件信息</returns>
-        /// <exception cref="FileNotFoundException">当文件不存在时抛出</exception>
+        /// <returns>
+        ///   <para>文件信息</para>
+        /// </returns>
         FileInfo GetFileInfo(string filePath);
 
         /// <summary>
-        /// 读取指定文件
+        ///   <para>读取指定文件</para>
         /// </summary>
         /// <param name="filePath">文件路径</param>
-        /// <returns>文件内容的二进制数据</returns>
-        /// <exception cref="FileNotFoundException">当文件不存在时抛出</exception>
+        /// <returns>
+        ///   <para>文件内容的二进制数据</para>
+        /// </returns>
         byte[] ReadFile(string filePath);
         
         /// <summary>
-        /// 写入指定文件
+        ///   <para>写入指定文件</para>
         /// </summary>
         /// <param name="filePath">文件路径</param>
         /// <param name="buffer">写入文件内容的二进制数据</param>
         /// <param name="overwrite">是否覆盖已存在文件，默认为 true</param>
-        /// <returns>是否写入成功</returns>
-        /// <exception cref="IOException">当文件已存在且 overwrite 为 false 时抛出</exception>
+        /// <returns>
+        ///   <para>如果写入成功则为 true，否则为 false</para>
+        /// </returns>
         bool WriteFile(string filePath, byte[] buffer, bool overwrite = true);
         
         /// <summary>
-        /// 重命名指定文件
+        ///   <para>重命名指定文件</para>
         /// </summary>
         /// <param name="oldFilePath">重命名前文件路径</param>
         /// <param name="newFilePath">重命名后文件路径</param>
-        /// <returns>是否重命名成功</returns>
+        /// <returns>
+        ///   <para>如果重命名成功则为 true，否则为 false</para>
+        /// </returns>
         /// <exception cref="FileNotFoundException">当原文件不存在时抛出</exception>
         /// <exception cref="IOException">当目标文件已存在时抛出</exception>
         bool RenameFile(string oldFilePath, string newFilePath);
         
         /// <summary>
-        /// 删除指定文件
+        ///   <para>删除指定文件</para>
         /// </summary>
         /// <param name="filePath">文件路径</param>
-        /// <returns>是否删除成功</returns>
+        /// <returns>
+        ///   <para>如果删除成功则为 true，否则为 false</para>
+        /// </returns>
         /// <exception cref="FileNotFoundException">当文件不存在时抛出</exception>
         bool DeleteFile(string filePath);
         
         /// <summary>
-        /// 复制文件
+        ///   <para>复制文件</para>
         /// </summary>
         /// <param name="sourceFilePath">源文件路径</param>
         /// <param name="destinationFilePath">目标文件路径</param>
         /// <param name="overwrite">是否覆盖已存在文件</param>
-        /// <returns>是否复制成功</returns>
+        /// <returns>
+        ///   <para>如果复制成功则为 true，否则为 false</para>
+        /// </returns>
         /// <exception cref="FileNotFoundException">当源文件不存在时抛出</exception>
         /// <exception cref="IOException">当目标文件已存在且 overwrite 为 false 时抛出</exception>
         bool CopyFile(string sourceFilePath, string destinationFilePath, bool overwrite = false);
         
         /// <summary>
-        /// 移动文件
+        ///   <para>移动文件</para>
         /// </summary>
         /// <param name="sourceFilePath">源文件路径</param>
         /// <param name="destinationFilePath">目标文件路径</param>
         /// <param name="overwrite">是否覆盖已存在文件</param>
-        /// <returns>是否移动成功</returns>
+        /// <returns>
+        ///   <para>如果移动成功则为 true，否则为 false</para>
+        /// </returns>
         /// <exception cref="FileNotFoundException">当源文件不存在时抛出</exception>
         /// <exception cref="IOException">当目标文件已存在且 overwrite 为 false 时抛出</exception>
         bool MoveFile(string sourceFilePath, string destinationFilePath, bool overwrite = false);
@@ -100,44 +119,54 @@ namespace Verve
         #region 目录操作
         
         /// <summary>
-        /// 检查指定路径的目录是否存在
+        ///   <para>检查指定路径的目录是否存在</para>
         /// </summary>
         /// <param name="path">目录路径</param>
-        /// <returns>如果目录存在则为 true，否则为 false</returns>
+        /// <returns>
+        ///   <para>如果目录存在则为 true，否则为 false</para>
+        /// </returns>
         bool DirectoryExists(string path);
         
         /// <summary>
-        /// 创建目录
+        ///   <para>创建目录</para>
         /// </summary>
         /// <param name="path">目录路径</param>
-        /// <returns>是否创建成功</returns>
+        /// <returns>
+        ///   <para>如果创建成功则为 true，否则为 false</para>
+        /// </returns>
         bool CreateDirectory(string path);
         
         /// <summary>
-        /// 删除目录
+        ///   <para>删除目录</para>
         /// </summary>
         /// <param name="path">目录路径</param>
         /// <param name="recursive">是否递归删除子目录和文件</param>
-        /// <returns>是否删除成功</returns>
+        /// <returns>
+        ///   <para>如果删除成功则为 true，否则为 false</para>
+        /// </returns>
         bool DeleteDirectory(string path, bool recursive = false);
         
         /// <summary>
-        /// 获取目录中的文件列表
+        ///   <para>获取目录中的文件列表</para>
         /// </summary>
         /// <param name="path">目录路径</param>
         /// <param name="searchPattern">搜索模式</param>
         /// <param name="searchOption">搜索选项</param>
-        /// <returns>文件路径枚举</returns>
+        /// <returns>
+        ///   <para>文件路径枚举</para>
+        /// </returns>
         /// <exception cref="DirectoryNotFoundException">当目录不存在时抛出</exception>
         IEnumerable<string> GetFiles(string path, string searchPattern = "*", SearchOption searchOption = SearchOption.TopDirectoryOnly);
         
         /// <summary>
-        /// 获取目录中的子目录列表
+        ///   <para>获取目录中的子目录列表</para>
         /// </summary>
         /// <param name="path">目录路径</param>
         /// <param name="searchPattern">搜索模式</param>
         /// <param name="searchOption">搜索选项</param>
-        /// <returns>子目录路径枚举</returns>
+        /// <returns>
+        ///   <para>子目录路径枚举</para>
+        /// </returns>
         /// <exception cref="DirectoryNotFoundException">当目录不存在时抛出</exception>
         IEnumerable<string> GetDirectories(string path, string searchPattern = "*", SearchOption searchOption = SearchOption.TopDirectoryOnly);
     
@@ -146,7 +175,7 @@ namespace Verve
         // #region 文件监视
         //
         // /// <summary>
-        // /// 监视指定路径的文件系统变化
+        // ///   <para>监视指定路径的文件系统变化</para>
         // /// </summary>
         // /// <param name="path">要监视的路径</param>
         // /// <param name="filter">筛选器字符串，用于确定在目录中监视哪些文件</param>

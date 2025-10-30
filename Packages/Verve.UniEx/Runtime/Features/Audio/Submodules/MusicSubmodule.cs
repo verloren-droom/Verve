@@ -9,7 +9,8 @@ namespace Verve.UniEx.Audio
     
     
     /// <summary>
-    /// 音乐子模块 - 提供背景音乐播放与控制
+    ///   <para>音乐子模块</para>
+    ///   <para>提供背景音乐播放与控制</para>
     /// </summary>
     [System.Serializable, GameFeatureSubmodule(typeof(AudioGameFeature), Description = "音乐子模块 - 提供背景音乐播放与控制")]
     public sealed partial class MusicSubmodule : AudioSubmodule
@@ -55,6 +56,11 @@ namespace Verve.UniEx.Audio
             }
         }
 
+        /// <summary>
+        ///   <para>播放音乐</para>
+        /// </summary>
+        /// <param name="clip">音频片段</param>
+        /// <param name="fadeDuration">淡入淡出时间</param>
         [ModuleMethodBridge("LoaderGameFeature.AddressablesLoader.LoadAsset")]
         [ModuleMethodBridge("LoaderGameFeature.AddressablesLoader.LoadAssetAsync")]
         public async Task Play([BridgeParameter] AudioClip clip, float fadeDuration = 0)
@@ -72,18 +78,27 @@ namespace Verve.UniEx.Audio
             await FadeIn(fadeDuration);
         }
 
+        /// <summary>
+        ///   <para>停止音乐</para>
+        /// </summary>
         public void Stop()
         {
             if (m_Source == null || !m_Source.isPlaying) return;
             m_Source.Stop();
         }
         
+        /// <summary>
+        ///   <para>暂停音乐</para>
+        /// </summary>
         public void Pause()
         {
             if (m_Source == null || !m_Source.isPlaying) return;
             m_Source.Pause();
         }
         
+        /// <summary>
+        ///   <para>恢复音乐</para>
+        /// </summary>
         public void UnPause()
         {
             if (m_Source == null || !m_Source.isPlaying) return;
@@ -91,8 +106,9 @@ namespace Verve.UniEx.Audio
         }
 
         /// <summary>
-        /// 淡入效果
+        ///   <para>淡入效果</para>
         /// </summary>
+        /// <param name="duration">淡入淡出时间</param>
         private async Task FadeIn(float duration)
         {
             float timer = 0;
@@ -110,8 +126,9 @@ namespace Verve.UniEx.Audio
         }
     
         /// <summary>
-        /// 淡出效果
+        ///   <para>淡出效果</para>
         /// </summary>
+        /// <param name="duration">淡入淡出时间</param>
         private async Task FadeOut(float duration)
         {
             float timer = 0;

@@ -3,7 +3,7 @@
 namespace Verve.UniEx.Audio
 {
     /// <summary>
-    /// 音频子模块基类
+    ///   <para>音频子模块基类</para>
     /// </summary>
     [System.Serializable]
     public abstract class AudioSubmodule : GameFeatureSubmodule<AudioGameFeatureComponent>, IAudio

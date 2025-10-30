@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using Verve.UniEx;
     using UnityEditor;
@@ -8,6 +8,9 @@ namespace VerveEditor.UniEx
     using System.Reflection;
     
 
+    /// <summary>
+    ///   <para>按钮编辑器帮助类</para>
+    /// </summary>
     internal static class ButtonEditorHelper
     {
         public static void DrawButtons(UnityEngine.Object target, MethodInfo[] methods)

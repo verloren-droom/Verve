@@ -8,7 +8,7 @@ namespace Verve.UniEx.Timer
 
     
     /// <summary>
-    /// 简单的计时器
+    ///   <para>简单的计时器</para>
     /// </summary>
     [Serializable, GameFeatureSubmodule(typeof(TimerGameFeature), Description = "简单计时器")]
     public sealed class SimpleTimer : TimerSubmodule

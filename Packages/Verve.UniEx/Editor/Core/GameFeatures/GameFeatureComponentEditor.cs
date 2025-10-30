@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using Verve;
     using System;
@@ -10,14 +10,19 @@ namespace VerveEditor.UniEx
     using System.Linq;
     using System.Reflection;
     using System.Collections.Generic;
-    using UnityEditorInternal;
 
     
+    /// <summary>
+    ///   <para>游戏功能组件编辑</para>
+    /// </summary>
     [CustomEditor(typeof(GameFeatureComponent), true), CanEditMultipleObjects]
     internal class GameFeatureComponentEditor : Editor
     {
         private GameFeatureComponent m_Component;
         
+        /// <summary>
+        ///   <para>排除绘制的字段</para>
+        /// </summary>
         private string[] m_ExcludedFields =
         {
             "m_Script",
@@ -25,9 +30,19 @@ namespace VerveEditor.UniEx
             "m_Parameters"
         };
 
+        /// <summary>
+        ///   <para>样式</para>
+        /// </summary>
         private static class Styles
         {
+            /// <summary>
+            ///   <para>没有参数信息</para>
+            /// </summary>
             public static string NoParametersInfo { get; } = L10n.Tr("No parameter found in this component.");
+            
+            /// <summary>
+            ///   <para>组件不支持多编辑信息</para>
+            /// </summary>
             public static string ComponentNotSupportMultiEditInfo { get; } = L10n.Tr("Component cannot be edited in multi-editing mode.");
         }
         
@@ -87,6 +102,9 @@ namespace VerveEditor.UniEx
             serializedObject.ApplyModifiedProperties();
         }
 
+        /// <summary>
+        ///   <para>绘制参数</para>
+        /// </summary>
         private void DrawParameters(GameFeatureComponent component)
         {
             var fields = component.GetType()

@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using Verve;
     using System;
@@ -13,6 +13,9 @@ namespace VerveEditor.UniEx
     using Object = UnityEngine.Object;
 
     
+    /// <summary>
+    ///   <para>游戏功能模块配置文件编辑器</para>
+    /// </summary>
     [CustomEditor(typeof(GameFeatureModuleProfile), true)]
     internal class GameFeatureModuleProfileEditor : Editor
     {
@@ -22,12 +25,30 @@ namespace VerveEditor.UniEx
         private bool m_NeedsRefresh;
 
         
+        /// <summary>
+        ///   <para>样式</para>
+        /// </summary>
         private static class Styles
         {
+            /// <summary>
+            ///   <para>无模块信息</para>
+            /// </summary>
             public static string NoModulesInfo { get; } = L10n.Tr("No modules added to this data.");
+            
+            /// <summary>
+            ///   <para>模块显示文本</para>
+            /// </summary>
             public static GUIContent ModulesText { get; } = EditorGUIUtility.TrTextContent("Modules");
-            public static GUIContent RemoveModule { get; } = EditorGUIUtility.TrTextContent("Remove");
+            
+            /// <summary>
+            ///   <para>添加模块</para>
+            /// </summary>
             public static GUIContent AddModule { get; } = EditorGUIUtility.TrTextContent("Add Game Feature Module", "Adds a new module to this profile.");
+            
+            /// <summary>
+            ///   <para>删除模块</para>
+            /// </summary>
+            public static GUIContent RemoveModule { get; } = EditorGUIUtility.TrTextContent("Remove");
         }
 
         
@@ -45,12 +66,6 @@ namespace VerveEditor.UniEx
         {
             ClearEditors();
             Undo.undoRedoPerformed -= OnUndoRedoPerformed;
-        }
-
-        private void OnUndoRedoPerformed()
-        {
-            m_NeedsRefresh = true;
-            Repaint();
         }
 
         public override void OnInspectorGUI()
@@ -71,6 +86,15 @@ namespace VerveEditor.UniEx
             serializedObject.ApplyModifiedProperties();
         }
         
+        private void OnUndoRedoPerformed()
+        {
+            m_NeedsRefresh = true;
+            Repaint();
+        }
+
+        /// <summary>
+        ///   <para>绘制模块列表</para>
+        /// </summary>
         private void DrawModulesList()
         {
             EditorGUILayout.LabelField(Styles.ModulesText, EditorStyles.boldLabel);
@@ -127,6 +151,9 @@ namespace VerveEditor.UniEx
                 CoreEditorUtility.DrawSplitter();
         }
 
+        /// <summary>
+        ///   <para>清理空元素</para>
+        /// </summary>
         private void CleanNullElements()
         {
             if (m_ModulesProperty == null) return;
@@ -161,6 +188,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>菜单点击事件</para>
+        /// </summary>
         private void OnContextClick(Vector2 position, int index)
         {
             var menu = new GenericMenu();
@@ -196,6 +226,11 @@ namespace VerveEditor.UniEx
             menu.DropDown(new Rect(position, Vector2.zero));
         }
 
+        /// <summary>
+        ///   <para>获取模块的依赖模块</para>
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
         private List<GameFeatureModule> GetDependentModules(int index)
         {
             var dependentModules = new List<GameFeatureModule>();
@@ -227,6 +262,9 @@ namespace VerveEditor.UniEx
             return dependentModules;
         }
 
+        /// <summary>
+        ///   <para>绘制添加模块按钮</para>
+        /// </summary>
         private void DrawAddModuleButton()
         {
             EditorGUILayout.Space();
@@ -236,6 +274,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>显示添加模块菜单</para>
+        /// </summary>
         private void ShowAddModuleMenu()
         {
             var menu = new GenericMenu();
@@ -305,6 +346,9 @@ namespace VerveEditor.UniEx
             menu.ShowAsContext();
         }
 
+        /// <summary>
+        ///   <para>添加模块的子模块</para>
+        /// </summary>
         private void AddModule(Type moduleType)
         {
             if (moduleType == null) return;
@@ -342,6 +386,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>添加模块的子模块</para>
+        /// </summary>
         private void AddModuleFromSubmodules(string menuPath, List<Type> submoduleTypes)
         {
             if (submoduleTypes == null || submoduleTypes.Count == 0) return;
@@ -385,6 +432,9 @@ namespace VerveEditor.UniEx
             }
         }
         
+        /// <summary>
+        ///   <para>移除模块</para>
+        /// </summary>
         private void RemoveModule(int index)
         {
             if (index < 0 || index >= m_ModulesProperty.arraySize) return;
@@ -423,6 +473,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>刷新编辑器</para>
+        /// </summary>
         private void RefreshEditors()
         {
             ClearEditors();
@@ -448,6 +501,9 @@ namespace VerveEditor.UniEx
             }
         }
 
+        /// <summary>
+        ///   <para>清理编辑器</para>
+        /// </summary>
         private void ClearEditors()
         {
             foreach (var editor in m_Editors)
@@ -458,6 +514,9 @@ namespace VerveEditor.UniEx
         }
 
         
+        /// <summary>
+        ///   <para>模块编辑器</para>
+        /// </summary>
         internal class ModuleEditor
         {
             private Editor m_Editor;

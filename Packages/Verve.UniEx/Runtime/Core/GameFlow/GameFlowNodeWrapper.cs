@@ -10,7 +10,7 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    ///  <para>游戏流程节点包装器</para>
+    ///   <para>游戏流程节点包装器</para>
     /// </summary>
     [Serializable]
     public sealed class GameFlowNodeWrapper : ScriptableObject
@@ -33,53 +33,82 @@ namespace Verve.UniEx
         public Vector2 Position { get => m_Position; set => m_Position = value; }
         public Vector2 NodeSize { get => m_NodeSize; set => m_NodeSize = value; }
         public string NodeName { get => m_NodeName; set => m_NodeName = value; }
+        
         /// <summary>
-        ///  <para>被包装的节点</para>
+        ///   <para>被包装的节点</para>
         /// </summary>
         public IGameFlowNode WrappedNode => m_WrappedNode;
+        
+        /// <summary>
+        ///   <para>输入端口</para>
+        /// </summary>
         public List<VisualFlowPort> InputPorts => m_InputPorts;
+        
+        /// <summary>
+        ///   <para>输出端口</para>
+        /// </summary>
         public List<VisualFlowPort> OutputPorts => m_OutputPorts;
+        /// <summary>
+        ///   <para>是否正在执行</para>
+        /// </summary>
         public bool IsExecuting => m_WrappedNode?.IsExecuting ?? false;
+        
+        /// <summary>
+        ///   <para>是否完成</para>
+        /// </summary>
         public bool IsCompleted => m_WrappedNode?.IsCompleted ?? false;
         
         /// <summary>
-        ///  <para>默认节点宽度</para>
+        ///   <para>默认节点宽度</para>
         /// </summary>
         public const float DEFAULT_NODE_WIDTH = 180f;
+        
         /// <summary>
-        ///  <para>默认节点高度</para>
+        ///   <para>默认节点高度</para>
         /// </summary>
         public const float DEFAULT_NODE_HEIGHT = 80f;
+        
         /// <summary>
-        ///  <para>节点端口高度</para>
+        ///   <para>节点端口高度</para>
         /// </summary>
         public const float PORT_HEIGHT = 22f;
+        
         /// <summary>
-        ///  <para>按钮区域高度</para>
+        ///   <para>按钮区域高度</para>
         /// </summary>
         public const float BUTTON_AREA_HEIGHT = 40f;
 
         /// <summary>
-        ///  <para>节点端口类型定义</para>
+        ///   <para>节点端口类型定义</para>
         /// </summary>
         public enum PortType
         {
-            /// <summary> 输入端口 </summary>
+            /// <summary>
+            ///  <para>输入端口</para>
+            /// </summary>
             In,
-            /// <summary> 子节点输出端口 </summary>
+            /// <summary>
+            ///   <para>子节点输出端口</para>
+            /// </summary>
             Child,
-            /// <summary> 自定义输入端口 </summary>
+            /// <summary>
+            ///   <para>自定义输入端口</para>
+            /// </summary>
             CustomInput,
-            /// <summary> 自定义输出端口 </summary>
+            /// <summary>
+            ///   <para>自定义输出端口</para>
+            /// </summary>
             CustomOutput
         }
         
         /// <summary>
-        ///  <para>创建节点包装器</para>
+        ///   <para>创建节点包装器</para>
         /// </summary>
         /// <param name="node">游戏流程节点</param>
         /// <param name="position">节点位置</param>
-        /// <returns>节点包装器</returns>
+        /// <returns>
+        ///   <para>节点包装器实例</para>
+        /// </returns>
         public static GameFlowNodeWrapper CreateWrapper(GameFlowNode node, Vector2 position)
         {
             var wrapper = CreateInstance<GameFlowNodeWrapper>();
@@ -101,7 +130,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>刷新所有端口</para>
+        ///   <para>刷新所有端口</para>
         /// </summary>
         public void RefreshPorts()
         {
@@ -151,9 +180,9 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>刷新节点输入端口</para>
-        /// 
+        ///   <para>刷新节点输入端口</para>
         /// </summary>
+        /// <param name="oldInputPorts">旧输入端口列表</param>
         private void RefreshInputPorts(List<VisualFlowPort> oldInputPorts)
         {
             var defaultInputPort = oldInputPorts.FirstOrDefault(p => p.PortType == PortType.In && p.DisplayName == "In");
@@ -193,8 +222,9 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>刷新节点自定义输出端口</para>
+        ///   <para>刷新节点自定义输出端口</para>
         /// </summary>
+        /// <param name="nodeType">节点类型</param>
         private void RefreshCustomOutputPorts(Type nodeType)
         {
             var fields = nodeType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
@@ -212,8 +242,9 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>恢复端口的连接ID</para>
+        ///   <para>恢复端口的连接ID</para>
         /// </summary>
+        /// <param name="oldConnections">旧连接ID字典</param>
         private void RestoreConnectionIDs(Dictionary<string, List<string>> oldConnections)
         {
             foreach (var port in m_InputPorts.Concat(m_OutputPorts))
@@ -227,8 +258,10 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>刷新组合节点的端口</para>
+        ///   <para>刷新组合节点的端口</para>
         /// </summary>
+        /// <param name="compositeNode">组合节点</param>
+        /// <param name="childConnections">子节点连接ID字典</param>
         private void RefreshCompositePorts(ICompositeGameFlowNode compositeNode, Dictionary<int, List<string>> childConnections)
         {
             var children = compositeNode.Children?.ToList() ?? new List<IGameFlowNode>();
@@ -248,7 +281,7 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        ///  <para>更新节点大小</para>
+        ///   <para>更新节点大小</para>
         /// </summary>
         private void UpdateNodeSize()
         {
@@ -265,7 +298,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>添加子节点到复合节点</para>
+        ///   <para>添加子节点到复合节点</para>
         /// </summary>
         public void AddChildToComposite()
         {
@@ -277,7 +310,7 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>从复合节点移除子节点</para>
+        ///   <para>从复合节点移除子节点</para>
         /// </summary>
         public void RemoveChildFromComposite()
         {
@@ -293,8 +326,11 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        ///  <para>获取子节点数量</para>
+        ///   <para>获取子节点数量</para>
         /// </summary>
+        /// <returns>
+        ///   <para>子节点数量</para>
+        /// </returns>
         public int GetChildCount()
         {
             if (m_WrappedNode is ICompositeGameFlowNode compositeNode)
@@ -305,7 +341,7 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        ///  <para>重建所有端口的运行时引用</para>
+        ///   <para>重建所有端口的运行时引用</para>
         /// </summary>
         public void RebuildNodeReferences(Dictionary<string, GameFlowNodeWrapper> nodeLookup)
         {
@@ -332,8 +368,12 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        ///  <para>通过端口ID查找端口</para>
+        ///   <para>通过端口ID查找端口</para>
         /// </summary>
+        /// <param name="portID">端口ID</param>
+        /// <returns>
+        ///   <para>端口实例</para>
+        /// </returns>
         public VisualFlowPort FindPortByID(string portID)
         {
             if (string.IsNullOrEmpty(portID)) 
@@ -355,9 +395,10 @@ namespace Verve.UniEx
         }
     }
     
+    
     /// <summary>
-    ///  <para>占位符节点</para>
-    ///  <para>用于组合节点的占位符节点</para>
+    ///   <para>占位符节点</para>
+    ///   <para>用于组合节点的占位符节点</para>
     /// </summary>
     [Serializable]
     internal class PlaceholderGameFlowNode : GameFlowNode

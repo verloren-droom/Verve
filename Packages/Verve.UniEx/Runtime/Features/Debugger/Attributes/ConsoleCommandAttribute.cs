@@ -6,17 +6,23 @@ namespace Verve.UniEx.Debug
 
     
     /// <summary>
-    /// 添加此特性的函数将注册为控制台命令
+    ///   <para>添加此特性的函数将注册为控制台命令</para>
+    ///   <para>函数暂时只支持静态函数</para>
     /// </summary>
-    /// <remarks>
-    /// 函数暂时只支持静态函数
-    /// </remarks>
     [AttributeUsage(AttributeTargets.Method)]
     public sealed class ConsoleCommandAttribute : Attribute
     {
+        /// <summary>
+        ///   <para>命令名称</para>
+        /// </summary>
         public string Command { get; }
+        
+        /// <summary>
+        ///   <para>命令描述</para>
+        /// </summary>
         public string Description { get; }
 
+        
         public ConsoleCommandAttribute(string command, string description = "")
         {
             if (string.IsNullOrEmpty(command))

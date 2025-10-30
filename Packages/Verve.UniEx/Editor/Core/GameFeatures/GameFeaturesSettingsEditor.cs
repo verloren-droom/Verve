@@ -1,12 +1,10 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using System;
     using Verve.UniEx;
-    using System.IO;
     using System.Linq;
-    using System.Text;
     using UnityEditor;
     using UnityEngine;
     using System.Reflection;
@@ -14,6 +12,9 @@ namespace VerveEditor.UniEx
     using Object = UnityEngine.Object;
     
 
+    /// <summary>
+    ///   <para>游戏功能设置编辑器</para>
+    /// </summary>
     [CustomEditor(typeof(GameFeaturesSettings))]
     internal sealed class GameFeaturesSettingsEditor : Editor
     {
@@ -23,6 +24,9 @@ namespace VerveEditor.UniEx
         
         private readonly TabPagerBox m_TabPagerBox = new TabPagerBox(0);
 
+        /// <summary>
+        ///   <para>排除绘制的字段</para>
+        /// </summary>
         private static readonly string[] s_ExcludedFields =
         {
             "m_Script",
@@ -32,16 +36,54 @@ namespace VerveEditor.UniEx
             "m_Drawers",
         };
 
+        /// <summary>
+        ///   <para>样式</para>
+        /// </summary>
         private static class Styles
         {
+            /// <summary>
+            ///   <para>组件配置</para>
+            /// </summary>
             public static GUIContent ComponentProfile { get; } = EditorGUIUtility.TrTextContent("Component Profile", "The profile containing all game feature components.");
+            
+            /// <summary>
+            ///   <para>模块配置</para>
+            /// </summary>
             public static GUIContent ModuleProfile { get; } = EditorGUIUtility.TrTextContent("Module Profile", "The profile containing all game feature modules.");
-            public static GUIContent NewLabel { get; } = EditorGUIUtility.TrTextContent("New", "Create a new component profile.");
-            public static GUIContent NewModuleDataLabel { get; } = EditorGUIUtility.TrTextContent("New", "Create a new module profile.");
-            public static string NoProfileMessage { get; } = L10n.Tr("Please select or create a new GameFeatures profile to begin applying features to the game.");
-            public static string NoModuleDataMessage { get; } = L10n.Tr("Please select or create a new GameFeatures module data to manage game feature modules.");
+            
+            /// <summary>
+            ///   <para>新建标签</para>
+            /// </summary>
+            public static GUIContent NewComponentProfileLabel { get; } = EditorGUIUtility.TrTextContent("New", "Create a new component profile.");
+            
+            /// <summary>
+            ///   <para>没有配置信息</para>
+            /// </summary>
+            public static GUIContent NewModuleProfileLabel { get; } = EditorGUIUtility.TrTextContent("New", "Create a new module profile.");
+            
+            /// <summary>
+            ///   <para>没有配置信息</para>
+            /// </summary>
+            public static string NoComponentProfileMessage { get; } = L10n.Tr("Please select or create a new component profile to begin applying features to the game.");
+            
+            /// <summary>
+            ///   <para>没有配置信息</para>
+            /// </summary>
+            public static string NoModuleProfileMessage { get; } = L10n.Tr("Please select or create a new module profile to manage game feature modules.");
+            
+            /// <summary>
+            ///   <para>生成按钮</para>
+            /// </summary>
             public static GUIContent GenerateButton { get; } = EditorGUIUtility.TrTextContent("Generate", "Generate extension methods for all modules.");
+            
+            /// <summary>
+            ///   <para>浏览按钮</para>
+            /// </summary>
             public static GUIContent BrowseButton { get; } = EditorGUIUtility.TrTextContent("Browse", "Select a directory to save generated files.");
+            
+            /// <summary>
+            ///   <para>扩展生成器标题</para>
+            /// </summary>
             public static GUIContent ExtensionGeneratorTitle { get; } = EditorGUIUtility.TrTextContent("Extension Generator", "Generate extension methods for modules.");
         }
 
@@ -80,7 +122,7 @@ namespace VerveEditor.UniEx
                     }
                 }
         
-                if (GUILayout.Button(Styles.NewModuleDataLabel, EditorStyles.miniButton, GUILayout.Width(60)))
+                if (GUILayout.Button(Styles.NewModuleProfileLabel, EditorStyles.miniButton, GUILayout.Width(60)))
                 {
                     string defaultPath = "Assets/Resources";
                     if (!AssetDatabase.IsValidFolder(defaultPath))
@@ -121,7 +163,7 @@ namespace VerveEditor.UniEx
                         }
                     }
         
-                    if (GUILayout.Button(Styles.NewLabel, EditorStyles.miniButton, GUILayout.Width(60)))
+                    if (GUILayout.Button(Styles.NewComponentProfileLabel, EditorStyles.miniButton, GUILayout.Width(60)))
                     {
                         string defaultPath = "Assets/Resources";
                         if (!AssetDatabase.IsValidFolder(defaultPath))
@@ -146,7 +188,7 @@ namespace VerveEditor.UniEx
                 EditorGUILayout.Space();
                 
                 if (m_ComponentProfileProperty.objectReferenceValue == null)
-                    EditorGUILayout.HelpBox(Styles.NoProfileMessage, MessageType.Info);
+                    EditorGUILayout.HelpBox(Styles.NoComponentProfileMessage, MessageType.Info);
                 
                 EditorGUILayout.Space();
                 
@@ -172,7 +214,7 @@ namespace VerveEditor.UniEx
             }
             else
             {
-                EditorGUILayout.HelpBox(Styles.NoModuleDataMessage, MessageType.Warning);
+                EditorGUILayout.HelpBox(Styles.NoModuleProfileMessage, MessageType.Warning);
             }
 
             
@@ -186,7 +228,7 @@ namespace VerveEditor.UniEx
         }
         
         /// <summary>
-        /// 绘制模块编辑器设置
+        ///   <para>绘制模块编辑器设置</para>
         /// </summary>
         private void DrawModuleEditorSettings()
         {

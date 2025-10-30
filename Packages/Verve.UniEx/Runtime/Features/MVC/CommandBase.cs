@@ -8,17 +8,25 @@ namespace Verve.UniEx.MVC
     
     
     /// <summary>
-    /// MVC命令基类
+    ///   <para>MVC命令基类</para>
     /// </summary>
     [Serializable]
     public abstract class CommandBase : ICommand
     {
         void ICommand.Execute() => OnExecute();
+        
         void ICommand.Undo() => OnUndo();
         
         public abstract IActivity GetActivity();
 
+        /// <summary>
+        ///   <para>命令执行</para>
+        /// </summary>
         protected abstract void OnExecute();
+        
+        /// <summary>
+        ///   <para>命令撤销</para>
+        /// </summary>
         protected virtual void OnUndo() {}
     }
 }

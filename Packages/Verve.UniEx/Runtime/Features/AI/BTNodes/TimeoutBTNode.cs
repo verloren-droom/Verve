@@ -8,40 +8,49 @@ namespace Verve.UniEx.AI
     
     
     /// <summary>
-    /// 超时控制节点数据
+    ///   <para>超时控制节点数据</para>
     /// </summary>
     [Serializable]
     public struct TimeoutBTNodeData : INodeData
     {
-        /// <summary> 需要监控的子节点 </summary>
+        /// <summary>
+        ///   <para>需要监控的子节点</para>
+        /// </summary>
         [NotNull] public IBTNode child;
-        /// <summary> 最大等待时间（秒） </summary>
+        /// <summary>
+        ///   <para>最大等待时间（秒）</para>
+        /// </summary>
         public float duration;
     }
     
     
     /// <summary>
-    /// 超时控制节点
+    ///   <para>超时控制节点</para>
+    ///   <para>在指定时间内完成子节点则成功，否则失败，未能完成将中断子节点的执行</para>
     /// </summary>
-    /// <remarks>
-    /// 在指定时间内完成子节点则成功，否则失败，未能完成将中断子节点的执行
-    /// </remarks>
     [CustomBTNode(nameof(TimeoutBTNode)), Serializable]
     public struct TimeoutBTNode : ICompositeBTNode, IBTNodeResettable, IBTNodePreparable
     {
-        /// <summary> 黑板数据键 </summary>
+        /// <summary>
+        ///   <para>黑板数据键</para>
+        /// </summary>
         public string dataKey;
         public TimeoutBTNodeData data;
         public BTNodeResult LastResult { get; private set; }
 
-        /// <summary> 累计时间 </summary>
         private float m_ElapsedTime;
-        /// <summary> 是否超时 </summary>
         private bool m_IsTimedOut;
         
+        /// <summary>
+        ///   <para>累计时间</para>
+        /// </summary>
         public readonly float ElapsedTime => m_ElapsedTime;
-
         
+        /// <summary>
+        ///   <para>是否超时</para>
+        /// </summary>
+        public readonly bool IsTimedOut => m_IsTimedOut;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         BTNodeResult IBTNode.Run(ref BTNodeRunContext ctx)
         {

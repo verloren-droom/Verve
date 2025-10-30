@@ -7,6 +7,26 @@ namespace Verve.UniEx
     using System.Collections;
     
     
+    /// <summary>
+    ///   <para>游戏功能子模块基类</para>
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// [Serializable, GameFeatureSubmodule(typeof(MyGameFeature))]
+    /// public class MyGameFeatureSubmodule : GameFeatureSubmodule
+    /// {
+    ///     protected override IEnumerator OnStartup()
+    ///     {
+    ///         // 启动逻辑
+    ///         yield break;
+    ///     }
+    ///     protected override void OnShutdown()
+    ///     {
+    ///         // 停止逻辑
+    ///     }
+    /// }
+    /// </code>
+    /// </example>
     [Serializable]
     public abstract class GameFeatureSubmodule : IGameFeatureSubmodule
     {
@@ -34,21 +54,19 @@ namespace Verve.UniEx
         void IGameFeatureSubmodule.Shutdown()
         {
             OnShutdown();
-            GC.SuppressFinalize(this);
+            ((IGameFeatureSubmodule)this).Dispose();
         }
     
         /// <summary>
-        /// 启动子模块
+        ///   <para>启动子模块</para>
+        ///   <para>如果需要进行异步初始化，请返回一个IEnumerator；如果只进行同步初始化，请返回null或空方法</para>
         /// </summary>
-        /// <remarks>
-        /// 如果需要进行异步初始化，请返回一个IEnumerator；如果只进行同步初始化，请返回null或空方法
-        /// </remarks>
         protected virtual IEnumerator OnStartup() { yield break; }
     
         protected virtual void OnShutdown() { }
     
         /// <summary>
-        /// 异步启动协程
+        ///   <para>异步启动协程</para>
         /// </summary>
         internal IEnumerator StartupCoroutine()
         {
@@ -80,17 +98,26 @@ namespace Verve.UniEx
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        ///   <para>释放资源</para>
+        /// </summary>
         protected virtual void Dispose(bool disposing) { }
     }
     
     
+    /// <summary>
+    ///   <para>模块组件子模块基类</para>
+    /// </summary>
+    /// <typeparam name="T">游戏组件类型</typeparam>
     [Serializable]
     public abstract class GameFeatureSubmodule<T> : GameFeatureSubmodule, IComponentGameFeatureSubmodule
         where T : GameFeatureComponent
     {
         [SerializeField, HideInInspector, Tooltip("绑定的模块组件")] private T m_Component;
         
-        /// <summary> 绑定的模块组件 </summary>
+        /// <summary>
+        ///   <para>绑定的模块组件</para>
+        /// </summary>
         protected T Component 
         { 
             get

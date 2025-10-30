@@ -13,7 +13,7 @@ namespace Verve.UniEx.Net
     
     
     /// <summary>
-    /// Http客户端
+    ///   <para>Http客户端</para>
     /// </summary>
     [Serializable, GameFeatureSubmodule(typeof(NetworkGameFeature), Description = "Http客户端")]
     public partial class HttpClientNetwork : GameFeatureSubmodule, ITransientConnection

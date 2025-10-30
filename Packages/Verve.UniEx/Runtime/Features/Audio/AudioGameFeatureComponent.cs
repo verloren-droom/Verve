@@ -7,7 +7,7 @@ namespace Verve.UniEx.Audio
     
     
     /// <summary>
-    /// 音频游戏功能组件
+    ///   <para>音频游戏功能组件</para>
     /// </summary>
     [System.Serializable, GameFeatureComponentMenu("Verve/Audio")]
     public sealed class AudioGameFeatureComponent : GameFeatureComponent
@@ -18,13 +18,24 @@ namespace Verve.UniEx.Audio
         [SerializeField, Tooltip("语音分组")] private GameFeatureParameter<AudioMixerGroup> m_VoiceGroup = new GameFeatureParameter<AudioMixerGroup>();
         
         
-        /// <summary> 音频混合器 </summary>
+        /// <summary>
+        ///   <para>音频混合器</para>
+        /// </summary>
         public AudioMixer Mixer => m_Mixer.Value;
-        /// <summary> 音乐分组 </summary>
+
+        /// <summary>
+        ///   <para>音乐分组</para>
+        /// </summary>
         public AudioMixerGroup MusicGroup => m_MusicGroup.Value;
-        /// <summary> 音效分组 </summary>
+        
+        /// <summary>
+        ///   <para>音效分组</para>
+        /// </summary>
         public AudioMixerGroup SoundEffectGroup => m_SoundEffectGroup.Value;
-        /// <summary> 语音分组 </summary>
+        
+        /// <summary>
+        ///   <para>语音分组</para>
+        /// </summary>
         public AudioMixerGroup VoiceGroup => m_VoiceGroup.Value;
     }
 }

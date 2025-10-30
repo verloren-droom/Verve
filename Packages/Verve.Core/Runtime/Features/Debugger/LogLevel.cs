@@ -1,20 +1,34 @@
 namespace Verve.Debug
 {
     /// <summary>
-    /// 日志等级
+    ///   <para>日志等级</para>
     /// </summary>
     [System.Serializable]
     public enum LogLevel
     {
-        /// <summary> 错误 </summary>
+        /// <summary>
+        ///   <para>错误</para>
+        /// </summary>
         Error,
-        /// <summary> 警告 </summary>
+        
+        /// <summary>
+        ///   <para>警告</para>
+        /// </summary>
         Warning,
-        /// <summary> 日志 </summary>
+        
+        /// <summary>
+        ///   <para>日志</para>
+        /// </summary>
         Log,
-        /// <summary> 异常 </summary>
+        
+        /// <summary>
+        ///   <para>异常</para>
+        /// </summary>
         Exception,
-        /// <summary> 断言 </summary>
+        
+        /// <summary>
+        ///   <para>断言</para>
+        /// </summary>
         Assert,
     }
 }

@@ -16,20 +16,22 @@ namespace Verve.UniEx.Loader
 
 
     /// <summary>
-    /// 可寻址资源加载器
+    ///   <para>可寻址资源加载器</para>
     /// </summary>
     [System.Serializable, GameFeatureSubmodule(typeof(LoaderGameFeature), Description = "可寻址资源加载器")]
     public sealed partial class AddressablesLoader : LoaderSubmodule, IHotUpdateUpdater
     {
+        /// <summary>
+        ///   <para>资源句柄字典</para>
+        /// </summary>
         private readonly Dictionary<string, AsyncOperationHandle> m_AssetHandles = new Dictionary<string, AsyncOperationHandle>();
+        
+        /// <summary>
+        ///   <para>场景句柄字典</para>
+        /// </summary>
         private readonly Dictionary<string, AsyncOperationHandle> m_SceneHandles = new Dictionary<string, AsyncOperationHandle>();
 
-
-        /// <summary>
-        /// 检查更新
-        /// </summary>
-        /// <param name="ct"></param>
-        /// <returns></returns>
+        
         public async Task<IEnumerable<string>> CheckForUpdatesAsync(CancellationToken ct = default)
         {
             var handle = Addressables.CheckForCatalogUpdates(false);
@@ -43,12 +45,6 @@ namespace Verve.UniEx.Loader
             return null;
         }
 
-        /// <summary>
-        /// 应用更新
-        /// </summary>
-        /// <param name="catalogs">要更新的目录列表</param>
-        /// <param name="onProgress">进度回调函数，参数为进度百分比</param>
-        /// <param name="ct">取消令牌</param>
         public async Task ApplyUpdatesAsync(IEnumerable<string> catalogs, Action<float> onProgress = null, CancellationToken ct = default)
         {
             if (catalogs == null || !catalogs.Any()) 

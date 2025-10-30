@@ -3,11 +3,17 @@
 namespace Verve.UniEx.AI
 {
     /// <summary>
-    /// 节点调试可视化接口
+    ///   <para>节点调试可视化接口</para>
     /// </summary>
     public interface IBTNodeDebugVisualizer : IBTNodeDebuggable
     {
+        /// <summary>
+        ///   <para>绘制调试GUI</para>
+        /// </summary>
         void DrawDebugGUI();
+        /// <summary>
+        ///   <para>绘制Gizmos</para>
+        /// </summary>
         void DrawGizmos();
     }
 }

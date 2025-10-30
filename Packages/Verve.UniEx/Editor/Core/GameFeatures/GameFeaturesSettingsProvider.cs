@@ -1,18 +1,16 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
-    using System;
-    using System.Linq;
-    using Verve.UniEx;
     using UnityEditor;
-    using UnityEngine;
-    using System.Reflection;
     using UnityEngine.UIElements;
     using System.Collections.Generic;
     using Object = UnityEngine.Object;
 
     
+    /// <summary>
+    ///   <para>游戏功能设置提供者</para>
+    /// </summary>
     internal class GameFeaturesSettingsProvider : SettingsProvider
     {
         private Editor m_Editor;
@@ -31,6 +29,10 @@ namespace VerveEditor.UniEx
             m_Editor?.OnInspectorGUI();
         }
 
+        /// <summary>
+        ///   <para>创建游戏功能设置</para>
+        /// </summary>
+        /// <returns></returns>
         [SettingsProvider]
         public static SettingsProvider CreateGameFeaturesSettingsProvider()
         {

@@ -1,7 +1,7 @@
 namespace Verve.MVC
 {
     /// <summary>
-    /// MVC视图扩展类
+    ///   <para>MVC视图扩展类</para>
     /// </summary>
     public static class ViewExtension
     {

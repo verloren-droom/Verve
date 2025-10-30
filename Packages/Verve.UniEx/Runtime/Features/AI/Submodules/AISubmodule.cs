@@ -2,6 +2,9 @@
 
 namespace Verve.UniEx.AI
 {
+    /// <summary>
+    ///   <para>AI子子模块</para>
+    /// </summary>
     [GameFeatureSubmodule(typeof(AIGameFeature))]
     public sealed partial class AISubmodule : TickableGameFeatureSubmodule
     {

@@ -7,16 +7,23 @@ namespace Verve.UniEx
     
 
     /// <summary>
-    /// 游戏功能上下文 - 存放游戏功能执行所需的上下文信息
+    ///   <para>游戏功能上下文</para>
+    ///   <para>存放游戏功能执行所需的上下文信息</para>
     /// </summary>
     [Serializable]
     public readonly struct GameFeatureContext : IGameFeatureContext
     {
-        /// <summary> 增量帧时间 </summary>
+        /// <summary>
+        ///   <para>增量帧时间</para>
+        /// </summary>
         public readonly float DeltaTime;
-        /// <summary> 运行总时间 </summary>
+        /// <summary>
+        ///   <para>运行总时间</para>
+        /// </summary>
         public readonly float Time;
-        /// <summary> 帧数 </summary>
+        /// <summary>
+        ///   <para>运行帧数</para>
+        /// </summary>
         public readonly int FrameCount;
         
         
@@ -28,7 +35,9 @@ namespace Verve.UniEx
             FrameCount = frameCount;
         }
         
-        /// <summary> 默认上下文 </summary>
+        /// <summary>
+        ///   <para>默认游戏功能上下文</para>
+        /// </summary>
         public static GameFeatureContext Default
             => new GameFeatureContext(UnityEngine.Time.deltaTime, UnityEngine.Time.time, UnityEngine.Time.frameCount);
     }

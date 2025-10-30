@@ -10,38 +10,47 @@ namespace Verve.UniEx.AI
     [Serializable]
     public enum ForceResultMode : byte
     {
-        /// <summary> 反转结果（成功变失败，失败变成功） </summary>
+        /// <summary>
+        ///   <para>反转结果（成功变失败，失败变成功）</para>
+        /// </summary>
         Invert,
-        /// <summary> 强制结果为成功 </summary>
+        /// <summary>
+        ///   <para>强制结果为成功</para>
+        /// </summary>
         ForceSuccess,
-        /// <summary> 强制结果为失败 </summary>
+        /// <summary>
+        ///   <para>强制结果为失败</para>
+        /// </summary>
         ForceFailure
     }
 
     
     /// <summary>
-    /// 强制结果节点数据
+    ///   <para>强制结果节点数据</para>
     /// </summary>
     [Serializable]
     public struct ResultModifierBTNodeData : INodeData
     {
-        /// <summary> 子节点 </summary>
+        /// <summary>
+        ///   <para>子节点</para>
+        /// </summary>
         [NotNull] public IBTNode child;
-        /// <summary> 强制结果模式 </summary>
+        /// <summary>
+        ///   <para>强制结果模式</para>
+        /// </summary>
         public ForceResultMode resultMode;
     }
 
 
     /// <summary>
-    /// 强制结果节点（修改子节点的执行结果）
+    ///   <para>强制结果节点（修改子节点的执行结果）</para>
     /// </summary>
-    /// <remarks>
-    /// 强制修改子节点的执行结果
-    /// </remarks>
     [CustomBTNode(nameof(ForceResultBTNode)), Serializable]
     public struct ForceResultBTNode : ICompositeBTNode
     {
-        /// <summary> 节点数据 </summary>
+        /// <summary>
+        ///   <para>节点数据</para>
+        /// </summary>
         public ResultModifierBTNodeData data;
         public BTNodeResult LastResult { get; private set; }
         

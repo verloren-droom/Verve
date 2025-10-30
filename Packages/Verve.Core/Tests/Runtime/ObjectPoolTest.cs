@@ -1,3 +1,5 @@
+#if UNITY_INCLUDE_TESTS
+
 namespace Verve.Tests
 {
     using NUnit.Framework;
@@ -57,3 +59,5 @@ namespace Verve.Tests
         }
     }
 }
+
+#endif

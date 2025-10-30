@@ -8,7 +8,8 @@ namespace Verve.UniEx
     
 
     /// <summary>
-    /// 游戏功能组件 - 用于管理游戏功能参数，仅用于参数声明供功能子模块使用，不应该在类中执行逻辑代码
+    ///   <para>游戏功能组件基类</para>
+    ///   <para>用于管理游戏功能参数，仅用于参数声明供功能子模块使用，不应该在类中执行逻辑代码</para>
     /// </summary>
     [Serializable]
     public abstract class GameFeatureComponent : ScriptableObject, IGameFeatureComponent
@@ -18,7 +19,7 @@ namespace Verve.UniEx
         public IReadOnlyCollection<IGameFeatureParameter> Parameters => m_Parameters.AsReadOnly();
         
 
-        public virtual void OnEnable()
+        protected virtual void OnEnable()
         {
             // this.FindParameters(m_Parameters);
             if (m_Parameters == null)
@@ -29,7 +30,7 @@ namespace Verve.UniEx
             }
         }
         
-        public virtual void OnDisable()
+        protected virtual void OnDisable()
         {
             if (m_Parameters == null)
                 return;
@@ -40,6 +41,9 @@ namespace Verve.UniEx
             }
         }
         
+        /// <summary>
+        ///   <para>释放参数资源</para>
+        /// </summary>
         public void Release()
         {
             if (m_Parameters == null)

@@ -6,7 +6,7 @@ namespace Verve.UniEx.AI
     
     
     /// <summary>
-    /// 延时节点数据
+    ///   <para>延时节点数据</para>
     /// </summary>
     [Serializable]
     public struct DelayBTNodeData : INodeData
@@ -14,38 +14,48 @@ namespace Verve.UniEx.AI
         [Serializable]
         public enum DelayResetMode : byte
         {
-            /// <summary> 重新开始延时计时 </summary>
+            /// <summary>
+            ///   <para>重新开始延时计时</para>
+            /// </summary>
             Restart,
-            /// <summary> 仅生效一次延时计时 </summary>
+            /// <summary>
+            ///   <para>仅生效一次延时计时</para>
+            /// </summary>
             Once
         }
 
 
-        /// <summary> 等待时长（秒） </summary>
+        /// <summary>
+        ///   <para>等待时长（秒）</para>
+        /// </summary>
         public float duration;
-        /// <summary> 重置模式 </summary>
+        /// <summary>
+        ///   <para>重置模式</para>
+        /// </summary>
         public DelayResetMode resetMode;
     }
 
 
     /// <summary>
-    /// 延迟执行节点
+    ///   <para>延迟执行节点</para>
+    ///   <para>定时等待，直到指定时长结束，才返回成功</para>
     /// </summary>
-    /// <remarks>
-    /// 定时等待，直到指定时长结束，才返回成功
-    /// </remarks>
     [CustomBTNode(nameof(DelayBTNode)), Serializable]
     public struct DelayBTNode : IBTNode, IBTNodeResettable
     {
         public DelayBTNodeData data;
         public BTNodeResult LastResult { get; private set; }
 
-        /// <summary> 累计时间 </summary>
         private float m_ElapsedTime;
-        /// <summary> 是否完成 </summary>
         private bool m_IsCompleted;
         
+        /// <summary>
+        ///   <para>累计时间</para>
+        /// </summary>
         public readonly float ElapsedTime => m_ElapsedTime;
+        /// <summary>
+        ///   <para>是否完成</para>
+        /// </summary>
         public readonly bool IsCompleted => m_IsCompleted;
 
 

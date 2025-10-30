@@ -3,7 +3,6 @@
 namespace Verve.UniEx.Loader
 {
     using System;
-    using System.Linq;
     using UnityEngine;
     using System.Threading;
     using System.Collections;
@@ -13,15 +12,25 @@ namespace Verve.UniEx.Loader
 
     
     /// <summary>
-    /// AssetBundle加载器 - 通过AssetBundle加载资源
+    ///   <para>AssetBundle加载器</para>
+    ///   <para>通过AssetBundle加载资源</para>
     /// </summary>
     [Serializable, GameFeatureSubmodule(typeof(LoaderGameFeature), Description = "AssetBundle加载器 - 通过AssetBundle加载资源")]
     public sealed partial class BundleLoader : LoaderSubmodule
     {
-        /// <summary> 分包缓存 </summary>
+        /// <summary>
+        ///   <para>分包缓存</para>
+        /// </summary>
         private readonly Dictionary<string, BundleRef> m_Loaded = new Dictionary<string, BundleRef>();
+        
+        /// <summary>
+        ///   <para>互斥锁</para>
+        /// </summary>
         private readonly SemaphoreSlim m_Semaphore = new SemaphoreSlim(1, 1);
-        /// <summary> 分包引用清单 </summary>
+        
+        /// <summary>
+        ///   <para>分包引用清单</para>
+        /// </summary>
         private AssetBundleManifest m_Manifest;
 
         
@@ -109,7 +118,7 @@ namespace Verve.UniEx.Loader
         }
 
         /// <summary>
-        /// 同步加载Bundle及依赖
+        ///   <para>同步加载Bundle及依赖</para>
         /// </summary>
         /// <param name="bundle">分包</param>
         private void LoadBundleAndDeps(string bundle)
@@ -127,10 +136,10 @@ namespace Verve.UniEx.Loader
         }
         
         /// <summary>
-        /// 异步加载Bundle及依赖
+        ///   <para>异步加载Bundle及依赖</para>
         /// </summary>
-        /// <param name="bundle"></param>
-        /// <param name="ct"></param>
+        /// <param name="bundle">分包</param>
+        /// <param name="ct">取消令牌</param>
         private async Task LoadBundleAndDepsAsync(string bundle, CancellationToken ct)
         {
             await m_Semaphore.WaitAsync(ct);
@@ -156,19 +165,41 @@ namespace Verve.UniEx.Loader
         }
 
         /// <summary>
-        /// 分包引用计数
+        ///   <para>分包引用计数</para>
         /// </summary>
         private sealed class BundleRef
         {
+            /// <summary>
+            ///   <para>分包</para>
+            /// </summary>
             public AssetBundle Bundle { get; }
+            
+            /// <summary>
+            ///   <para>引用计数</para>
+            /// </summary>
             public int RefCount { get; private set; }
+            
             private readonly HashSet<int> m_InstanceIds = new HashSet<int>();
 
             public BundleRef(AssetBundle ab) { Bundle = ab; RefCount = 1; }
 
+            /// <summary>
+            ///   <para>增加引用计数</para>
+            /// </summary>
             public void Retain() => ++RefCount;
+            
+            /// <summary>
+            ///   <para>减少引用计数</para>
+            /// </summary>
             public void Release() => --RefCount;
 
+            /// <summary>
+            ///   <para>判断分包内是否包含指定资源</para>
+            /// </summary>
+            /// <param name="asset">资源</param>
+            /// <returns>
+            ///   <para>包含返回true</para>
+            /// </returns>
             public bool ContainsAsset(Object asset)
             {
                 if (asset == null) return false;

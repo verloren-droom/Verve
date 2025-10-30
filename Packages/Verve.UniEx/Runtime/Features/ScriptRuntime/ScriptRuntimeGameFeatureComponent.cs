@@ -1,23 +1,19 @@
-using UnityEngine.Serialization;
-
 #if UNITY_5_3_OR_NEWER
 
 namespace Verve.UniEx.ScriptRuntime
 {
     using System;
     using UnityEngine;
-    using System.Collections.Generic;
 
     
+    /// <summary>
+    ///   <para>脚本运行时功能组件</para>
+    /// </summary>
     [Serializable, GameFeatureComponentMenu("Verve/ScriptRuntime")]
     public sealed class ScriptRuntimeGameFeatureComponent : GameFeatureComponent
     {
         [SerializeField, Tooltip("AOT程序集目录")] private PathParameter m_AOTAssemblyFolder
             = new PathParameter("");
-        /// <summary>
-        /// AOT程序集目录
-        /// </summary>
-        public string AOTAssemblyFolder => m_AOTAssemblyFolder.Value;
         
         [SerializeField, Tooltip("AOT程序集补充元数据列表")] private GameFeatureParameter<string[]> m_PatchedAOTAssemblyNames
             = new GameFeatureParameter<string[]>(new []
@@ -33,20 +29,30 @@ namespace Verve.UniEx.ScriptRuntime
             "Verve.Loader",
             "Verve.UniEx.Loader",
         });
-        /// <summary>
-        /// AOT程序集补充元数据列表
-        /// </summary>
-        public string[] PatchedAOTAssemblyNames => m_PatchedAOTAssemblyNames.Value;
 
         [SerializeField, Tooltip("程序集对应的热更资源配置路径")] private GameFeatureParameter<AssemblyFeaturePath[]> m_AssemblyFeatureMappings
             = new GameFeatureParameter<AssemblyFeaturePath[]>(Array.Empty<AssemblyFeaturePath>());
+        
         /// <summary>
-        /// 程序集对应的热更资源配置路径
+        ///   <para>AOT程序集目录</para>
+        /// </summary>
+        public string AOTAssemblyFolder => m_AOTAssemblyFolder.Value;
+        
+        /// <summary>
+        ///   <para>AOT程序集补充元数据列表</para>
+        /// </summary>
+        public string[] PatchedAOTAssemblyNames => m_PatchedAOTAssemblyNames.Value;
+        
+        /// <summary>
+        ///   <para>程序集对应的热更资源配置路径</para>
         /// </summary>
         public AssemblyFeaturePath[] AssemblyFeatureMappings => m_AssemblyFeatureMappings.Value;
     }
     
     
+    /// <summary>
+    ///   <para>程序集对应的热更资源配置</para>
+    /// </summary>
     [Serializable]
     public class AssemblyFeaturePath
     {

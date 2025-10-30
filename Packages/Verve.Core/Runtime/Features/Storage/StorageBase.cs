@@ -7,7 +7,7 @@ namespace Verve.Storage
 
     
     /// <summary>
-    /// 存储基类
+    ///   <para>存储基类</para>
     /// </summary>
     public abstract class StorageBase : IStorage
     {

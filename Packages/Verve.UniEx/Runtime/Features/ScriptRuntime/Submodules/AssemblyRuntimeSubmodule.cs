@@ -11,7 +11,7 @@ namespace Verve.UniEx.ScriptRuntime
 
 
     /// <summary>
-    /// 程序集运行时子模块基类
+    ///   <para>程序集运行时子模块基类</para>
     /// </summary>
     public abstract class AssemblyRuntimeSubmodule : GameFeatureSubmodule<ScriptRuntimeGameFeatureComponent>, IAssemblyRuntime
     {
@@ -82,6 +82,13 @@ namespace Verve.UniEx.ScriptRuntime
             return methodInfo.Invoke(instance, args);
         }
         
+        /// <summary>
+        ///   <para>获取类型</para>
+        /// </summary>
+        /// <param name="typeName">类型名称</param>
+        /// <returns>
+        ///   <para>类型</para>
+        /// </returns>
         protected static Type GetType(string typeName)
         {
             return Type.GetType(typeName) ?? AppDomain.CurrentDomain.GetAssemblies()

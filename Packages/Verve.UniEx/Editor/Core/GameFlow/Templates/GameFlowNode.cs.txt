@@ -1,0 +1,28 @@
+#if UNITY_5_3_OR_NEWER
+
+using System;
+using Verve.UniEx;
+using System.Threading;
+using System.Threading.Tasks;
+
+
+    #ROOTNAMESPACEBEGIN#
+/// <summary>
+///   <para>#SCRIPTNAME#.cs</para>
+/// </summary>
+[Serializable, GameFlowNode("#SCRIPTNAME#", "#SCRIPTNAME#")]
+public class #SCRIPTNAME# : GameFlowNode
+{
+    [GameFlowOutput("Out")] private readonly IGameFlowNode m_OutNode;
+    
+    /// <summary>
+    ///   <para>执行</para>
+    /// </summary>
+    protected override async Task OnExecute(CancellationToken ct)
+    {
+        #NOTRIM#
+    }
+}
+#ROOTNAMESPACEEND#
+
+#endif

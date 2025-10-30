@@ -7,22 +7,22 @@ namespace Verve.UniEx.AI
     
     
     /// <summary>
-    /// 选择节点数据
+    ///   <para>选择节点数据</para>
     /// </summary>
     [Serializable]
     public struct SelectorBTNodeData : INodeData
     {
-        /// <summary> 子节点 </summary>
+        /// <summary>
+        ///   <para>子节点</para>
+        /// </summary>
         public IBTNode[] children;
     }
     
     
     /// <summary>
-    /// 选择节点
+    ///   <para>选择节点</para>
+    ///   <para>顺序执行子节点，直到某个子节点成功，停止执行剩余子节点</para>
     /// </summary>
-    /// <remarks>
-    /// 顺序执行子节点，直到某个子节点成功，停止执行剩余子节点
-    /// </remarks>
     [CustomBTNode(nameof(SelectorBTNode)), Serializable]
     public struct SelectorBTNode : ICompositeBTNode, IBTNodeResettable
     {

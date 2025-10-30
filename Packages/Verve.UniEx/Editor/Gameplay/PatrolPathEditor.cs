@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx.Gameplay
+namespace VerveEditor.Gameplay
 {
     using System.Linq;
     using UnityEditor;
@@ -8,6 +8,9 @@ namespace VerveEditor.UniEx.Gameplay
     using Verve.UniEx.Gameplay;
     
     
+    /// <summary>
+    ///   <para>巡逻点编辑器</para>
+    /// </summary>
     [CustomEditor(typeof(PatrolPath))]
     public class PatrolPathEditor : Editor
     {

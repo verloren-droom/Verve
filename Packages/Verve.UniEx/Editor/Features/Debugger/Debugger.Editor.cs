@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
     
-namespace VerveEditor.UniEx.Debugger
+namespace VerveEditor.Debugger
 {
     using System;
     using System.IO;
@@ -13,10 +13,13 @@ namespace VerveEditor.UniEx.Debugger
     using System.Text.RegularExpressions;
     
     
+    /// <summary>
+    ///   <para>调试器编辑器</para>
+    /// </summary>
     internal sealed partial class DebuggerEditor
     {
         /// <summary>
-        /// 跳过的调试器类文件列表
+        ///   <para>跳过的调试器类文件列表</para>
         /// </summary>
         private static readonly HashSet<string> DEBUGGER_CLASS_NAMES = new HashSet<string>(AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes())
@@ -25,7 +28,7 @@ namespace VerveEditor.UniEx.Debugger
             StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// 调用栈正则
+        ///   <para>调用栈正则</para>
         /// </summary>
         private static readonly Regex STACK_TRACE_REGEX = new Regex(
             @"\(at (.+?):(\d+)\)", 

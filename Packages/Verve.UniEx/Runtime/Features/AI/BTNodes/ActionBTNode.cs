@@ -1,3 +1,5 @@
+#if UNITY_5_3_OR_NEWER
+
 namespace Verve.UniEx.AI
 {
     using System;
@@ -6,23 +8,23 @@ namespace Verve.UniEx.AI
     
     
     /// <summary>
-    /// 动作节点数据
+    ///   <para>动作节点数据</para>
     /// </summary>
     [Serializable]
     public struct ActionBTNodeData : INodeData
     {
-        /// <summary> 动作回调 </summary>
+        /// <summary>
+        ///   <para>动作回调</para>
+        /// </summary>
         [NonSerialized]
         public Func<IBlackboard, BTNodeResult> callback;
     }
 
 
     /// <summary>
-    /// 动作节点
+    ///   <para>动作节点</para>
+    ///   <para>通过回调函数执行具体行为，回调返回值决定节点结果</para>
     /// </summary>
-    /// <remarks>
-    /// 通过回调函数执行具体行为，回调返回值决定节点结果
-    /// </remarks>
     [CustomBTNode(nameof(ActionBTNode)), Serializable]
     public struct ActionBTNode : IBTNode
     {
@@ -38,3 +40,5 @@ namespace Verve.UniEx.AI
         }
     }
 }
+
+#endif

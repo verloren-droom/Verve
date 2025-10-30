@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 
-namespace VerveEditor.UniEx
+namespace VerveEditor
 {
     using System;
     using Verve.UniEx;
@@ -11,6 +11,9 @@ namespace VerveEditor.UniEx
     using System.Collections.Generic;
     
     
+    /// <summary>
+    ///   <para>类型引用属性绘制器</para>
+    /// </summary>
     [CustomPropertyDrawer(typeof(TypeReference<>))]
     public class TypeReferencePropertyDrawer : PropertyDrawer
     {

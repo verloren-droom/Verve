@@ -11,7 +11,7 @@ namespace Verve.UniEx.AI
     
     
     /// <summary>
-    /// 导航网格移动节点数据
+    ///   <para>导航网格移动节点数据</para>
     /// </summary>
     [Serializable]
     public struct NavMeshMoveBTNodeData : INodeData
@@ -33,11 +33,9 @@ namespace Verve.UniEx.AI
 
 
     /// <summary>
-    /// 导航网格移动节点
+    ///   <para>导航网格移动节点</para>
+    ///   <para>基于NavMeshAgent的智能移动，节点会自动处理寻路逻辑，并自动处理移动状态</para>
     /// </summary>
-    /// <remarks>
-    /// 基于NavMeshAgent的智能移动，节点会自动处理寻路逻辑，并自动处理移动状态
-    /// </remarks>
     [CustomBTNode(nameof(NavMeshMoveBTNode)), Serializable]
     public struct NavMeshMoveBTNode : IBTNode, IBTNodeResettable, IBTNodeDebuggable, IBTNodePreparable
     {

@@ -8,7 +8,8 @@ namespace Verve.UniEx
     
 
     /// <summary>
-    /// 游戏功能访问工具类 - 提供全局访问游戏功能组件和子模块的便捷方法
+    ///   <para>游戏功能访问工具类</para>
+    ///   <para>封装了游戏功能组件和子模块的访问方法</para>
     /// </summary>
     public static class GameFeatures
     {
@@ -30,8 +31,12 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 尝试获取游戏功能组件
+        ///   <para>尝试获取游戏功能组件</para>
         /// </summary>
+        /// <param name="component">游戏功能组件</param>
+        /// <returns>
+        ///   <para>成功获取返回true</para>
+        /// </returns>
         public static bool TryGetComponent<T>(out T component)
             where T : GameFeatureComponent
         {
@@ -55,6 +60,14 @@ namespace Verve.UniEx
             return false;
         }
         
+        /// <summary>
+        ///   <para>尝试获取游戏功能组件</para>
+        /// </summary>
+        /// <param name="type">游戏功能组件类型</param>
+        /// <param name="component">游戏功能组件</param>
+        /// <returns>
+        ///   <para>成功获取返回true</para>
+        /// </returns>
         public static bool TryGetComponent(Type type, out GameFeatureComponent component)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
@@ -80,8 +93,12 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 获取游戏功能组件
+        ///   <para>获取游戏功能组件</para>
         /// </summary>
+        /// <typeparam name="T">游戏功能组件类型</typeparam>
+        /// <returns>
+        ///   <para>游戏功能组件</para>
+        /// </returns>
         public static T GetComponent<T>()
             where T : GameFeatureComponent
         {
@@ -89,6 +106,13 @@ namespace Verve.UniEx
             return component;
         }
         
+        /// <summary>
+        ///   <para>获取游戏功能组件</para>
+        /// </summary>
+        /// <param name="type">游戏功能组件类型</param>
+        /// <returns>
+        ///   <para>游戏功能组件</para>
+        /// </returns>
         public static GameFeatureComponent GetComponent(Type type)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
@@ -99,8 +123,13 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 尝试获取游戏功能子模块
+        ///  <para>尝试获取游戏功能子模块</para>
         /// </summary>
+        /// <typeparam name="T">游戏功能子模块类型</typeparam>
+        /// <param name="submodule">游戏功能子模块</param>
+        /// <returns>
+        ///   <para>成功获取返回true</para>
+        /// </returns>
         public static bool TryGetSubmodule<T>(out T submodule)
             where T : class, IGameFeatureSubmodule
         {
@@ -109,12 +138,12 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 获取游戏功能子模块
+        ///   <para>获取游戏功能子模块</para>
         /// </summary>
         /// <param name="typeName">类型名 [命名空间.类名, 程序集名]</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="ArgumentException"></exception>
+        /// <returns>
+        ///   <para>游戏功能子模块</para>
+        /// </returns>
         public static IGameFeatureSubmodule GetSubmodule(string typeName)
         {
             if (string.IsNullOrEmpty(typeName)) throw new ArgumentNullException(nameof(typeName));
@@ -123,6 +152,13 @@ namespace Verve.UniEx
             return GetSubmodule(type);
         }
 
+        /// <summary>
+        ///   <para>获取游戏功能子模块</para>
+        /// </summary>
+        /// <param name="type">游戏功能子模块类型</param>
+        /// <returns>
+        ///   <para>游戏功能子模块</para>
+        /// </returns>
         public static IGameFeatureSubmodule GetSubmodule(Type type)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
@@ -149,8 +185,12 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 获取游戏功能子模块
+        ///  <para>获取游戏功能子模块</para>
         /// </summary>
+        /// <typeparam name="T">游戏功能子模块类型</typeparam>
+        /// <returns>
+        ///   <para>游戏功能子模块</para>
+        /// </returns>
         public static T GetSubmodule<T>()
             where T : class, IGameFeatureSubmodule
         {
@@ -158,6 +198,10 @@ namespace Verve.UniEx
             return GetSubmodule(type) as T;
         }
 
+        /// <summary>
+        ///   <para>添加模块（需要等一帧调用）</para>
+        /// </summary>
+        /// <param name="module">功能模块</param>
         public static void AddModule(GameFeatureModule module)
         {
             if (module == null) throw new ArgumentNullException(nameof(module));
@@ -165,13 +209,19 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 添加模块（需要等一帧调用）
+        ///   <para>添加模块（需要等一帧调用）</para>
         /// </summary>
         /// <param name="menuPath">菜单路径</param>
-        /// <returns></returns>
+        /// <returns>
+        ///   <para>成功添加返回true</para>
+        /// </returns>
         public static bool AddModule(string menuPath)
             => GameFeaturesRunner.Instance.AddModule(menuPath);
         
+        /// <summary>
+        ///   <para>移除模块（需要等一帧调用）</para>
+        /// </summary>
+        /// <param name="module">功能模块</param>
         public static void RemoveModule(GameFeatureModule module)
         {
             if (module == null) throw new ArgumentNullException(nameof(module));
@@ -179,32 +229,42 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 移除模块（需要等一帧调用）
+        ///   <para>移除模块（需要等一帧调用）</para>
         /// </summary>
         /// <param name="menuPath">菜单路径</param>
-        /// <returns></returns>
+        /// <returns>
+        ///   <para>成功移除返回true</para>
+        /// </returns>
         public static bool RemoveModule(string menuPath)
             => GameFeaturesRunner.Instance.RemoveModule(menuPath);
         
         /// <summary>
-        /// 获取模块是否激活
+        ///   <para>获取模块是否激活</para>
         /// </summary>
         /// <param name="menuPath">菜单路径</param>
-        /// <returns></returns>
+        /// <returns>
+        ///   <para>模块是否激活</para>
+        /// </returns>
         public static bool GetModuleActive(string menuPath)
             => GameFeaturesRunner.Instance.GetModuleActive(menuPath);
         
         /// <summary>
-        /// 设置模块激活
+        ///   <para>设置模块激活</para>
         /// </summary>
         /// <param name="menuPath">菜单路径</param>
         /// <param name="isActive">是否激活</param>
+        /// <returns>
+        ///   <para>成功设置返回true</para>
+        /// </returns>
         public static bool SetModuleActive(string menuPath, bool isActive)
             => GameFeaturesRunner.Instance.SetModuleActive(menuPath, isActive);
         
         /// <summary>
-        /// 调用模块方法
+        ///   <para>调用模块方法</para>
         /// </summary>
+        /// <typeparam name="TSubmodule">子模块类型</typeparam>
+        /// <typeparam name="TResult">返回值类型</typeparam>
+        /// <param name="expression">方法表达式</param>
         public static TResult CallSubmoduleMethod<TSubmodule, TResult>(Expression<Func<TSubmodule, TResult>> expression)
             where TSubmodule : class, IGameFeatureSubmodule
         {
@@ -217,8 +277,10 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 调用模块方法
+        ///   <para>调用模块方法</para>
         /// </summary>
+        /// <typeparam name="TSubmodule">子模块类型</typeparam>
+        /// <param name="expression">方法表达式</param>
         public static void CallSubmoduleMethod<TSubmodule>(Expression<Action<TSubmodule>> expression)
             where TSubmodule : class, IGameFeatureSubmodule
         {
@@ -231,9 +293,9 @@ namespace Verve.UniEx
         }
 
         /// <summary>
-        /// 清除缓存（在模块变化时调用）
+        ///   <para>清除缓存（在模块变化时调用）</para>
         /// </summary>
-        internal static void ClearCache()
+        private static void ClearCache()
         {
             s_ComponentCache.Clear();
             s_SubmoduleCache.Clear();

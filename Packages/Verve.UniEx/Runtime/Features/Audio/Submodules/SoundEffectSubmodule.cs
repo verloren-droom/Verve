@@ -14,7 +14,8 @@ namespace Verve.UniEx.Audio
 
 
     /// <summary>
-    /// 音效子模块 - 提供操作反馈与环境代入感
+    ///   <para>音效子模块</para>
+    ///   <para>提供操作反馈与环境代入感</para>
     /// </summary>
     [Serializable, GameFeatureSubmodule(typeof(AudioGameFeature), Description = "音效子模块 - 提供操作反馈与环境代入感")]
     public sealed partial class SoundEffectSubmodule : AudioSubmodule
@@ -76,8 +77,16 @@ namespace Verve.UniEx.Audio
         }
 
         /// <summary>
-        /// 播放音效
+        ///   <para>播放音效</para>
         /// </summary>
+        /// <param name="clip">音频片段</param>
+        /// <param name="volume">音量</param>
+        /// <param name="target">目标位置</param>
+        /// <param name="pitch">音调</param>
+        /// <param name="minDistance">最小距离</param>
+        /// <param name="maxDistance">最大距离</param>
+        /// <param name="spatialBlend">空间混合</param>
+        /// <param name="panStereo">立体声</param>
         public async Task Play(AudioClip clip, float volume = 1.0f, Vector3? target = null, float pitch = 1.0f, float minDistance = 1.0f, float maxDistance = 500.0f, float spatialBlend = 1.0f, float panStereo = 0.0f)
         {
             if (!m_Pool.TryGet(out var audio) || clip == null) return;
@@ -102,31 +111,52 @@ namespace Verve.UniEx.Audio
             }
         }
 
+        /// <summary>
+        ///   <para>暂停播放</para>
+        /// </summary>
+        /// <param name="clip">音频片段</param>
         public void Pause(AudioClip clip)
         {
             m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.Pause();
         }
 
+        /// <summary>
+        ///   <para>恢复播放</para>
+        /// </summary>
+        /// <param name="clip">音频片段</param>
         public void UnPause(AudioClip clip)
         {
             m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.UnPause();
         }
 
+        /// <summary>
+        ///   <para>暂停所有播放</para>
+        /// </summary>
         public void PauseAll()
         {
             m_ActiveSources.ForEach(source => source.Pause());
         }
 
+        /// <summary>
+        ///   <para>恢复所有播放</para>
+        /// </summary>
         public void UnPauseAll()
         {
             m_ActiveSources.ForEach(source => source.UnPause());
         }
         
+        /// <summary>
+        ///   <para>停止播放</para>
+        /// </summary>
+        /// <param name="clip">音频片段</param>
         public void Stop(AudioClip clip)
         {
             m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.Stop();
         }
 
+        /// <summary>
+        ///   <para>停止所有播放</para>
+        /// </summary>
         public void StopAll()
         {
             foreach (var source in m_ActiveSources.ToArray())
@@ -136,6 +166,11 @@ namespace Verve.UniEx.Audio
             }
         }
 
+        /// <summary>
+        ///   <para>设置静音</para>
+        /// </summary>
+        /// <param name="clip">音频片段</param>
+        /// <param name="mute">静音</param>
         public void SetMute(AudioClip clip, bool mute)
         {
             var source = m_ActiveSources.FirstOrDefault(source => source.clip == clip);
@@ -145,11 +180,23 @@ namespace Verve.UniEx.Audio
             }
         }
 
+        /// <summary>
+        ///   <para>获取静音</para>
+        /// </summary>
+        /// <param name="clip">音频片段</param>
+        /// <returns>
+        ///   <para>静音</para>
+        /// </returns>
         public bool GetMute(AudioClip clip)
         {
             return m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.mute ?? false;
         }
 
+        /// <summary>
+        ///   <para>设置音量</para>
+        /// </summary>
+        /// <param name="clip">音频片段</param>
+        /// <param name="volume">音量</param>
         public void SetVolume(AudioClip clip, float volume)
         {
             var source = m_ActiveSources.FirstOrDefault(source => source.clip == clip);
@@ -159,16 +206,37 @@ namespace Verve.UniEx.Audio
             }
         }
 
+        /// <summary>
+        ///   <para>获取音量</para>
+        /// </summary>
+        /// <param name="clip">音频片段</param>
+        /// <returns>
+        ///   <para>音量</para>
+        /// </returns>
         public float GetVolume(AudioClip clip)
         {
             return m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.volume ?? 0;
         }
 
+        /// <summary>
+        ///   <para>判断音频片段是否有效</para>
+        /// </summary>
+        /// <param name="clip">音频片段</param>
+        /// <returns>
+        ///   <para>音频片段是否有效</para>
+        /// </returns>
         public bool HasActiveClip(AudioClip clip)
         {
             return m_ActiveSources.Any(source => source.clip == clip);
         }
 
+        /// <summary>
+        ///   <para>判断音频片段是否正在播放</para>
+        /// </summary>
+        /// <param name="clip">音频片段</param>
+        /// <returns>
+        ///   <para>音频片段是否正在播放</para>
+        /// </returns>
         public bool IsClipPlaying(AudioClip clip)
         {
             return m_ActiveSources.FirstOrDefault(source => source.clip == clip)?.isPlaying ?? false;

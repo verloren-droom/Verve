@@ -11,11 +11,11 @@ namespace Verve.UniEx.ScriptRuntime
     using System.Reflection;
     using System.Collections;
     using System.Threading.Tasks;
-    using System.Collections.Generic;
 
 
     /// <summary>
-    /// HybridCLR程序集运行时子模块 - 仅支持IL2CPP平台
+    ///   <para>HybridCLR程序集运行时子模块</para>
+    ///   <para>仅支持IL2CPP平台</para>
     /// </summary>
     [Serializable, GameFeatureSubmodule(typeof(ScriptRuntimeGameFeature), Description = "HybridCLR程序集运行时子模块 - 仅支持IL2CPP平台")]
     public sealed class HybridCLRAssemblyRuntime : AssemblyRuntimeSubmodule
@@ -30,8 +30,15 @@ namespace Verve.UniEx.ScriptRuntime
         }
 
         /// <summary>
-        /// 加载程序集并添加其中的模块和组件
+        ///   <para>加载程序集并添加其中的模块和组件</para>
         /// </summary>
+        /// <param name="assemblyName">程序集名称</param>
+        /// <param name="assemblyData">程序集数据</param>
+        /// <param name="pdbData">PDB数据</param>
+        /// <param name="ct">取消令牌</param>
+        /// <returns>
+        ///   <para>程序集</para>
+        /// </returns>
         public async Task<Assembly> LoadAssemblyAsync(string assemblyName, byte[] assemblyData, Func<string, Task<UnityEngine.Object>> loadAssetAsync, byte[] pdbData = null, CancellationToken ct = default)
         {
             var assembly = await LoadAssemblyAsync(assemblyName, assemblyData, pdbData, ct);
@@ -108,7 +115,7 @@ namespace Verve.UniEx.ScriptRuntime
         }
         
         /// <summary>
-        /// 检查是否为IL2CPP
+        ///   <para>检查是否为IL2CPP</para>
         /// </summary>
         private void CheckIsIL2CPP()
         {
@@ -123,7 +130,8 @@ namespace Verve.UniEx.ScriptRuntime
         }
 
          /// <summary>
-         ///  为 AOT Assembly 加载原始 metadata；注意：补充元数据是给 AOT dll 补充元数据，而不是给热更新 dll 补充元数据。
+         ///   <para>为 AOT Assembly 加载原始 metadata</para>
+         ///   <para>注意：补充元数据是给 AOT dll 补充元数据，而不是给热更新 dll 补充元数据</para>
          /// </summary>
          private async Task LoadMetadataForAOTAssembly(CancellationToken ct = default)
          {

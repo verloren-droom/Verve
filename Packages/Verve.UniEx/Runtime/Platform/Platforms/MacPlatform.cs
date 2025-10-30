@@ -9,7 +9,7 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    /// Mac平台
+    ///   <para>Mac平台</para>
     /// </summary>
     internal sealed class MacPlatform : GenericPlatform
     {
@@ -87,8 +87,12 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 将字符串转换为UTF8编码的非托管内存指针
+        ///   <para>将字符串转换为UTF8编码的非托管内存指针</para>
         /// </summary>
+        /// <param name="str">字符串</param>
+        /// <returns>
+        ///   <para>UTF8编码的字符串指针</para>
+        /// </returns>
         private static IntPtr StringToUtf8Ptr(string str)
         {
             if (string.IsNullOrEmpty(str))
@@ -117,8 +121,9 @@ namespace Verve.UniEx
         }
         
         /// <summary>
-        /// 释放UTF8字符串指针
+        ///   <para>释放UTF8字符串指针</para>
         /// </summary>
+        /// <param name="ptr">UTF8字符串指针</param>
         private static void FreeUtf8Ptr(IntPtr ptr)
         {
             if (ptr != IntPtr.Zero)

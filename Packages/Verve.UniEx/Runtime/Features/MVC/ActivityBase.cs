@@ -8,8 +8,8 @@ namespace Verve.UniEx.MVC
     
     
     /// <summary>
-    ///  <para>活动接口</para>
-    ///  <para>用于管理MVC，需要继承并挂载到场景中</para>
+    ///   <para>活动接口</para>
+    ///   <para>用于管理MVC，需要继承并挂载到场景中</para>
     /// </summary>
     public abstract class ActivityBase : ComponentInstanceBase<ActivityBase>, IActivity
     {

@@ -6,12 +6,17 @@ namespace Verve.UniEx.MVC
 
     
     /// <summary>
-    /// MVC模型基类，用于存储共享数据
+    ///   <para>MVC模型基类</para>
+    ///   <para>用于存储共享数据</para>
     /// </summary>
     [System.Serializable]
     public abstract class ModelBase : IModel
     {
         void IModel.Initialize() => OnInitialized();
+        
+        /// <summary>
+        ///   <para>初始化</para>
+        /// </summary>
         protected virtual void OnInitialized() { }
     }
 }

@@ -1,19 +1,33 @@
 namespace Verve.Net
 {
     /// <summary>
-    /// 网络状态
+    ///   <para>网络状态</para>
     /// </summary>
     public enum NetworkState
     {
-        /// <summary> 未连接 </summary>
+        /// <summary>
+        ///   <para>未连接</para>
+        /// </summary>
         Disconnected,
-        /// <summary> 连接中 </summary>
+        
+        /// <summary>
+        ///   <para>连接中</para>
+        /// </summary>
         Connecting,
-        /// <summary> 已连接 </summary>
+        
+        /// <summary>
+        ///   <para>已连接</para>
+        /// </summary>
         Connected,
-        /// <summary> 断开中 </summary>
+        
+        /// <summary>
+        ///   <para>断开中</para>
+        /// </summary>
         Disconnecting,
-        /// <summary> 重连中 </summary>
+        
+        /// <summary>
+        ///   <para>重连中</para>
+        /// </summary>
         Reconnecting
     }
 }

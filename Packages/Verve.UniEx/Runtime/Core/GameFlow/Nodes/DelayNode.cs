@@ -9,10 +9,10 @@ namespace Verve.UniEx
     
     
     /// <summary>
-    ///  <para>延时节点</para>
+    ///    <para>延时节点</para>
     /// </summary>
     [Serializable, GameFlowNode("Basic/Delay", "Delay", "延时节点")]
-    public class DelayNode : GameFlowNode
+    public sealed class DelayNode : GameFlowNode
     {
         [SerializeField, Tooltip("持续时间"), Min(0f)] private float m_Duration;
         [SerializeField, Tooltip("使用真实时间（不受Time.timeScale影响）")] private bool m_UseRealTime;
