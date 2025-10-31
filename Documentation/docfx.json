@@ -10,7 +10,9 @@
                     "exclude": [
                         "**/Tests/**",
                         "**/Demo/**",
-                        "**/Samples/**"
+                        "**/Samples/**",
+                        "**/Properties/AssemblyInfo.cs",
+                        "**/AssemblyInfo.cs"
                     ]
                 },
                 {
@@ -21,7 +23,9 @@
                     "exclude": [
                         "**/Tests/**",
                         "**/Demo/**",
-                        "**/Samples/**"
+                        "**/Samples/**",
+                        "**/Properties/AssemblyInfo.cs",
+                        "**/AssemblyInfo.cs"
                     ]
                 }
             ],
