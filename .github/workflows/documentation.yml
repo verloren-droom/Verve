@@ -33,7 +33,7 @@ jobs:
 
       - name: Generate API documentation
         run: |
-          docfx Documentation/build docfx.json
+          docfx Documentation/docfx.json
 
       - name: Verify generated documentation
         run: |
