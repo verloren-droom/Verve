@@ -18,7 +18,7 @@ permissions:
   id-token: write
 
 jobs:
-  generate-documentation:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -61,11 +61,24 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./Documentation/_site/
+          name: _site
+          path: _site
+          
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Download site artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: _site
           
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
-          publish_dir: ./Documentation/_site
+          publish_dir: _site
