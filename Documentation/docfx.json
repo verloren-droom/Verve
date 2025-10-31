@@ -3,29 +3,31 @@
         {
             "src": [
                 {
-                    "src": "../Library/ScriptAssemblies",
+                    "src": "../Packages/Verve.Core",
                     "files": [
-                        "Verve.**.dll"
+                        "**/*.cs"
                     ],
                     "exclude": [
-                        "Tests.**.dll",
-                        "**.Tests.dll",
-                        "**.Tests.**.dll",
-                        "Demo.**.dll",
-                        "**.Demo.dll",
-                        "**.Demo.**.dll"
+                        "**/Tests/**",
+                        "**/Demo/**",
+                        "**/Samples/**"
+                    ]
+                },
+                {
+                    "src": "../Packages/Verve.UniEx",
+                    "files": [
+                        "**/*.cs"
+                    ],
+                    "exclude": [
+                        "**/Tests/**",
+                        "**/Demo/**",
+                        "**/Samples/**"
                     ]
                 }
             ],
             "disableDefaultFilter": false,
             "dest": "api",
-            "filter": "filterConfig.yml",
-            "references": [
-                {
-                    "src": "../Library/ScriptAssemblies",
-                    "files": "*.dll"
-                }
-            ]
+            "filter": "filterConfig.yml"
         }
     ],
     "build": {
