@@ -47,16 +47,14 @@ jobs:
       - name: Generate API documentation
         run: |
           cd Documentation
-          docfx docfx.json --logLevel Warning --force || {
-            echo "DocFX completed with some warnings/errors, checking if documentation was still generated..."
-          }
+          docfx docfx.json --logLevel Warning
           if [ -d "_site" ]; then
             echo "Documentation directory created, checking contents..."
             find _site -name "*.html" | head -10
           else
             echo "No _site directory created, attempting fallback generation..."
-            docfx metadata docfx.json --logLevel Warning --force
-            docfx build docfx.json --logLevel Warning --force
+            docfx metadata docfx.json --logLevel Warning
+            docfx build docfx.json --logLevel Warning
           fi
 
       - name: Verify generated documentation
