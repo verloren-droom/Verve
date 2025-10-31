@@ -12,6 +12,11 @@ on:
 env:
   DOTNET_VERSION: '6.0.x'
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   generate-documentation:
     runs-on: ubuntu-latest
@@ -55,7 +60,6 @@ jobs:
           path: ./Documentation/_site/
 
   deploy:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     needs: generate-documentation
     runs-on: ubuntu-latest
     
