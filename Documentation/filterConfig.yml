@@ -1,0 +1,11 @@
+apiRules:
+    - include:
+          type: "Namespace"
+          uidRegex: "^Verve\\.(Core|UniEx)"
+    - exclude:
+          type: "Method"
+          hasAttribute:
+              uid: "System.ObsoleteAttribute"
+    - exclude:
+          type: "Member"
+          uidRegex: ".*\\.(Equals|GetHashCode|GetType|ToString)$"

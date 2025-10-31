@@ -74,9 +74,17 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
-!Documentation~
-!Samples~
+![Ss]amples~
 /[Aa]ssets/.[Cc]ache/
 /[Aa]ssets/.[Tt]emp/
 /[Aa]ssets/[Pp]ackages/
 /[Ss]erverData/
+
+# HybridCLR
+/[Hh]ybridCLRData/
+
+# Unity crash dump files
+mono_crash.*.json
+
+/[Dd]ocumentation/_site/
+/[Dd]ocumentation/api/

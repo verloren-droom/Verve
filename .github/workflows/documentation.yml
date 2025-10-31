@@ -1,0 +1,73 @@
+name: Documentation to GitHub Pages
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'Packages/Verve.Core/**'
+      - 'Packages/Verve.UniEx/**'
+      - 'Documentation/**'
+      - '.github/workflows/documentation.yml'
+
+env:
+  DOTNET_VERSION: '6.0.x'
+
+jobs:
+  generate-documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install DocFX
+        run: |
+          dotnet tool update -g docfx
+
+      - name: Generate API documentation
+        run: |
+          docfx Documentation/build docfx.json
+
+      - name: Verify generated documentation
+        run: |
+          cd Documentation
+          if [ -d "_site" ] && [ -f "_site/index.html" ]; then
+            echo "Documentation generated successfully"
+            ls -la _site/
+          else
+            echo "Documentation generation failed"
+            exit 1
+          fi
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./Documentation/_site/
+
+  deploy:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    needs: generate-documentation
+    runs-on: ubuntu-latest
+    
+    permissions:
+      pages: write
+      id-token: write
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

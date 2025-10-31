@@ -1,0 +1,76 @@
+{
+    "metadata": [
+        {
+            "src": [
+                {
+                    "src": "../Library/ScriptAssemblies",
+                    "files": [
+                        "Verve.**.dll"
+                    ],
+                    "exclude": [
+                        "Tests.**.dll",
+                        "**.Tests.dll",
+                        "**.Tests.**.dll",
+                        "Demo.**.dll",
+                        "**.Demo.dll",
+                        "**.Demo.**.dll"
+                    ]
+                }
+            ],
+            "disableDefaultFilter": false,
+            "dest": "api",
+            "filter": "filterConfig.yml",
+            "references": [
+                {
+                    "src": "../Library/ScriptAssemblies",
+                    "files": "*.dll"
+                }
+            ]
+        }
+    ],
+    "build": {
+        "globalMetadata": {
+            "_appTitle": "Verve",
+            "_appFooter": "Verve",
+            "_enableSearch": true
+        },
+        "content": [
+            {
+                "files": [
+                    "toc.yml",
+                    "index.md"
+                ]
+            },
+            {
+                "src": "api",
+                "files": [
+                    "*.yml"
+                ],
+                "dest": "api"
+            }
+        ],
+        "resource": [
+            {
+                "files": [
+                    "resources/**/*"
+                ]
+            }
+        ],
+        "sitemap": {
+            "baseUrl": "https://verloren-droom.github.io/Verve",
+            "changefreq": "weekly",
+            "fileOptions": {
+                "api/*": {
+                    "changefreq": "daily"
+                }
+            }
+        },
+        "xref": [
+            "https://normanderwan.github.io/UnityXrefMaps/xrefmap.yml"
+        ],
+        "xrefService": [
+            "https://xref.docs.microsoft.com/query?uid={uid}"
+        ],
+        "dest": "./_site"
+    }
+}
