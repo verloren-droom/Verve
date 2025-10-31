@@ -11,7 +11,6 @@ on:
   workflow_dispatch:
 
 env:
-  WORKING_DIRECTORY: .
   DOTNET_VERSION: '8.0.x'
   UNITY_VERSION: "2021.3.21f1c1"
 
@@ -30,23 +29,10 @@ jobs:
           fetch-depth: 0
           lfs: true
 
-      - name: Setup Unity
-        uses: game-ci/unity-setup@v2
-        with:
-          unity-version: ${{ env.UNITY_VERSION }}
-
-      - name: Generate Unity Project Files
-        run: |
-          /opt/unity/Editor/Unity -batchmode -nographics -quit -projectPath . -executeMethod UnityEditor.SyncVS.SyncSolution -logFile
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
       - name: Install DocFX
         run: |
           dotnet tool update -g docfx
+          docfx --version
 
       - name: Validate DocFX configuration
         run: |
