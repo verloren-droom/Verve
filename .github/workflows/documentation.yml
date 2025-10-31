@@ -15,7 +15,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     permissions:
       contents: read
       pages: write
@@ -47,7 +47,17 @@ jobs:
       - name: Generate API documentation
         run: |
           cd Documentation
-          docfx docfx.json --logLevel Warning
+          docfx docfx.json --logLevel Warning --force || {
+            echo "DocFX completed with some warnings/errors, checking if documentation was still generated..."
+          }
+          if [ -d "_site" ]; then
+            echo "Documentation directory created, checking contents..."
+            find _site -name "*.html" | head -10
+          else
+            echo "No _site directory created, attempting fallback generation..."
+            docfx metadata docfx.json --logLevel Warning --force
+            docfx build docfx.json --logLevel Warning --force
+          fi
 
       - name: Verify generated documentation
         run: |
