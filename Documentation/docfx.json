@@ -29,9 +29,9 @@
                     ]
                 }
             ],
-            "disableDefaultFilter": false,
-            "dest": "api",
-            "filter": "filterConfig.yml"
+            "globalNamespaceId": "Global",
+            "filter": "filterConfig.yml",
+            "dest": "api"
         }
     ],
     "build": {

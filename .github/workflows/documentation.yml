@@ -27,13 +27,6 @@ jobs:
         with:
           fetch-depth: 0
           lfs: true
-          
-      - uses: actions/cache@v3
-        with:
-           path: Library
-           key: Library-${{ hashFiles('Packages/Verve.Core/**', 'Packages/Verve.UniEx/**') }}
-           restore-keys: |
-             Library-
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -50,20 +43,10 @@ jobs:
             echo "docfx.json not found in Documentation folder"
             exit 1
           fi
-          echo "DocFX configuration found"
 
       - name: Generate API documentation
         run: |
-          cd Documentation
-          docfx docfx.json --logLevel Warning
-          if [ -d "_site" ]; then
-            echo "Documentation directory created, checking contents..."
-            find _site -name "*.html" | head -10
-          else
-            echo "No _site directory created, attempting fallback generation..."
-            docfx metadata docfx.json --logLevel Warning
-            docfx build docfx.json --logLevel Warning
-          fi
+          docfx Documentation/docfx.json
 
       - name: Verify generated documentation
         run: |
