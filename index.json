@@ -1,7 +1,0 @@
-{
-  "index.html": {
-    "href": "index.html",
-    "title": "Verve | Verve",
-    "summary": "██╗ ██╗███████╗██████╗ ██╗ ██╗███████╗ ██║ ██║██╔════╝██╔══██╗██║ ██║██╔════╝ ██║ ██║█████╗ ██████╔╝██║ ██║█████╗ ╚██╗ ██╔╝██╔══╝ ██╔══██╗╚██╗ ██╔╝██╔══╝ ╚████╔╝ ███████╗██║ ██║ ╚████╔╝ ███████╗ ╚═══╝ ╚══════╝╚═╝ ╚═╝ ╚═══╝ ╚══════╝ Verve A modular development framework designed for games, providing a pluggable GameFeatures system."
-  }
-}
