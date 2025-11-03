@@ -40,13 +40,13 @@ jobs:
           REPO_URL="https://github.com/${{ github.repository }}"
           BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
           
-          sed -i 's|\[\([^]]*\)\](\(\.[^)]*\))|[\1](${REPO_URL}/blob/${BRANCH_NAME}/\2)|g' Documentation/index.md
-          sed -i 's|\[\([^]]*\)\](\([a-zA-Z][^)/#]*\(/[^[#]*\)*\)*|[\1](${REPO_URL}/blob/${BRANCH_NAME}/\2)|g' Documentation/index.md
+          sed -i 's|\[\([^]]*\)\](\(\.[^)]*\))|[\1](${REPO_URL}/tree/${BRANCH_NAME}/\2)|g' Documentation/index.md
+          sed -i 's|\[\([^]]*\)\](\([a-zA-Z][^)/#]*\(/[^[#]*\)*\)*|[\1](${REPO_URL}/tree/${BRANCH_NAME}/\2)|g' Documentation/index.md
           
-          sed -i 's|](${REPO_URL}/blob/${BRANCH_NAME}/http|](http|g' Documentation/index.md
-          sed -i 's|](${REPO_URL}/blob/${BRANCH_NAME}/https|](https|g' Documentation/index.md
-          sed -i 's|](${REPO_URL}/blob/${BRANCH_NAME}/#|](#|g' Documentation/index.md
-  
+          sed -i 's|](${REPO_URL}/tree/${BRANCH_NAME}/http|](http|g' Documentation/index.md
+          sed -i 's|](${REPO_URL}/tree/${BRANCH_NAME}/https|](https|g' Documentation/index.md
+          sed -i 's|](${REPO_URL}/tree/${BRANCH_NAME}/#|](#|g' Documentation/index.md
+          
       - name: Validate DocFX configuration
         run: |
           if [ ! -f "Documentation/docfx.json" ]; then
