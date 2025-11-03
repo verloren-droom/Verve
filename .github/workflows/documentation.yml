@@ -12,7 +12,8 @@ on:
   workflow_dispatch:
 
 env:
-  DOTNET_VERSION: '8.0.x'
+  DOTNET_VERSION: '8.0.x'  
+  PYTHON_VERSION: '3.9'
   UNITY_VERSION: "2021.3.21f1c1"
 
 jobs:
@@ -34,19 +35,22 @@ jobs:
         run: |
           dotnet tool install -g docfx
 
+      - name: Setup Python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          
       - name: Prepare documentation structure
         run: |
           cp README.md Documentation/index.md
-          REPO_URL="https://github.com/${{ github.repository }}"
-          BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
           
-          sed -i 's|\[\([^]]*\)\](\(\.[^)]*\))|[\1](${REPO_URL}/tree/${BRANCH_NAME}/\2)|g' Documentation/index.md
-          sed -i 's|\[\([^]]*\)\](\([a-zA-Z][^)/#]*\(/[^[#]*\)*\)*|[\1](${REPO_URL}/tree/${BRANCH_NAME}/\2)|g' Documentation/index.md
-          
-          sed -i 's|](${REPO_URL}/tree/${BRANCH_NAME}/http|](http|g' Documentation/index.md
-          sed -i 's|](${REPO_URL}/tree/${BRANCH_NAME}/https|](https|g' Documentation/index.md
-          sed -i 's|](${REPO_URL}/tree/${BRANCH_NAME}/#|](#|g' Documentation/index.md
-          
+          python3 Documentation/replace_links.py \
+          --repo-url "${{ env.REPO_URL }}" \
+          --branch "${{ github.ref_name }}" \
+          --docs-dir "Documentation" \
+          --verbose
+
       - name: Validate DocFX configuration
         run: |
           if [ ! -f "Documentation/docfx.json" ]; then
