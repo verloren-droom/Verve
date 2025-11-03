@@ -33,30 +33,15 @@ jobs:
       - name: Install DocFX
         run: |
           dotnet tool install -g docfx
-          
+
       - name: Prepare documentation structure
         run: |
           cp README.md Documentation/index.md
           mkdir -p Documentation/resources
-          
-      - name: Fix relative paths in README
-        run: |
-          cd Documentation
-          if [ -f "index.md" ]; then
-            sed -i 's|(\./|(|g' index.md
-            sed -i 's|(\.\./|(|g' index.md
-            sed -i 's|\[.*\](\./.*\.md)|[View Source](https://github.com/${{ github.repository }}/blob/main/&)|g' index.md
-            cat > temp_header.md << 'HEADER'
-          ---
-          _disableBreadcrumb: true
-          _disableToc: true
-          ---
-          
-          HEADER
-            cat temp_header.md index.md > temp_combined.md
-            mv temp_combined.md index.md
-            rm temp_header.md
-          fi
+          REPO_URL="https://github.com/${{ github.repository }}"
+          sed -i 's|\[\([^]]*\)\](\([^)]*\))|[\1](${REPO_URL}/blob/main/\2)|g' Documentation/index.md
+          sed -i 's|](${REPO_URL}/blob/main/http|](http|g' Documentation/index.md
+          sed -i 's|](${REPO_URL}/blob/main/#|](#|g' Documentation/index.md
 
       - name: Validate DocFX configuration
         run: |
@@ -67,7 +52,18 @@ jobs:
           
       - name: Generate API documentation
         run: |
-          docfx Documentation/docfx.json
+          docfx Documentation/docfx.json --logLevel Warning
+
+      - name: Post-process generated documentation links
+        run: |
+          cd Documentation/_site
+          REPO_URL="https://github.com/${{ github.repository }}"
+          find . -name "*.html" -type f | while read file; do
+            sed -i 's|href="\.\./\.\./|href="'${REPO_URL}'/tree/main/|g' "$file"
+            sed -i 's|href="\.\./|href="'${REPO_URL}'/tree/main/|g' "$file"
+            sed -i 's|src="\.\./\.\./|src="'${REPO_URL}'/tree/main/|g' "$file"
+            sed -i 's|src="\.\./|src="'${REPO_URL}'/tree/main/|g' "$file"
+          done
 
       - name: Verify generated documentation
         run: |
