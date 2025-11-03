@@ -49,6 +49,11 @@ namespace VerveEditor
             ///   <para>删除模块</para>
             /// </summary>
             public static GUIContent RemoveModule { get; } = EditorGUIUtility.TrTextContent("Remove");
+            
+            /// <summary>
+            ///   <para>模块设置</para>
+            /// </summary>
+            public static GUIContent ModuleSetting { get; } = EditorGUIUtility.TrTextContent("Setting...");
         }
 
         
@@ -72,6 +77,8 @@ namespace VerveEditor
         {
             if (m_Profile == null || target == null) return;
             
+            using var change = new EditorGUI.ChangeCheckScope();
+
             serializedObject.Update();
     
             if (m_NeedsRefresh || m_Editors.Count != m_ModulesProperty.arraySize)
@@ -81,9 +88,16 @@ namespace VerveEditor
             }
 
             DrawModulesList();
-            DrawAddModuleButton();
+            EditorGUILayout.Space();
+            if (GUILayout.Button(Styles.AddModule, EditorStyles.miniButton))
+            {
+                ShowAddModuleMenu();
+            }
 
-            serializedObject.ApplyModifiedProperties();
+            if (change.changed)
+            {
+                serializedObject.ApplyModifiedProperties();
+            }
         }
         
         private void OnUndoRedoPerformed()
@@ -215,12 +229,23 @@ namespace VerveEditor
                     dependentInfo = $"(Required by: {displayedNames} and {dependentModules.Count - maxDisplayDependencies} more)";
                 }
                 
-                GUIContent disabledItem = new GUIContent($"{Styles.RemoveModule.text} {dependentInfo}");
-                menu.AddDisabledItem(disabledItem);
+                menu.AddDisabledItem(new GUIContent($"{Styles.RemoveModule.text} {dependentInfo}"));
             }
             else
             {
                 menu.AddItem(Styles.RemoveModule, false, () => RemoveModule(index));
+            }
+            
+            menu.AddSeparator("");
+
+            var moduleType = m_ModulesProperty.GetArrayElementAtIndex(index)?.objectReferenceValue?.GetType();
+            if (GameFeaturesSettings.instance.TryGetModuleEditorFromModule(moduleType, out var editor))
+            {
+                menu.AddItem(Styles.ModuleSetting, false, () => ModuleSettingWindow.Show(editor));
+            }
+            else
+            {
+                menu.AddDisabledItem(Styles.ModuleSetting);
             }
             
             menu.DropDown(new Rect(position, Vector2.zero));
@@ -263,18 +288,6 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///   <para>绘制添加模块按钮</para>
-        /// </summary>
-        private void DrawAddModuleButton()
-        {
-            EditorGUILayout.Space();
-            if (GUILayout.Button(Styles.AddModule, EditorStyles.miniButton))
-            {
-                ShowAddModuleMenu();
-            }
-        }
-
-        /// <summary>
         ///   <para>显示添加模块菜单</para>
         /// </summary>
         private void ShowAddModuleMenu()
@@ -297,49 +310,6 @@ namespace VerveEditor
                 else
                 {
                     menu.AddItem(new GUIContent(menuPath), false, () => AddModule(type));
-                }
-            }
-
-            var allSubmoduleTypes = TypeCache.GetTypesDerivedFrom<IGameFeatureSubmodule>()
-                .Where(t => !t.IsAbstract && t.IsClass && 
-                            t.GetCustomAttribute<GameFeatureSubmoduleAttribute>() != null &&
-                            t.GetCustomAttribute<GameFeatureSubmoduleAttribute>().BelongsToModule == null);
-
-            var submoduleGroups = allSubmoduleTypes
-                .GroupBy(t => t.GetCustomAttribute<GameFeatureSubmoduleAttribute>().MenuPath)
-                .ToDictionary(g => g.Key, g => g.ToList());
-
-            foreach (var group in submoduleGroups)
-            {
-                string menuPath = group.Key;
-    
-                bool alreadyExists = m_Profile.Modules.Any(m => 
-                {
-                    if (m == null) return false;
-        
-                    var moduleMenuPath = CoreEditorUtility.GetGameFeatureMenuPath(m.GetType());
-                    if (!string.IsNullOrEmpty(moduleMenuPath) && moduleMenuPath == menuPath)
-                        return true;
-        
-                    if (m.Submodules != null && m.Submodules.Count > 0)
-                    {
-                        var firstSubmodule = m.Submodules.First();
-                        var submoduleAttr = firstSubmodule.GetType().GetCustomAttribute<GameFeatureSubmoduleAttribute>();
-                        if (submoduleAttr != null && submoduleAttr.MenuPath == menuPath)
-                            return true;
-                    }
-        
-                    return false;
-                });
-    
-                if (alreadyExists)
-                {
-                    menu.AddDisabledItem(new GUIContent($"{menuPath} (Already Added)"));
-                }
-                else
-                {
-                    menu.AddItem(new GUIContent(menuPath), false, () => 
-                        AddModuleFromSubmodules(menuPath, group.Value));
                 }
             }
 
@@ -383,52 +353,6 @@ namespace VerveEditor
             {
                 EditorUtility.DisplayDialog("Error", 
                     $"Failed to add module: {e.Message}", "OK");
-            }
-        }
-
-        /// <summary>
-        ///   <para>添加模块的子模块</para>
-        /// </summary>
-        private void AddModuleFromSubmodules(string menuPath, List<Type> submoduleTypes)
-        {
-            if (submoduleTypes == null || submoduleTypes.Count == 0) return;
-
-            try
-            {
-                Undo.RecordObject(m_Profile, "Add Module from Submodules");
-        
-                var module = CreateInstance<GameFeatureModule>();
-        
-                var lastSlashIndex = menuPath.LastIndexOf('/');
-                string moduleName = lastSlashIndex >= 0 ? menuPath.Substring(lastSlashIndex + 1) : menuPath;
-                module.hideFlags = HideFlags.HideInInspector | HideFlags.HideInHierarchy;
-                module.name = ObjectNames.NicifyVariableName(moduleName);
-        
-                // foreach (var submoduleType in submoduleTypes)
-                // {
-                //     module.Add(submoduleType);
-                // }
-        
-                m_Profile.Add(module);
-        
-                if (EditorUtility.IsPersistent(m_Profile))
-                {
-                    AssetDatabase.AddObjectToAsset(module, m_Profile);
-                    EditorUtility.SetDirty(m_Profile);
-                }
-        
-                m_Profile.isDirty = true;
-        
-                serializedObject.Update();
-                m_NeedsRefresh = true;
-                Repaint();
-        
-                CoreEditorUtility.MarkDirtyAndSave(m_Profile);
-            }
-            catch (Exception e)
-            {
-                EditorUtility.DisplayDialog("Error", 
-                    $"Failed to create module for submodules: {e.Message}", "OK");
             }
         }
         
@@ -618,6 +542,91 @@ namespace VerveEditor
                 }
                 
                 return new GUIContent(typeName);
+            }
+        }
+
+        
+        /// <summary>
+        ///   <para>模块设置窗口</para>
+        /// </summary>
+        private class ModuleSettingWindow : EditorWindow
+        {
+            /// <summary>
+            ///   <para>模块编辑器绘制器</para>
+            /// </summary>
+            [SerializeField]
+#if UNITY_2019_4_OR_NEWER
+            [SerializeReference]
+#endif
+            private GameFeatureModuleSettingDrawer m_Drawer;
+            
+            /// <summary>
+            ///   <para>工具栏高度</para>
+            /// </summary>
+            private const float ToolbarHeight = 24f;
+            
+            /// <summary>
+            ///   <para>显示模块设置窗口</para>
+            /// </summary>
+            /// <param name="drawer">模块编辑器绘制器</param>
+            public static void Show(GameFeatureModuleSettingDrawer drawer)
+            {
+                var window = GetWindow<ModuleSettingWindow>();
+                window.titleContent = new GUIContent("Module Settings");
+                window.minSize = new Vector2(400, 300);
+                window.m_Drawer = drawer;
+                window.ShowUtility();
+                window.Focus();
+            }
+
+            /// <summary>
+            ///   <para>绘制窗口GUI</para>
+            /// </summary>
+            private void OnGUI()
+            {
+                DrawToolbar();
+                
+                if (m_Drawer != null && m_Drawer.GetType() != typeof(GameFeatureModuleEditor))
+                {
+                    Rect contentRect = new Rect(
+                        0, 
+                        ToolbarHeight, 
+                        position.width, 
+                        position.height - ToolbarHeight
+                    );
+                    
+                    GUILayout.BeginArea(contentRect);
+                    
+                    m_Drawer.OnGUI();
+                    GUILayout.EndArea();
+                }
+                else
+                {
+                    Rect contentRect = new Rect(
+                        0, 
+                        ToolbarHeight, 
+                        position.width, 
+                        position.height - ToolbarHeight
+                    );
+                    
+                    GUILayout.BeginArea(contentRect);
+                    EditorGUILayout.HelpBox("No module editor drawer available.", MessageType.Warning);
+                    GUILayout.EndArea();
+                }
+            }
+            
+            /// <summary>
+            ///   <para>绘制工具栏</para>
+            /// </summary>
+            private void DrawToolbar()
+            {
+                Rect toolbarRect = new Rect(0, 0, position.width, ToolbarHeight);
+                GUI.Box(toolbarRect, GUIContent.none, EditorStyles.toolbar);
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    // TODO: 工具栏按钮
+                }
             }
         }
     }

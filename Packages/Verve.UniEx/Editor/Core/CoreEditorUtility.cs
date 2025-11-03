@@ -211,6 +211,7 @@ namespace VerveEditor
             if (EditorUtility.IsPersistent(obj))
             {
                 AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
             }
         }
         

@@ -67,8 +67,8 @@ namespace Verve.UniEx.MVC
                 return;
             
             OnClosing();
-            gameObject.SetActive(false);
             OnClosed?.Invoke(this);
+            gameObject.SetActive(false);
             m_IsOpened = false;
             OnOpened = null;
             OnClosed = null;

@@ -11,9 +11,9 @@ namespace VerveEditor
     /// <summary>
     ///   <para>游戏功能设置提供者</para>
     /// </summary>
-    internal class GameFeaturesSettingsProvider : SettingsProvider
+    internal sealed class GameFeaturesSettingsProvider : SettingsProvider
     {
-        private Editor m_Editor;
+        private GameFeaturesSettingsEditor m_Editor;
 
 
         public GameFeaturesSettingsProvider(string path, SettingsScope scopes, IEnumerable<string> keywords = null) : base(path, scopes, keywords) { }
@@ -21,7 +21,7 @@ namespace VerveEditor
         public override void OnActivate(string searchContext, VisualElement rootElement)
         {
             GameFeaturesSettings.instance.Save();
-            m_Editor = Editor.CreateEditor(GameFeaturesSettings.instance);
+            m_Editor = Editor.CreateEditor(GameFeaturesSettings.instance, typeof(GameFeaturesSettingsEditor)) as GameFeaturesSettingsEditor;
         }
 
         public override void OnGUI(string searchContext)

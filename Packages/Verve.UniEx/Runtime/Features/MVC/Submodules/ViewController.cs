@@ -74,11 +74,11 @@ namespace Verve.UniEx.MVC
             params object[] args)
             where T : ViewBase
         {
-            var viewObj = Object.Instantiate(viewPrefab, parent);
-            if (!viewObj.TryGetComponent(out T viewInstance)) return;
-            if (viewInstance.GetActivity() is MonoBehaviour activity && activity.gameObject != null && activity.TryGetComponent(out Transform activityParent))
+            var viewObj = GameObject.Instantiate(viewPrefab, parent);
+            if (viewObj == null || !viewObj.TryGetComponent(out T viewInstance)) return;
+            if (viewInstance.GetActivity() is MonoBehaviour activity && activity.gameObject != null && activity.TryGetComponent(out Canvas activityCanvas))
             {
-                viewObj.transform.SetParent(activityParent, false);
+                viewObj.transform.SetParent(activityCanvas.transform, false);
             }
             if (m_CachedView.TryGetValue(viewInstance.GetType(), out var weakRef) && 
                 weakRef.TryGetTarget(out var existingView))

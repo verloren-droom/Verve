@@ -31,7 +31,7 @@ jobs:
 
       - name: Install DocFX
         run: |
-          dotnet tool update -g docfx
+          dotnet tool install -g docfx --version 2.61.0
           docfx --version
 
       - name: Validate DocFX configuration

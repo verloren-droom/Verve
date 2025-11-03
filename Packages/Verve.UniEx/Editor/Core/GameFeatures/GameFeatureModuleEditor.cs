@@ -69,8 +69,9 @@ namespace VerveEditor
 
         public override void OnInspectorGUI()
         {
-            if (m_Module == null || target == null)
-                return;
+            if (m_Module == null || target == null) return;
+            
+            using var change = new EditorGUI.ChangeCheckScope();
 
             serializedObject.Update();
             
@@ -87,7 +88,10 @@ namespace VerveEditor
                 DrawAvailableSubmodules(m_Module);
             }
             
-            serializedObject.ApplyModifiedProperties();
+            if (change.changed)
+            {
+                serializedObject.ApplyModifiedProperties();
+            }
         }
 
         /// <summary>

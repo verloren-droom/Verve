@@ -83,6 +83,8 @@ namespace VerveEditor
         {
             if (m_Component == null || target == null)
                 return;
+            
+            using var change = new EditorGUI.ChangeCheckScope();
 
             serializedObject.Update();
             
@@ -99,7 +101,10 @@ namespace VerveEditor
                 DrawParameters(m_Component);
             }
 
-            serializedObject.ApplyModifiedProperties();
+            if (change.changed)
+            {
+                serializedObject.ApplyModifiedProperties();
+            }
         }
 
         /// <summary>

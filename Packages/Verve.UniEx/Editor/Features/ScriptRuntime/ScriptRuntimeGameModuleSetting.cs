@@ -7,6 +7,8 @@ namespace VerveEditor.ScriptRuntime
     using UnityEngine;
     using UnityEditor;
     using Verve.UniEx;
+    using System.Linq;
+    using UnityEditor.SceneManagement;
     using System.Collections.Generic;
     using Object = UnityEngine.Object;
     
@@ -14,8 +16,8 @@ namespace VerveEditor.ScriptRuntime
     /// <summary>
     ///   <para>脚本运行时GameFeature模块设置</para>
     /// </summary>
-    [Serializable, ModuleEditorDrawer(typeof(Verve.UniEx.ScriptRuntime.ScriptRuntimeGameFeature))]
-    internal sealed class ScriptRuntimeGameModuleEditorSetting : ModuleEditorDrawer
+    [Serializable, GameFeatureModuleSettingDrawer(typeof(Verve.UniEx.ScriptRuntime.ScriptRuntimeGameFeature))]
+    internal sealed class ScriptRuntimeGameModuleSetting : GameFeatureModuleSettingDrawer
     {
         [SerializeField] private string m_HotFixOutputDir = "Assets/GameFeaturesData";
 
@@ -26,6 +28,13 @@ namespace VerveEditor.ScriptRuntime
         private void PrepareHotUpdateGameFeatures()
         {
             CreateHotUpdateOutputDirectory();
+
+            if (!EditorSceneManager.GetActiveScene().GetRootGameObjects()
+                    .Any(go => go.GetComponent<GameFeaturesRunner>() != null))
+            {
+                Debug.LogError("当前场景不存在添加GameFeaturesRunner组件的对象，请添加GameFeaturesRunner组件后再进行热更处理");
+                return;
+            }
             
             var hotUpdateAssemblies = GetHotFixAssemblies();
             if (hotUpdateAssemblies.Count == 0)
@@ -71,9 +80,15 @@ namespace VerveEditor.ScriptRuntime
                  {
                      hotUpdateAssemblies.Add(assemblyName);
                  }
-                 foreach (var assemblyDef in settings.hotUpdateAssemblyDefinitions)
+                 if (settings.hotUpdateAssemblyDefinitions != null)
                  {
-                     hotUpdateAssemblies.Add(assemblyDef.name);
+                     foreach (var assemblyDef in settings.hotUpdateAssemblyDefinitions)
+                     {
+                         if (assemblyDef != null && !string.IsNullOrEmpty(assemblyDef.name))
+                         {
+                             hotUpdateAssemblies.Add(assemblyDef.name);
+                         }
+                     }
                  }
                  CheckDependenciesAndThrow(hotUpdateAssemblies);
              }
@@ -238,7 +253,7 @@ namespace VerveEditor.ScriptRuntime
             return assetCopy;
         }
 
-        public override bool OnGUI()
+        public override void OnGUI()
         {
             m_HotFixOutputDir = EditorGUILayout.TextField(
                 new GUIContent("输出目录:", "热更资源输出目录"), 
@@ -248,7 +263,6 @@ namespace VerveEditor.ScriptRuntime
             {
                 PrepareHotUpdateGameFeatures();
             }
-            return true;
         }
     }
 }

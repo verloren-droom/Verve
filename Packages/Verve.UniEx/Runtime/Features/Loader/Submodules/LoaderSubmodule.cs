@@ -22,15 +22,7 @@ namespace Verve.UniEx.Loader
         public virtual void UnloadAsset(string assetPath) {}
         public abstract void UnloadAsset<TObject>(TObject asset);
         public virtual void UnloadAllAsset() {}
-        
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
 
-        protected virtual void Dispose(bool disposing) { }
-        
         public virtual async Task<SceneLoaderCallbackContext> LoadSceneAsync(
             string sceneName,
             bool allowSceneActivation = true,

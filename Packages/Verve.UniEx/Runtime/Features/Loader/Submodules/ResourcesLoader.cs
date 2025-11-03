@@ -4,7 +4,9 @@ namespace Verve.UniEx.Loader
 {
     using System;
     using UnityEngine;
+    using System.Threading.Tasks;
     using System.Collections.Generic;
+    using UnityEngine.SceneManagement;
 
     
     /// <summary>
@@ -26,6 +28,22 @@ namespace Verve.UniEx.Loader
                 var asset = Resources.Load<UnityEngine.Object>(assetPath);
                 m_LoadedAssets[assetPath] = asset;
                 return (TObject)Convert.ChangeType(asset, typeof(TObject));
+            }
+
+            throw new TypeLoadException($"{typeof(TObject).Name} is not support!");
+        }
+
+        public override async Task<TObject> LoadAssetAsync<TObject>(string assetPath)
+        {
+            if (typeof(UnityEngine.Object).IsAssignableFrom(typeof(TObject)))
+            {
+                var request = Resources.LoadAsync<UnityEngine.Object>(assetPath);
+                while (!request.isDone)
+                {
+                    await Task.Yield();
+                }
+                m_LoadedAssets[assetPath] = request.asset;
+                return (TObject)Convert.ChangeType(request.asset, typeof(TObject));
             }
 
             throw new TypeLoadException($"{typeof(TObject).Name} is not support!");

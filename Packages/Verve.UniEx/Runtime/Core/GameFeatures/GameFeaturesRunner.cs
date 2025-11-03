@@ -17,13 +17,14 @@ namespace Verve.UniEx
     ///   <para>游戏功能运行器</para>
     ///   <para>负责遍历已注册模块并调用功能模块其中的子模块的生命周期</para>
     /// </summary>
-    [DisallowMultipleComponent, ExecuteAlways, DefaultExecutionOrder(-1000), AddComponentMenu("Verve/Game Features Runner")]
+    [DisallowMultipleComponent, ExecuteAlways, DefaultExecutionOrder(-1000), AddComponentMenu("Verve/Game Features Runner"), HelpURL("https://verloren-droom.github.io/Verve/")]
     public sealed class GameFeaturesRunner : ComponentInstanceBase<GameFeaturesRunner>
     {
+        [SerializeField, Tooltip("是否在运行时跳过依赖检查")] private bool m_SkipDepCheckAtRuntime;
+        
         [SerializeField, HideInInspector, Tooltip("需启动模块")] private List<GameFeatureModule> m_Modules = new List<GameFeatureModule>();
         [SerializeField, HideInInspector, Tooltip("功能模块管理")] private GameFeatureModuleProfile m_ModuleProfile;
         [SerializeField, HideInInspector, Tooltip("功能组件管理")] private GameFeatureComponentProfile m_ComponentProfile;
-        [SerializeField, HideInInspector, Tooltip("是否在运行时跳过依赖检查")] public bool skipRuntimeDependencyChecks;
         
         private IGameFeatureContext m_Context;
         
@@ -193,6 +194,10 @@ namespace Verve.UniEx
             if (moduleProfile != null && componentProfile != null)
             {
                 RefreshAllModules();
+            }
+            else if (moduleProfile == null || componentProfile == null)
+            {
+                ShutdownAllModules();
             }
         }
         
@@ -716,7 +721,7 @@ namespace Verve.UniEx
         private bool CheckDependencies(object target)
         {
 #if !UNITY_EDITOR
-            if (skipRuntimeDependencyChecks) 
+            if (m_SkipDepCheckAtRuntime) 
                 return true;
 #endif
             

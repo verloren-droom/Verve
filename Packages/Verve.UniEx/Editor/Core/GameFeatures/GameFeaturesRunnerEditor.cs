@@ -3,6 +3,7 @@
 namespace VerveEditor
 {
     using System;
+    using System.IO;
     using System.Linq;
     using UnityEditor;
     using UnityEngine;
@@ -15,25 +16,23 @@ namespace VerveEditor
     ///   <para>游戏功能运行器编辑器</para>
     /// </summary>
     [CustomEditor(typeof(GameFeaturesRunner))]
-    internal class GameFeaturesRunnerEditor : Editor
+    internal sealed class GameFeaturesRunnerEditor : Editor
     {
         private GameFeaturesRunner m_Runner;
         
-        // private SerializedProperty m_ModuleProfileProperty;
-        // private SerializedProperty m_ComponentProfileProperty;
+        private SerializedProperty m_ModuleProfileProperty;
+        private SerializedProperty m_ComponentProfileProperty;
         private SerializedProperty m_ModulesProperty;
         
         private readonly List<GameFeatureModuleProfileEditor.ModuleEditor> m_Editors = new List<GameFeatureModuleProfileEditor.ModuleEditor>();
-
+        private bool m_NeedsCleanup;
+        
         /// <summary>
         ///   <para>排除绘制的字段</para>
         /// </summary>
         private static readonly string[] s_ExcludedFields =
         {
             "m_Script",
-            "m_ModuleProfile",
-            "m_ComponentProfile",
-            "m_Modules",
         };
 
         /// <summary>
@@ -57,9 +56,34 @@ namespace VerveEditor
             public static string NoAddedModulesInfo { get; } = L10n.Tr("No modules. Click 'Add Game Feature' to add modules.");
             
             /// <summary>
-            ///   <para>运行器信息</para>
+            ///   <para>组件配置</para>
             /// </summary>
-            public static string RunnerInfo { get; } = L10n.Tr("Game Features Runner is responsible for managing and running game feature modules.");
+            public static GUIContent ComponentProfile { get; } = EditorGUIUtility.TrTextContent("Component Profile", "The profile containing all game feature components.");
+            
+            /// <summary>
+            ///   <para>模块配置</para>
+            /// </summary>
+            public static GUIContent ModuleProfile { get; } = EditorGUIUtility.TrTextContent("Module Profile", "The profile containing all game feature modules.");
+            
+            /// <summary>
+            ///   <para>新建标签</para>
+            /// </summary>
+            public static GUIContent NewComponentProfileLabel { get; } = EditorGUIUtility.TrTextContent("New", "Create a new component profile.");
+            
+            /// <summary>
+            ///   <para>没有配置信息</para>
+            /// </summary>
+            public static GUIContent NewModuleProfileLabel { get; } = EditorGUIUtility.TrTextContent("New", "Create a new module profile.");
+            
+            /// <summary>
+            ///   <para>没有配置信息</para>
+            /// </summary>
+            public static string NoComponentProfileMessage { get; } = L10n.Tr("Please select or create a new component profile to begin applying features to the game.");
+            
+            /// <summary>
+            ///   <para>没有配置信息</para>
+            /// </summary>
+            public static string NoModuleProfileMessage { get; } = L10n.Tr("Please select or create a new module profile to manage game feature modules.");
         }
 
         public void OnEnable()
@@ -68,8 +92,8 @@ namespace VerveEditor
             if (m_Runner == null || target == null) return;
 
             m_ModulesProperty = serializedObject.FindProperty("m_Modules");
-            // m_ModuleProfileProperty = serializedObject.FindProperty("m_ModuleProfile");
-            // m_ComponentProfileProperty = serializedObject.FindProperty("m_ComponentProfile");
+            m_ModuleProfileProperty = serializedObject.FindProperty("m_ModuleProfile");
+            m_ComponentProfileProperty = serializedObject.FindProperty("m_ComponentProfile");
             
             RefreshEditors();
         }
@@ -81,23 +105,109 @@ namespace VerveEditor
 
         public override void OnInspectorGUI()
         {
+            base.OnInspectorGUI();
             if (m_Runner == null || target == null) return;
             
+            using var change = new EditorGUI.ChangeCheckScope();
+
             serializedObject.Update();
             
-            DrawPropertiesExcluding(serializedObject, s_ExcludedFields);
-
-            // using (new EditorGUI.DisabledGroupScope(true))
-            // {
-            //     EditorGUILayout.PropertyField(m_ModuleProfileProperty);
-            //     EditorGUILayout.PropertyField(m_ComponentProfileProperty);
-            // }
+            // DrawPropertiesExcluding(serializedObject, s_ExcludedFields);
             
-            EditorGUILayout.HelpBox(Styles.RunnerInfo, MessageType.Info);
-
-            DrawModulesList();
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.PrefixLabel(Styles.ModuleProfile);
+                
+                using (var changeCheckScope = new EditorGUI.ChangeCheckScope())
+                {
+                    var newModuleProfile = EditorGUILayout.ObjectField(
+                        m_ModuleProfileProperty.objectReferenceValue, 
+                        typeof(GameFeatureModuleProfile), 
+                        false) as GameFeatureModuleProfile;
             
-            serializedObject.ApplyModifiedProperties();
+                    if (changeCheckScope.changed)
+                    {
+                        m_ModuleProfileProperty.objectReferenceValue = newModuleProfile;
+                        serializedObject.ApplyModifiedProperties();
+                        serializedObject.Update();
+                    }
+                }
+        
+                if (GUILayout.Button(Styles.NewModuleProfileLabel, EditorStyles.miniButton, GUILayout.Width(60)))
+                {
+                    string profilePath = EditorUtility.SaveFilePanelInProject(
+                        "Save Game Feature Module Profile",
+                        "GameFeatureModuleProfile",
+                        "asset",
+                        "Save the Game Feature Module Profile asset");
+                    if (!string.IsNullOrEmpty(profilePath))
+                    {
+                        var profile = CreateInstance<GameFeatureModuleProfile>();
+                        profile.name = Path.GetFileNameWithoutExtension(profilePath);
+                        AssetDatabase.CreateAsset(profile, profilePath);
+                        CoreEditorUtility.MarkDirtyAndSave(profile);
+                        
+                        m_ModuleProfileProperty.objectReferenceValue = profile;
+                    }
+                }
+            }
+            
+            if (m_ModuleProfileProperty.objectReferenceValue != null)
+            {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.PrefixLabel(Styles.ComponentProfile);
+                    
+                    using (var changeCheckScope = new EditorGUI.ChangeCheckScope())
+                    {
+                        var newComponentProfile = EditorGUILayout.ObjectField(
+                            m_ComponentProfileProperty.objectReferenceValue, 
+                            typeof(GameFeatureComponentProfile), 
+                            false) as GameFeatureComponentProfile;
+            
+                        if (changeCheckScope.changed)
+                        {
+                            m_ComponentProfileProperty.objectReferenceValue = newComponentProfile;
+                            serializedObject.ApplyModifiedProperties();
+                            serializedObject.Update();
+                        }
+                    }
+        
+                    if (GUILayout.Button(Styles.NewComponentProfileLabel, EditorStyles.miniButton, GUILayout.Width(60)))
+                    {
+                        string profilePath = EditorUtility.SaveFilePanelInProject(
+                            "Save Game Feature Component Profile",
+                            "GameFeatureComponentProfile",
+                            "asset",
+                            "Save the Game Feature Component Profile asset");
+                        if (!string.IsNullOrEmpty(profilePath))
+                        {
+                            var profile = CreateInstance<GameFeatureComponentProfile>();
+                            profile.name = Path.GetFileNameWithoutExtension(profilePath);
+                            AssetDatabase.CreateAsset(profile, profilePath);
+                            CoreEditorUtility.MarkDirtyAndSave(profile);
+
+                            m_ComponentProfileProperty.objectReferenceValue = profile;
+                        }
+                    }
+                }
+
+                if (m_ComponentProfileProperty.objectReferenceValue == null)
+                    EditorGUILayout.HelpBox(Styles.NoComponentProfileMessage, MessageType.Info);
+                
+                EditorGUILayout.Space();
+
+                DrawModulesList();
+            }
+            else
+            {
+                EditorGUILayout.HelpBox(Styles.NoModuleProfileMessage, MessageType.Error);
+            }
+            
+            if (change.changed)
+            {
+                serializedObject.ApplyModifiedProperties();
+            }
         }
 
         /// <summary>
@@ -105,20 +215,14 @@ namespace VerveEditor
         /// </summary>
         private void DrawModulesList()
         {
-            if (m_Runner.ModuleProfile == null)
-            {
-                EditorGUILayout.HelpBox("Assign a Module Profile asset to enable module selection.", MessageType.Warning);
-                return;
-            }
-            
-            if (m_Runner.ModuleProfile.Modules.Count == 0)
+            if ((m_Runner?.ModuleProfile?.Modules.Count ?? 0) == 0)
             {
                 EditorGUILayout.HelpBox(Styles.NoModulesInfo.text, MessageType.Info);
                 return;
             }
-            
+    
             EditorGUILayout.Space();
-            
+    
             if (m_ModulesProperty.arraySize == 0)
             {
                 EditorGUILayout.HelpBox(Styles.NoAddedModulesInfo, MessageType.Info);
@@ -129,14 +233,13 @@ namespace VerveEditor
                 {
                     RefreshEditors();
                 }
-                
+        
                 for (int i = 0; i < m_ModulesProperty.arraySize; i++)
                 {
                     var moduleProperty = m_ModulesProperty.GetArrayElementAtIndex(i);
                     if (moduleProperty.objectReferenceValue == null)
                     {
-                        m_ModulesProperty.DeleteArrayElementAtIndex(i);
-                        serializedObject.ApplyModifiedProperties();
+                        m_NeedsCleanup = true;
                         continue;
                     }
 
@@ -147,7 +250,7 @@ namespace VerveEditor
                     }
 
                     var editor = m_Editors[i];
-                    
+            
                     CoreEditorUtility.DrawSplitter();
                     bool displayContent = CoreEditorUtility.DrawHeaderToggle(
                         editor.GetDisplayTitle(),
@@ -168,14 +271,20 @@ namespace VerveEditor
                 if (m_ModulesProperty.arraySize > 0)
                     CoreEditorUtility.DrawSplitter();
             }
-            
+    
+            if (m_NeedsCleanup)
+            {
+                CleanNullElements();
+                m_NeedsCleanup = false;
+            }
+    
             EditorGUILayout.Space();
             if (GUILayout.Button(Styles.AddModuleButton, EditorStyles.miniButton))
             {
                 ShowAddModuleMenu();
             }
         }
-
+        
         /// <summary>
         ///   <para>菜单点击</para>
         /// </summary>
@@ -183,6 +292,7 @@ namespace VerveEditor
         {
             var menu = new GenericMenu();
             menu.AddItem(new GUIContent("Remove"), false, () => RemoveModule(index));
+            menu.AddItem(new GUIContent("Remove All"), false, RemoveAllModule);
             menu.DropDown(new Rect(position, Vector2.zero));
         }
 
@@ -284,17 +394,22 @@ namespace VerveEditor
         }
 
         /// <summary>
+        ///   <para>移除所有模块</para>
+        /// </summary>
+        private void RemoveAllModule()
+        {
+            serializedObject.Update();
+            m_ModulesProperty.ClearArray();
+            serializedObject.ApplyModifiedProperties();
+            RefreshEditors();
+        }
+
+        /// <summary>
         ///   <para>刷新编辑器</para>
         /// </summary>
         private void RefreshEditors()
         {
             ClearEditors();
-
-            if (m_ModulesProperty == null) 
-            {
-                serializedObject.Update();
-                m_ModulesProperty = serializedObject.FindProperty("m_Modules");
-            }
             
             CleanNullElements();
             

@@ -23,6 +23,8 @@ namespace VerveEditor
         
         public GameFeatureParameterDrawerAttribute(Type parameterType)
         {
+            if (!typeof(GameFeatureParameter).IsAssignableFrom(parameterType))
+                throw new ArgumentException("The parameter type must be a subclass of GameFeatureParameter.");
             this.parameterType = parameterType;
         }
     }
@@ -33,7 +35,7 @@ namespace VerveEditor
     /// </summary>
     public abstract class GameFeatureParameterDrawer
     {
-        public abstract bool OnGUI(SerializedDataParameter parameter, GUIContent title);
+        public abstract void OnGUI(SerializedDataParameter parameter, GUIContent title);
     }
     
 
@@ -41,15 +43,13 @@ namespace VerveEditor
     ///   <para>浮点数限制参数绘制器</para>
     /// </summary>
     [GameFeatureParameterDrawer(typeof(ClampedFloatParameter))]
-    internal sealed class ClampedFloatParameterDrawer : GameFeatureParameterDrawer
+    class ClampedFloatParameterDrawer : GameFeatureParameterDrawer
     {
-        public override bool OnGUI(SerializedDataParameter parameter, GUIContent title)
+        public override void OnGUI(SerializedDataParameter parameter, GUIContent title)
         {
             var clampedFloatParameter = parameter.GetTargetObject<ClampedFloatParameter>();
-            if (clampedFloatParameter == null)
-                return false;
+            if (clampedFloatParameter == null) return;
             EditorGUILayout.Slider(parameter.value, clampedFloatParameter.minValue, clampedFloatParameter.maxValue, title);
-            return true;
         }
     }
     
@@ -58,15 +58,13 @@ namespace VerveEditor
     ///   <para>整数限制参数绘制器</para>
     /// </summary>
     [GameFeatureParameterDrawer(typeof(ClampedIntParameter))]
-    internal sealed class ClampedIntParameterDrawer : GameFeatureParameterDrawer
+    class ClampedIntParameterDrawer : GameFeatureParameterDrawer
     {
-        public override bool OnGUI(SerializedDataParameter parameter, GUIContent title)
+        public override void OnGUI(SerializedDataParameter parameter, GUIContent title)
         {
             var clampedFloatParameter = parameter.GetTargetObject<ClampedIntParameter>();
-            if (clampedFloatParameter == null)
-                return false;
+            if (clampedFloatParameter == null) return;
             EditorGUILayout.Slider(parameter.value, clampedFloatParameter.minValue, clampedFloatParameter.maxValue, title);
-            return true;
         }
     }
 
@@ -75,15 +73,14 @@ namespace VerveEditor
     ///   <para>路径参数绘制器</para>
     /// </summary>
     [GameFeatureParameterDrawer(typeof(PathParameter))]
-    internal sealed class PathParameterDrawer : GameFeatureParameterDrawer
+    class PathParameterDrawer : GameFeatureParameterDrawer
     {
         private static Dictionary<string, string> s_PathOptionsMap;
     
-        public override bool OnGUI(SerializedDataParameter parameter, GUIContent title)
+        public override void OnGUI(SerializedDataParameter parameter, GUIContent title)
         {
             var pathParameter = parameter.GetTargetObject<PathParameter>();
-            if (pathParameter == null)
-                return false;
+            if (pathParameter == null) return;
             
             s_PathOptionsMap ??= new()
             {
@@ -128,9 +125,7 @@ namespace VerveEditor
                 {
                     parameter.value.stringValue = newPath;
                 }
-
             }
-            return true;
         }
     }
 }

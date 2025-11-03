@@ -39,7 +39,13 @@
         "globalMetadata": {
             "_appTitle": "Verve",
             "_appFooter": "Verve",
-            "_enableSearch": true
+            "_enableSearch": true,
+            "ignoreSpecifiedErrors": [
+                "CS0246",
+                "CS0234",
+                "CS0103",
+                "CS0118"
+            ]
         },
         "content": [
             {

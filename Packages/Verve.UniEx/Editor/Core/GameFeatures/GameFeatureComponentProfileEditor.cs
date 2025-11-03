@@ -74,8 +74,9 @@ namespace VerveEditor
 
         public override void OnInspectorGUI()
         {
-            if (m_Profile == null || target == null)
-                return;
+            if (m_Profile == null || target == null) return;
+            
+            using var change = new EditorGUI.ChangeCheckScope();
             
             serializedObject.Update();
     
@@ -87,8 +88,11 @@ namespace VerveEditor
 
             DrawComponentsList();
             DrawAddComponentButton();
-
-            serializedObject.ApplyModifiedProperties();
+            
+            if (change.changed)
+            {
+                serializedObject.ApplyModifiedProperties();
+            }
         }
         
         private void OnUndoRedoPerformed()
@@ -284,6 +288,7 @@ namespace VerveEditor
         
         /// <summary>
         ///   <para>移除组件</para>
+        /// </summary>
         private void RemoveComponent(int index)
         {
             if (index < 0 || index >= m_ComponentsProperty.arraySize) return;
