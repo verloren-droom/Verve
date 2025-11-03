@@ -13,7 +13,6 @@ on:
 
 env:
   DOTNET_VERSION: '8.0.x'  
-  PYTHON_VERSION: '3.9'
   UNITY_VERSION: "2021.3.21f1c1"
 
 jobs:
@@ -37,16 +36,13 @@ jobs:
 
       - name: Setup Python environment
         uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
           
       - name: Prepare documentation structure
         run: |
           cp README.md Documentation/index.md
           
           python3 Documentation/replace_links.py \
-          --repo-url "${{ env.REPO_URL }}" \
+          --repo-url "${{ github.repository }}" \
           --branch "${{ github.ref_name }}" \
           --docs-dir "Documentation" \
           --verbose
