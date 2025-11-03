@@ -7,6 +7,7 @@ on:
       - 'Packages/Verve.Core/**'
       - 'Packages/Verve.UniEx/**'
       - 'Documentation/**'
+      - 'README.md'
       - '.github/workflows/documentation.yml'
   workflow_dispatch:
 
@@ -31,8 +32,31 @@ jobs:
 
       - name: Install DocFX
         run: |
-          dotnet tool install -g docfx --version 2.61.0
-          docfx --version
+          dotnet tool install -g docfx
+          
+      - name: Prepare documentation structure
+        run: |
+          cp README.md Documentation/index.md
+          mkdir -p Documentation/resources
+          
+      - name: Fix relative paths in README
+        run: |
+          cd Documentation
+          if [ -f "index.md" ]; then
+            sed -i 's|(\./|(|g' index.md
+            sed -i 's|(\.\./|(|g' index.md
+            sed -i 's|\[.*\](\./.*\.md)|[View Source](https://github.com/${{ github.repository }}/blob/main/&)|g' index.md
+            cat > temp_header.md << 'HEADER'
+          ---
+          _disableBreadcrumb: true
+          _disableToc: true
+          ---
+          
+          HEADER
+            cat temp_header.md index.md > temp_combined.md
+            mv temp_combined.md index.md
+            rm temp_header.md
+          fi
 
       - name: Validate DocFX configuration
         run: |
@@ -40,7 +64,7 @@ jobs:
             echo "docfx.json not found in Documentation folder"
             exit 1
           fi
-
+          
       - name: Generate API documentation
         run: |
           docfx Documentation/docfx.json
