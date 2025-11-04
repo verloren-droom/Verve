@@ -12,7 +12,8 @@ on:
   workflow_dispatch:
 
 env:
-  DOTNET_VERSION: '8.0.x'  
+  DOTNET_VERSION: '8.0.x'
+  PYTHON_VERSION: '3.9.13'
   UNITY_VERSION: "2021.3.21f1c1"
   REPO_URL: 'https://github.com/verloren-droom/Verve'
 
@@ -35,15 +36,18 @@ jobs:
         run: |
           dotnet tool install -g docfx
 
-      - name: Setup Python environment
+      - name: Setup Python
         uses: actions/setup-python@v4
-          
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+        
       - name: Prepare documentation structure
         run: |
           cp README.md Documentation/index.md
           
           python3 Documentation/replace_links.py \
-          --repo-url "${{ env.REPO_URL }}" \
+          --repo-url "${{ github.repository }}" \
           --branch "${{ github.ref_name }}" \
           --docs-dir "Documentation" \
           --verbose
