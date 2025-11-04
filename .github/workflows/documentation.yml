@@ -45,8 +45,10 @@ jobs:
         run: |
           cp README.md Documentation/index.md
           
+          echo "title: Verve" >> "${{ env.REPO_URL }}"
+          
           python3 Documentation/replace_links.py \
-          --repo-url "${{ github.repository }}" \
+          --repo-url "${{ env.REPO_URL }}" \
           --branch "${{ github.ref_name }}" \
           --docs-dir "Documentation" \
           --verbose
