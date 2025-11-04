@@ -40,7 +40,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
         
       - name: Prepare documentation structure
         run: |
