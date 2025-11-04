@@ -5,43 +5,57 @@ import argparse
 from pathlib import Path
 
 def replace_links(file_path, repo_url, branch='main'):
-    """处理 Markdown 文件中的相对链接，生成 DocFX 兼容的外部链接"""
+    """处理 Markdown 文件中的相对链接，精确替换不同类型的链接"""
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
     original_content = content
 
-    link_pattern = r'\[([^\]]+)\]\(([^)]+)\)'
+    link_pattern = r'(\[!?\[[^\]]*\]\([^)]*\)\]|\[[^\]]+\])\(([^)]+)\)'
 
     def replace_link(match):
-        display_text = match.group(1)
+        full_match = match.group(0)
         link_url = match.group(2)
 
-        if link_url.startswith(('http://', 'https://', 'mailto:', '#', 'xref:')):
-            return match.group(0)
+        print(f"DEBUG: Processing link: {full_match}")
+        print(f"DEBUG: Link URL: {link_url}")
 
-        is_directory = (link_url.endswith('/') or
-                        '.' not in os.path.basename(link_url) or
-                        os.path.basename(link_url).split('.')[-1] in ['', '/'])
-        url_type = 'tree' if is_directory else 'blob'
+        if link_url.startswith(('http://', 'https://', 'mailto:', '#', 'data:')):
+            print(f"DEBUG: Skipping absolute URL: {link_url}")
+            return full_match
 
-        if link_url.startswith('./'):
+        if '/' not in link_url and not link_url.startswith(('./', '../')):
+            print(f"DEBUG: Direct filename detected: {link_url}")
+            relative_path = link_url
+        elif link_url.startswith('./'):
             relative_path = link_url[2:]
-            new_url = f'{repo_url}/{url_type}/{branch}/{relative_path}'
+            print(f"DEBUG: ./ path converted to: {relative_path}")
         elif link_url.startswith('../'):
             file_dir = os.path.dirname(file_path)
             abs_path = os.path.normpath(os.path.join(file_dir, link_url))
             repo_relative_path = os.path.relpath(abs_path, start='.')
-            new_url = f'{repo_url}/{url_type}/{branch}/{repo_relative_path}'
-        elif link_url.startswith('/'):
-            new_url = f'{repo_url}/{url_type}/{branch}/{link_url[1:]}'
+            relative_path = repo_relative_path
+            print(f"DEBUG: ../ path converted from {link_url} to {relative_path}")
         else:
-            file_dir = os.path.dirname(file_path)
-            abs_path = os.path.normpath(os.path.join(file_dir, link_url))
-            repo_relative_path = os.path.relpath(abs_path, start='.')
-            new_url = f'{repo_url}/{url_type}/{branch}/{repo_relative_path}'
+            relative_path = link_url
+            print(f"DEBUG: Other path type: {relative_path}")
 
-        return f'[{display_text}]({new_url})'
+        if (relative_path.endswith('/') or
+                '.' not in os.path.basename(relative_path) or
+                os.path.basename(relative_path).split('.')[-1] in ['', '/']):
+            url_type = 'tree'
+            print(f"DEBUG: URL type: tree (directory)")
+        else:
+            url_type = 'blob'
+            print(f"DEBUG: URL type: blob (file)")
+
+        new_url = f'{repo_url}/{url_type}/{branch}/{relative_path}'
+        print(f"DEBUG: Final URL: {new_url}")
+
+        result = full_match.replace(link_url, new_url)
+        print(f"DEBUG: Final result: {result}")
+
+        return result
 
     content = re.sub(link_pattern, replace_link, content)
 
@@ -55,7 +69,7 @@ def replace_links(file_path, repo_url, branch='main'):
         return False
 
 def main():
-    parser = argparse.ArgumentParser(description='Process relative links in Markdown files for DocFX')
+    parser = argparse.ArgumentParser(description='Process relative links in Markdown files')
     parser.add_argument('--repo-url', required=True, help='GitHub repository URL')
     parser.add_argument('--branch', default='main', help='Repository branch name')
     parser.add_argument('--docs-dir', default='Documentation', help='Documentation directory path')

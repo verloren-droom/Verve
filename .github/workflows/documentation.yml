@@ -14,8 +14,8 @@ on:
 env:
   DOTNET_VERSION: '8.0.x'
   PYTHON_VERSION: '3.9.13'
-  UNITY_VERSION: "2021.3.21f1c1"
-  REPO_URL: 'https://github.com/verloren-droom/Verve'
+  UNITY_VERSION: '2021.3.21f1c1'
+  REPO_URL: 'https://github.com/${{ github.repository }}'
 
 jobs:
   build:
@@ -44,9 +44,6 @@ jobs:
       - name: Prepare documentation structure
         run: |
           cp README.md Documentation/index.md
-          
-          echo "Verve Repo URL: ${{ env.REPO_URL }}"
-          echo "GitHub Ref: ${{ github.ref_name }}"
           
           python3 Documentation/replace_links.py \
           --repo-url "${{ env.REPO_URL }}" \
