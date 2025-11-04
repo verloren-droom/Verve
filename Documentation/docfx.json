@@ -38,8 +38,11 @@
     "build": {
         "globalMetadata": {
             "_appTitle": "Verve",
-            "_appFooter": "Copyright © $year$ Verve. All rights reserved.",
+            "_appFooter": "Copyright © 2025 Verve. All rights reserved.",
+            "_basePath": "/Verve",
             "_enableSearch": true,
+            "keepRawLink": true,
+            "cleanupCacheHistory": true,
             "disableGitFeatures": false
         },
         "content": [
