@@ -19,7 +19,6 @@ namespace VerveEditor
     internal class GameFlowGraphEditorWindow : EditorWindow
     {
         [SerializeField, Tooltip("当前流程图")] private GameFlowGraphAsset m_CurrentGraph;
-        [SerializeField, Tooltip("当前流程图偏移量")] private Vector2 m_GraphOffset;
         [NonSerialized, Tooltip("当前流程图输入端口")] private VisualFlowPort m_SelectedInputPort;
         [NonSerialized, Tooltip("当前流程图输出端口")] private VisualFlowPort m_SelectedOutputPort;
 
@@ -42,10 +41,36 @@ namespace VerveEditor
         
         private static Dictionary<string, Type> s_NodeTypeCache;
         
+        private bool m_IsInspectorDragging;
+        private bool m_IsInspectorResizing;
+        private Vector2 m_InspectorDragStart;
+        private bool m_IsDirty;
+
+        /// <summary>
+        ///   <para>标题ICON路径</para>
+        /// </summary>
+        private const string kTitleIcon = "Packages/com.verloren-droom.verve-unity-extension/Editor/Core/GameFlow/Icons/GameFlowGraphIcon_64x64.png";
+        /// <summary>
+        ///   <para>默认标题</para>
+        /// </summary>
+        private const string kDefaultTitle = "Flow Graph";
         /// <summary>
         ///   <para>连接线宽度</para>
         /// </summary>
-        private const float CONNECTION_LINE_WIDTH = 4f;
+        private const float kConnectionLineWidth = 4f;
+        /// <summary>
+        ///   <para>检查器缩放句柄大小</para>
+        /// </summary>
+        private const float kInspectorResizeHandleSize = 15f;
+        /// <summary>
+        ///   <para>检查器标题高度</para>
+        /// </summary>
+        private const float kInspectorHeaderHeight = 25f;
+        private const float kMinZoom = 0.5f;
+        private const float kMaxZoom = 1.5f;
+        private const float kZoomStep = 0.1f;
+        
+        private static Dictionary<string, GameFlowGraphEditorWindow> s_OpenWindows = new Dictionary<string, GameFlowGraphEditorWindow>();
         
         /// <summary>
         ///   <para>内部样式</para>
@@ -90,6 +115,23 @@ namespace VerveEditor
             ///   <para>根节点样式</para>
             /// </summary>
             public static GUIStyle RootNodeStyle { get; private set; }
+
+            /// <summary>
+            ///   <para>流程图检查器样式</para>
+            /// </summary>
+            public static GUIStyle GraphInspector { get; private set; }
+            /// <summary>
+            ///   <para>流程图检查器标题样式</para>
+            /// </summary>
+            public static GUIStyle GraphInspectorHeader { get; private set; }
+            /// <summary>
+            ///   <para>流程图检查器标题文本样式</para>
+            /// </summary>
+            public static GUIStyle GraphInspectorTitle { get; private set; }
+            /// <summary>
+            ///   <para>流程图检查器拖拽句柄样式</para>
+            /// </summary>
+            public static GUIStyle GraphInspectorDragHandle { get; private set; }
             
             static Styles()
             {
@@ -137,6 +179,24 @@ namespace VerveEditor
                 HighlightPort.alignment = TextAnchor.MiddleCenter;
                 
                 RootNodeStyle = new GUIStyle(NodeStyle);
+                
+                GraphInspector = new GUIStyle();
+                GraphInspector.normal.background = CreateColorTexture(new Color(0.22f, 0.22f, 0.22f, 0.95f));
+                GraphInspector.border = new RectOffset(1, 1, 1, 1);
+                GraphInspector.padding = new RectOffset(5, 5, 0, 5);
+                
+                GraphInspectorHeader = new GUIStyle(EditorStyles.toolbar);
+                GraphInspectorHeader.normal.background = CreateColorTexture(new Color(0.3f, 0.3f, 0.3f, 1.0f));
+                GraphInspectorHeader.fixedHeight = kInspectorHeaderHeight;
+                
+                GraphInspectorTitle = new GUIStyle(EditorStyles.boldLabel);
+                GraphInspectorTitle.normal.textColor = Color.white;
+                GraphInspectorTitle.alignment = TextAnchor.MiddleLeft;
+                GraphInspectorTitle.fixedHeight = kInspectorHeaderHeight;
+                GraphInspectorTitle.alignment = TextAnchor.MiddleLeft;
+
+                GraphInspectorDragHandle = new GUIStyle();
+                GraphInspectorDragHandle.normal.background = CreateColorTexture(new Color(0.4f, 0.4f, 0.4f, 0.8f));
             }
             
             /// <summary>
@@ -168,15 +228,44 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///   <para>打开流程图编辑窗口</para>
+        ///   <para>创建或打开已有的流程图编辑窗口</para>
         /// </summary>
-        public static void OpenWindow()
+        public static void CreateNewOrOpenWindow(GameFlowGraphAsset graphAsset)
         {
-            var window = GetWindow<GameFlowGraphEditorWindow>();
-            window.titleContent = new GUIContent("Flow Graph (Experimental)");
+            if (graphAsset == null) return;
+            
+            string assetPath = AssetDatabase.GetAssetPath(graphAsset);
+            
+            if (s_OpenWindows.ContainsKey(assetPath))
+            {
+                var existingWindow = s_OpenWindows[assetPath];
+                if (existingWindow != null)
+                {
+                    existingWindow.Focus();
+                    return;
+                }
+                else
+                {
+                    s_OpenWindows.Remove(assetPath);
+                }
+            }
+            
+            var window = CreateWindow<GameFlowGraphEditorWindow>();
             window.minSize = new Vector2(800, 600);
-            window.Focus();
+            window.m_CurrentGraph = graphAsset;
+            
+            window.m_CurrentGraph.inspectorRect = new Rect(
+                window.position.width - 310,
+                30, 
+                300, 
+                400
+            );
+            
+            s_OpenWindows[assetPath] = window;
+            
+            window.UpdateWindowTitle();
             window.Show();
+            window.Focus();
         }
         
         private void OnEnable()
@@ -186,14 +275,19 @@ namespace VerveEditor
             if (m_CurrentGraph != null)
             {
                 m_CurrentGraph.RebuildGraphReferences();
+                string assetPath = AssetDatabase.GetAssetPath(m_CurrentGraph);
+                if (!string.IsNullOrEmpty(assetPath))
+                {
+                    s_OpenWindows[assetPath] = this;
+                }
             }
         }
-        
+
         private void OnGUI()
         {
             DrawToolbar();
             DrawGraphView();
-            DrawSidePanel();
+            DrawGraphInspector();
             HandleEvents();
             
             if (m_CurrentGraph != null && GUI.changed)
@@ -201,13 +295,26 @@ namespace VerveEditor
                 m_CurrentGraph.RebuildGraphReferences();
             }
             
-            if (GUI.changed) Repaint();
+            if (GUI.changed) 
+            {
+                if (!m_IsDirty)
+                {
+                    m_IsDirty = true;
+                    UpdateWindowTitle();
+                }
+                Repaint();
+            }
         }
 
-        // private void OnDisable()
-        // {
-        //     Styles.Cleanup();
-        // }
+        /// <summary>
+        ///   <para>更新窗口标题</para>
+        /// </summary>
+        private void UpdateWindowTitle()
+        {
+            string graphName = m_CurrentGraph?.name ?? kDefaultTitle;
+            titleContent = new GUIContent($"{graphName} (Experimental)", 
+                AssetDatabase.LoadAssetAtPath<Texture2D>(kTitleIcon));
+        }
 
         /// <summary>
         ///   <para>刷新节点类型缓存</para>
@@ -231,22 +338,6 @@ namespace VerveEditor
             catch (ReflectionTypeLoadException) { }
         }
         
-        /// <summary>
-        ///   <para>流程图资源发生改变时调用</para>
-        /// </summary>
-        private void OnGraphAssetChanged()
-        {
-            m_SelectedNode = null;
-            m_SelectedPort = null;
-            m_SelectedInputPort = null;
-            m_SelectedOutputPort = null;
-            
-            if (m_CurrentGraph != null)
-            {
-                m_CurrentGraph.RebuildGraphReferences();
-            }
-        }
-
         /// <summary>
         ///   <para>绘制复合节点的子节点控制按钮</para>
         /// </summary>
@@ -274,7 +365,6 @@ namespace VerveEditor
     
             if (GUI.Button(addButtonRect, "+", miniButtonStyle))
             {
-                // Undo.RecordObject(node, "Add Child");
                 node.AddChildToComposite();
                 SaveGraphChanges();
                 if (m_CurrentGraph != null)
@@ -286,7 +376,6 @@ namespace VerveEditor
     
             if (GUI.Button(removeButtonRect, "-", miniButtonStyle))
             {
-                // Undo.RecordObject(node, "Remove Child");
                 node.RemoveChildFromComposite();
                 SaveGraphChanges();
                 if (m_CurrentGraph != null)
@@ -316,35 +405,189 @@ namespace VerveEditor
         }
 
         /// <summary>
-        ///   <para>绘制侧边栏</para>
+        ///   <para>绘制图形检查器</para>
         /// </summary>
-        private void DrawSidePanel()
+        private void DrawGraphInspector()
         {
-            var sidePanelRect = new Rect(position.width - 300, 20, 300, position.height - 20);
-            GUILayout.BeginArea(sidePanelRect, EditorStyles.helpBox);
+            if (!m_CurrentGraph.inspectorVisible) return;
+
+            m_CurrentGraph.inspectorRect.x = Mathf.Clamp(m_CurrentGraph.inspectorRect.x, 0, position.width - m_CurrentGraph.inspectorRect.width);
+            m_CurrentGraph.inspectorRect.y = Mathf.Clamp(m_CurrentGraph.inspectorRect.y, 20, position.height - 40);
+            m_CurrentGraph.inspectorRect.width = Mathf.Clamp(m_CurrentGraph.inspectorRect.width, 250, 500);
+            m_CurrentGraph.inspectorRect.height = Mathf.Clamp(m_CurrentGraph.inspectorRect.height, 200, position.height - 60);
+
+            GUI.Box(m_CurrentGraph.inspectorRect, "", Styles.GraphInspector);
+
+            var headerRect = new Rect(m_CurrentGraph.inspectorRect.x, m_CurrentGraph.inspectorRect.y, m_CurrentGraph.inspectorRect.width, kInspectorHeaderHeight);
+            GUI.Box(headerRect, "", Styles.GraphInspectorHeader);
+
+            var dragHandleRect = new Rect(headerRect.x, headerRect.y, headerRect.width, headerRect.height);
+            GUI.Box(dragHandleRect, "", Styles.GraphInspectorDragHandle);
+
+            var titleContent = new GUIContent("Graph Inspector");
+            var titleRect = new Rect(
+                headerRect.x + 5,
+                headerRect.y,
+                headerRect.width - 10,
+                headerRect.height
+            );
+            GUI.Label(titleRect, titleContent, Styles.GraphInspectorTitle);
+
+            var contentRect = new Rect(
+                m_CurrentGraph.inspectorRect.x + 5, 
+                m_CurrentGraph.inspectorRect.y + kInspectorHeaderHeight + 5, 
+                m_CurrentGraph.inspectorRect.width - 10, 
+                m_CurrentGraph.inspectorRect.height - kInspectorHeaderHeight - 10
+            );
+            
+            GUILayout.BeginArea(contentRect);
             {
-                if (m_SelectedPort != null)
+                m_CurrentGraph.inspectorScrollPos = EditorGUILayout.BeginScrollView(m_CurrentGraph.inspectorScrollPos, GUILayout.Height(contentRect.height));
                 {
-                    DrawPortInspector();
+                    DrawInspectorContent();
                 }
-                else if (m_SelectedNode != null)
-                {
-                    DrawNodeInspector();
-                }
-                else
-                {
-                    DrawGraphInspector();
-                }
+                EditorGUILayout.EndScrollView();
             }
             GUILayout.EndArea();
+
+            DrawResizeHandle();
+
+            HandleInspectorInteraction(headerRect);
+        }
+
+        /// <summary>
+        ///   <para>绘制调整大小的手柄</para>
+        /// </summary>
+        private void DrawResizeHandle()
+        {
+            var resizeHandleRect = new Rect(
+                m_CurrentGraph.inspectorRect.x + m_CurrentGraph.inspectorRect.width - kInspectorResizeHandleSize,
+                m_CurrentGraph.inspectorRect.y + m_CurrentGraph.inspectorRect.height - kInspectorResizeHandleSize,
+                kInspectorResizeHandleSize,
+                kInspectorResizeHandleSize
+            );
+            
+            EditorGUIUtility.AddCursorRect(resizeHandleRect, MouseCursor.ResizeUpLeft);
+            GUI.Box(resizeHandleRect, "", Styles.GraphInspectorDragHandle);
+            
+            Handles.BeginGUI();
+            Handles.color = Color.white;
+            Vector2 start = new Vector2(resizeHandleRect.x + 5, resizeHandleRect.y + resizeHandleRect.height - 5);
+            Vector2 end = new Vector2(resizeHandleRect.x + resizeHandleRect.width - 5, resizeHandleRect.y + 5);
+            Handles.DrawLine(start, end);
+            Handles.EndGUI();
+        }
+
+        /// <summary>
+        ///   <para>处理检查器交互（拖拽和调整大小）</para>
+        /// </summary>
+        private void HandleInspectorInteraction(Rect headerRect)
+        {
+            Event currentEvent = Event.current;
+            Vector2 mousePos = currentEvent.mousePosition;
+
+            var resizeHandleRect = new Rect(
+                m_CurrentGraph.inspectorRect.x + m_CurrentGraph.inspectorRect.width - kInspectorResizeHandleSize,
+                m_CurrentGraph.inspectorRect.y + m_CurrentGraph.inspectorRect.height - kInspectorResizeHandleSize,
+                kInspectorResizeHandleSize,
+                kInspectorResizeHandleSize
+            );
+
+            if (currentEvent.type == EventType.MouseDown)
+            {
+                if (headerRect.Contains(mousePos))
+                {
+                    m_IsInspectorDragging = true;
+                    m_InspectorDragStart = mousePos - new Vector2(m_CurrentGraph.inspectorRect.x, m_CurrentGraph.inspectorRect.y);
+                    currentEvent.Use();
+                }
+                else if (resizeHandleRect.Contains(mousePos))
+                {
+                    m_IsInspectorResizing = true;
+                    m_InspectorDragStart = mousePos;
+                    currentEvent.Use();
+                }
+            }
+
+            if (m_IsInspectorDragging && currentEvent.type == EventType.MouseDrag)
+            {
+                m_CurrentGraph.inspectorRect.position = mousePos - m_InspectorDragStart;
+                currentEvent.Use();
+            }
+
+            if (m_IsInspectorResizing && currentEvent.type == EventType.MouseDrag)
+            {
+                Vector2 delta = mousePos - m_InspectorDragStart;
+                m_CurrentGraph.inspectorRect.width = Mathf.Max(250, m_CurrentGraph.inspectorRect.width + delta.x);
+                m_CurrentGraph.inspectorRect.height = Mathf.Max(200, m_CurrentGraph.inspectorRect.height + delta.y);
+                m_InspectorDragStart = mousePos;
+                currentEvent.Use();
+            }
+
+            if (currentEvent.type == EventType.MouseUp)
+            {
+                m_IsInspectorDragging = false;
+                m_IsInspectorResizing = false;
+            }
+        }
+
+        /// <summary>
+        ///   <para>绘制检查器内容</para>
+        /// </summary>
+        private void DrawInspectorContent()
+        {
+            if (m_SelectedPort != null)
+            {
+                DrawPortSettings();
+            }
+            else if (m_SelectedNode != null)
+            {
+                DrawNodeSettings();
+            }
+            else if (m_SelectedConnection != null)
+            {
+                DrawConnectionSettings();
+            }
+            else
+            {
+                DrawGraphSettings();
+            }
+        }
+
+        /// <summary>
+        ///   <para>绘制连接线设置</para>
+        /// </summary>
+        private void DrawConnectionSettings()
+        {
+            GUILayout.Label("Connection Settings", EditorStyles.boldLabel);
+            EditorGUILayout.Space();
+
+            if (m_SelectedConnection != null)
+            {
+                EditorGUILayout.LabelField("From Node", m_SelectedConnection.OutputPort?.Node?.NodeName ?? "Unknown");
+                EditorGUILayout.LabelField("From Port", m_SelectedConnection.OutputPort?.DisplayName ?? "Unknown");
+                EditorGUILayout.LabelField("To Node", m_SelectedConnection.InputPort?.Node?.NodeName ?? "Unknown");
+                EditorGUILayout.LabelField("To Port", m_SelectedConnection.InputPort?.DisplayName ?? "Unknown");
+                
+                EditorGUILayout.Space();
+                
+                if (GUILayout.Button("Delete Connection"))
+                {
+                    DeleteConnection(m_SelectedConnection);
+                }
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("No connection selected", MessageType.Info);
+            }
         }
         
         /// <summary>
-        ///   <para>绘制端口属性面板</para>
+        ///   <para>绘制端口属性设置面板</para>
         /// </summary>
-        private void DrawPortInspector()
+        private void DrawPortSettings()
         {
-            GUILayout.Label("Port Inspector", EditorStyles.boldLabel);
+            GUILayout.Label("Port Settings", EditorStyles.boldLabel);
             EditorGUILayout.Space();
 
             if (m_SelectedPort != null)
@@ -361,45 +604,49 @@ namespace VerveEditor
         }
         
         /// <summary>
-        ///   <para>绘制流程图节点属性面板</para>
+        ///   <para>绘制流程图节点属性设置</para>
         /// </summary>
-        private void DrawNodeInspector()
+        private void DrawNodeSettings()
         {
-            GUILayout.Label("Node Inspector", EditorStyles.boldLabel);
+            GUILayout.Label("Node Settings", EditorStyles.boldLabel);
             EditorGUILayout.Space();
     
             if (m_SelectedNode != null && m_SelectedNode.WrappedNode != null)
             {
-                var serializedNode = new SerializedObject(m_SelectedNode);
+                using var serializedNode = new SerializedObject(m_SelectedNode);
+                using var nodeChange = new EditorGUI.ChangeCheckScope();
                 serializedNode.Update();
 
                 var nodeNameProp = serializedNode.FindProperty("m_NodeName");
                 var descriptionProp = serializedNode.FindProperty("m_Description");
-                if (nodeNameProp != null)
-                    EditorGUILayout.PropertyField(nodeNameProp);
-                if (descriptionProp != null)
-                    EditorGUILayout.PropertyField(descriptionProp);
+                EditorGUILayout.PropertyField(nodeNameProp);
+                EditorGUILayout.PropertyField(descriptionProp);
 
                 EditorGUILayout.Space();
-        
-                var wrappedNodeProp = serializedNode.FindProperty("m_WrappedNode");
-                if (wrappedNodeProp != null)
-                {
-                    var childProperty = wrappedNodeProp.Copy();
-                    var enterChildren = true;
-                    while (childProperty.NextVisible(enterChildren))
-                    {
-                        if (!childProperty.propertyPath.StartsWith(wrappedNodeProp.propertyPath))
-                            break;
 
-                        EditorGUILayout.PropertyField(childProperty, true);
-                        enterChildren = false;
-                    }
-                }        
-                
-                if (serializedNode.ApplyModifiedProperties())
+                var wrappedNodeProp = serializedNode.FindProperty("m_WrappedNode");
+                var childProperty = wrappedNodeProp.Copy();
+                var enterChildren = true;
+                while (childProperty.NextVisible(enterChildren))
                 {
-                    SaveGraphChanges();
+                    if (!childProperty.propertyPath.StartsWith(wrappedNodeProp.propertyPath)) 
+                        break;
+                    
+                    var fieldInfo = GetFieldInfoFromProperty(m_SelectedNode.WrappedNode.GetType(), childProperty.name);
+                    if (fieldInfo != null && (fieldInfo.GetCustomAttribute<GameFlowOutputAttribute>() != null || fieldInfo.GetCustomAttribute<GameFlowInputAttribute>() != null))
+                    {
+                        enterChildren = false;
+                        continue;
+                    }
+                    
+                    EditorGUILayout.PropertyField(childProperty, true);
+                    enterChildren = false;
+                }
+
+                if (nodeChange.changed)
+                {
+                    serializedNode.ApplyModifiedProperties();
+                    MarkDirty();
                 }
             }
             else
@@ -409,41 +656,56 @@ namespace VerveEditor
         }
         
         /// <summary>
+        ///   <para>根据属性名称获取字段信息</para>
+        /// </summary>
+        private FieldInfo GetFieldInfoFromProperty(Type type, string propertyName)
+        {
+            if (type == null || string.IsNullOrEmpty(propertyName))
+                return null;
+                
+            var field = type.GetField(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field != null)
+                return field;
+                
+            var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            foreach (var f in fields)
+            {
+                if (f.Name.StartsWith("<" + propertyName + ">"))
+                    return f;
+            }
+            
+            return null;
+        }
+        
+        /// <summary>
         ///   <para>绘制流程图绘制工具栏面板</para>
         /// </summary>
         private void DrawToolbar()
         {
             GUILayout.BeginHorizontal(EditorStyles.toolbar);
             {
-                EditorGUI.BeginChangeCheck();
-                m_CurrentGraph = (GameFlowGraphAsset)EditorGUILayout.ObjectField(
-                    m_CurrentGraph, typeof(GameFlowGraphAsset), false, GUILayout.Width(200));
-                if (EditorGUI.EndChangeCheck())
-                {
-                    OnGraphAssetChanged();
-                }
-                
-                if (GUILayout.Button("New Graph", EditorStyles.toolbarButton))
-                {
-                    CreateNewGraph();
-                }
-                
-                if (GUILayout.Button("Save", EditorStyles.toolbarButton))
-                {
-                    SaveGraph();
-                }
-                
                 GUILayout.FlexibleSpace();
+                
+                GUILayout.Label("Zoom:", GUILayout.ExpandWidth(false));
+                m_CurrentGraph.zoom = GUILayout.HorizontalSlider(m_CurrentGraph.zoom, kMinZoom, kMaxZoom, GUILayout.Width(100));
+                GUILayout.Label($"{m_CurrentGraph.zoom * 100:F0}%", GUILayout.Width(40));
+                
+                GUILayout.Space(10);
+
+                if (GUILayout.Button(m_CurrentGraph.inspectorVisible ? "Hide Inspector" : "Show Inspector", EditorStyles.toolbarButton))
+                {
+                    m_CurrentGraph.inspectorVisible = !m_CurrentGraph.inspectorVisible;
+                }
             }
             GUILayout.EndHorizontal();
         }
 
         /// <summary>
-        ///   <para>绘制图形属性面板</para>
+        ///   <para>绘制图形属性设置面板</para>
         /// </summary>
-        private void DrawGraphInspector()
+        private void DrawGraphSettings()
         {
-            GUILayout.Label("Flow Graph", EditorStyles.boldLabel);
+            GUILayout.Label("Flow Graph Settings", EditorStyles.boldLabel);
             EditorGUILayout.Space();
 
             if (m_CurrentGraph != null)
@@ -460,11 +722,13 @@ namespace VerveEditor
         /// <summary>
         ///   <para>获取指定位置的连接</para>
         /// </summary>
-        /// <param name="screenPosition">屏幕坐标</param>
         private VisualFlowConnection GetConnectionAtPosition(Vector2 screenPosition)
         {
             if (m_CurrentGraph?.nodes == null) return null;
     
+            float closestDistance = float.MaxValue;
+            VisualFlowConnection closestConnection = null;
+            
             foreach (var node in m_CurrentGraph.nodes)
             {
                 if (node == null) continue;
@@ -472,26 +736,70 @@ namespace VerveEditor
                 {
                     foreach (var connection in port.Connections)
                     {
-                        if (IsPointNearConnection(screenPosition, connection))
+                        if (connection == null) continue;
+                        
+                        float distance = GetDistanceToConnection(screenPosition, connection);
+                        if (distance < 10f && distance < closestDistance) // 10像素阈值
                         {
-                            return connection;
+                            closestDistance = distance;
+                            closestConnection = connection;
                         }
                     }
                 }
             }
     
-            return null;
+            return closestConnection;
         }
 
         /// <summary>
-        ///   <para>判断点是否接近连线</para>
+        ///   <para>计算点到连接线的距离</para>
         /// </summary>
-        private bool IsPointNearConnection(Vector2 point, VisualFlowConnection connection)
+        private float GetDistanceToConnection(Vector2 point, VisualFlowConnection connection)
         {
             var startPos = GetPortCenter(connection.OutputPort);
             var endPos = GetPortCenter(connection.InputPort);
-    
-            return HandleUtility.DistancePointToLine(point, startPos, endPos) < 10f;
+            
+            var startTangent = startPos + Vector2.right * 80 * m_CurrentGraph.zoom;
+            var endTangent = endPos + Vector2.left * 80 * m_CurrentGraph.zoom;
+            
+            int segments = 20;
+            float minDistance = float.MaxValue;
+            
+            for (int i = 0; i < segments; i++)
+            {
+                float t1 = i / (float)segments;
+                float t2 = (i + 1) / (float)segments;
+                
+                Vector2 p1 = CalculateBezierPoint(t1, startPos, startTangent, endTangent, endPos);
+                Vector2 p2 = CalculateBezierPoint(t2, startPos, startTangent, endTangent, endPos);
+                
+                float distance = HandleUtility.DistancePointToLineSegment(point, p1, p2);
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                }
+            }
+            
+            return minDistance;
+        }
+
+        /// <summary>
+        ///   <para>计算贝塞尔曲线上的点</para>
+        /// </summary>
+        private Vector2 CalculateBezierPoint(float t, Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3)
+        {
+            float u = 1 - t;
+            float tt = t * t;
+            float uu = u * u;
+            float uuu = uu * u;
+            float ttt = tt * t;
+            
+            Vector2 p = uuu * p0;
+            p += 3 * uu * t * p1;
+            p += 3 * u * tt * p2;
+            p += ttt * p3;
+            
+            return p;
         }
 
         /// <summary>
@@ -505,7 +813,7 @@ namespace VerveEditor
             connection.OutputPort?.Disconnect(connection);
     
             m_SelectedConnection = null;
-            SaveGraphChanges();
+            MarkDirty();
             
             GUI.changed = true;
         }
@@ -594,9 +902,8 @@ namespace VerveEditor
         {
             if (m_CurrentGraph != null && node != null)
             {
-                // Undo.RecordObject(m_CurrentGraph, "Set Root Node");
                 m_CurrentGraph.RootNode = node;
-                SaveGraphChanges();
+                MarkDirty();
                 m_CurrentGraph.RebuildGraphReferences();
                 GUI.changed = true;
             }
@@ -607,7 +914,7 @@ namespace VerveEditor
         /// </summary>
         private void DrawGraphView()
         {
-            m_GraphViewRect = new Rect(0, 20, position.width - 300, position.height - 20);
+            m_GraphViewRect = new Rect(0, 20, position.width, position.height - 20);
         
             EditorGUI.DrawRect(m_GraphViewRect, new Color(0.15f, 0.15f, 0.15f, 1f));
         
@@ -640,8 +947,8 @@ namespace VerveEditor
             Handles.BeginGUI();
             Handles.color = new Color(gridColor.r, gridColor.g, gridColor.b, gridOpacity);
             
-            var gridOffsetX = m_GraphOffset.x % gridSpacing;
-            var gridOffsetY = m_GraphOffset.y % gridSpacing;
+            var gridOffsetX = m_CurrentGraph.offset.x % gridSpacing;
+            var gridOffsetY = m_CurrentGraph.offset.y % gridSpacing;
             
             for (int i = 0; i < widthDivs; i++)
             {
@@ -681,8 +988,9 @@ namespace VerveEditor
         /// </summary>
         private void DrawNode(GameFlowNodeWrapper node)
         {
-            var viewNodePos = node.Position + m_GraphOffset;
-            var nodeRect = new Rect(viewNodePos.x, viewNodePos.y, node.NodeSize.x, node.NodeSize.y);
+            var viewNodePos = (node.Position + m_CurrentGraph.offset) * m_CurrentGraph.zoom;
+            var nodeSize = node.NodeSize * m_CurrentGraph.zoom;
+            var nodeRect = new Rect(viewNodePos.x, viewNodePos.y, nodeSize.x, nodeSize.y);
             
             var viewportRect = new Rect(0, 0, m_GraphViewRect.width, m_GraphViewRect.height);
             if (!viewportRect.Overlaps(nodeRect))
@@ -710,7 +1018,7 @@ namespace VerveEditor
             
             GUI.Box(nodeRect, "", nodeStyle);
             
-            var titleRect = new Rect(nodeRect.x, nodeRect.y, nodeRect.width, 24);
+            var titleRect = new Rect(nodeRect.x, nodeRect.y, nodeRect.width, 24 * m_CurrentGraph.zoom);
             EditorGUI.DrawRect(titleRect, new Color(0.2f, 0.2f, 0.2f, 1f));
             
             string title = node.NodeName;
@@ -718,7 +1026,10 @@ namespace VerveEditor
             {
                 title += " (Root)";
             }
-            GUI.Label(titleRect, title, Styles.NodeTitleStyle);
+            
+            var scaledTitleStyle = new GUIStyle(Styles.NodeTitleStyle);
+            scaledTitleStyle.fontSize = Mathf.RoundToInt(12 * m_CurrentGraph.zoom);
+            GUI.Label(titleRect, title, scaledTitleStyle);
             
             DrawNodePorts(node, nodeRect);
             
@@ -733,10 +1044,13 @@ namespace VerveEditor
         /// </summary>
         private void DrawNodePorts(GameFlowNodeWrapper node, Rect nodeRect)
         {
-            float inputY = nodeRect.y + 30;
+            float portSize = 12f * m_CurrentGraph.zoom;
+            float portSpacing = 22f * m_CurrentGraph.zoom;
+            
+            float inputY = nodeRect.y + 30 * m_CurrentGraph.zoom;
             foreach (var port in node.InputPorts)
             {
-                var portRect = new Rect(nodeRect.x - 6, inputY, 12, 12);
+                var portRect = new Rect(nodeRect.x - portSize * 0.5f, inputY, portSize, portSize);
                 
                 bool isSelected = port == m_SelectedPort || port == m_SelectedInputPort;
                 var portStyle = isSelected ? Styles.HighlightPort : Styles.PortStyle;
@@ -746,18 +1060,20 @@ namespace VerveEditor
                     OnPortClicked(port);
                 }
                 
-                var labelRect = new Rect(nodeRect.x + 15, inputY - 2, nodeRect.width - 30, 16);
-                Styles.PortLabelStyle.normal.textColor = GetPortColor(port);
-                Styles.PortLabelStyle.alignment = TextAnchor.MiddleLeft;
-                GUI.Label(labelRect, port.DisplayName, Styles.PortLabelStyle);
+                var labelRect = new Rect(nodeRect.x + portSize + 3, inputY - 2, nodeRect.width - portSize - 6, 16 * m_CurrentGraph.zoom);
+                var scaledPortLabelStyle = new GUIStyle(Styles.PortLabelStyle);
+                scaledPortLabelStyle.fontSize = Mathf.RoundToInt(9 * m_CurrentGraph.zoom);
+                scaledPortLabelStyle.normal.textColor = GetPortColor(port);
+                scaledPortLabelStyle.alignment = TextAnchor.MiddleLeft;
+                GUI.Label(labelRect, port.DisplayName, scaledPortLabelStyle);
                 
-                inputY += 22;
+                inputY += portSpacing;
             }
             
-            float outputY = nodeRect.y + 30;
+            float outputY = nodeRect.y + 30 * m_CurrentGraph.zoom;
             foreach (var port in node.OutputPorts)
             {
-                var portRect = new Rect(nodeRect.x + nodeRect.width - 6, outputY, 12, 12);
+                var portRect = new Rect(nodeRect.x + nodeRect.width - portSize * 0.5f, outputY, portSize, portSize);
                 
                 bool isSelected = port == m_SelectedPort || port == m_SelectedOutputPort;
                 var portStyle = isSelected ? Styles.HighlightPort : Styles.PortStyle;
@@ -767,12 +1083,14 @@ namespace VerveEditor
                     OnPortClicked(port);
                 }
                 
-                var labelRect = new Rect(nodeRect.x + 10, outputY - 2, nodeRect.width - 30, 16);
-                Styles.PortLabelStyle.normal.textColor = GetPortColor(port);
-                Styles.PortLabelStyle.alignment = TextAnchor.MiddleRight;
-                GUI.Label(labelRect, port.DisplayName, Styles.PortLabelStyle);
+                var labelRect = new Rect(nodeRect.x + 3, outputY - 2, nodeRect.width - portSize - 6, 16 * m_CurrentGraph.zoom);
+                var scaledPortLabelStyle = new GUIStyle(Styles.PortLabelStyle);
+                scaledPortLabelStyle.fontSize = Mathf.RoundToInt(9 * m_CurrentGraph.zoom);
+                scaledPortLabelStyle.normal.textColor = GetPortColor(port);
+                scaledPortLabelStyle.alignment = TextAnchor.MiddleRight;
+                GUI.Label(labelRect, port.DisplayName, scaledPortLabelStyle);
                 
-                outputY += 22;
+                outputY += portSpacing;
             }
         }
         
@@ -791,7 +1109,7 @@ namespace VerveEditor
             {
                 if (node?.OutputPorts == null) continue;
 
-                var nodeViewRect = new Rect(node.Position + m_GraphOffset, node.NodeSize);
+                var nodeViewRect = new Rect((node.Position + m_CurrentGraph.offset) * m_CurrentGraph.zoom, node.NodeSize * m_CurrentGraph.zoom);
                 if (!m_GraphViewRect.Overlaps(nodeViewRect))
                     continue;
 
@@ -812,8 +1130,8 @@ namespace VerveEditor
                             continue;
                         }
         
-                        var inputNodeViewRect = new Rect(inputNode.Position + m_GraphOffset, inputNode.NodeSize);
-                        var outputNodeViewRect = new Rect(outputNode.Position + m_GraphOffset, outputNode.NodeSize);
+                        var inputNodeViewRect = new Rect((inputNode.Position + m_CurrentGraph.offset) * m_CurrentGraph.zoom, inputNode.NodeSize * m_CurrentGraph.zoom);
+                        var outputNodeViewRect = new Rect((outputNode.Position + m_CurrentGraph.offset) * m_CurrentGraph.zoom, outputNode.NodeSize * m_CurrentGraph.zoom);
         
                         if (!m_GraphViewRect.Overlaps(inputNodeViewRect) && 
                             !m_GraphViewRect.Overlaps(outputNodeViewRect))
@@ -835,18 +1153,20 @@ namespace VerveEditor
         {
             if (connection?.InputPort == null || connection?.OutputPort == null || connection?.InputPort?.Node == null || connection?.OutputPort?.Node == null) return;
         
-            // Undo.RecordObjects(new Object[] {connection.OutputPort.Node, connection.InputPort.Node}, "Delete Connection");
-            
-            var startNodePos = connection.OutputPort.Node.Position + m_GraphOffset;
-            var endNodePos = connection.InputPort.Node.Position + m_GraphOffset;
+            var startNodePos = (connection.OutputPort.Node.Position + m_CurrentGraph.offset) * m_CurrentGraph.zoom;
+            var endNodePos = (connection.InputPort.Node.Position + m_CurrentGraph.offset) * m_CurrentGraph.zoom;
             
             var startPos = GetPortCenter(connection.OutputPort, startNodePos);
             var endPos = GetPortCenter(connection.InputPort, endNodePos);
         
-            var startTangent = startPos + Vector2.right * 80;
-            var endTangent = endPos + Vector2.left * 80;
+            var startTangent = startPos + Vector2.right * 80 * m_CurrentGraph.zoom;
+            var endTangent = endPos + Vector2.left * 80 * m_CurrentGraph.zoom;
+
+            // 新增：连接线高亮显示
+            Color connectionColor = connection == m_SelectedConnection ? Color.yellow : Color.white;
+            float connectionWidth = kConnectionLineWidth * m_CurrentGraph.zoom;
         
-            Handles.DrawBezier(startPos, endPos, startTangent, endTangent, Color.white, null, CONNECTION_LINE_WIDTH);
+            Handles.DrawBezier(startPos, endPos, startTangent, endTangent, connectionColor, null, connectionWidth);
         }
         
         /// <summary>
@@ -856,19 +1176,19 @@ namespace VerveEditor
         {
             if (port?.Node == null) return Vector2.zero;
         
-            var nodeSize = port.Node.NodeSize;
+            var nodeSize = port.Node.NodeSize * m_CurrentGraph.zoom;
             var portList = port.PortDirection == VisualFlowPort.Direction.Input ? 
                 port.Node.InputPorts : port.Node.OutputPorts;
         
             var portIndex = portList.IndexOf(port);
             if (portIndex < 0) return nodeViewPosition;
         
-            float portHeight = 22f;
-            float titleHeight = 24f;
-            float portVerticalSpacing = 2f;
+            float portHeight = 22f * m_CurrentGraph.zoom;
+            float titleHeight = 24f * m_CurrentGraph.zoom;
+            float portVerticalSpacing = 2f * m_CurrentGraph.zoom;
         
-            float yOffset = titleHeight + (portIndex * portHeight) + portVerticalSpacing + 6;
-            float xOffset = port.PortDirection == VisualFlowPort.Direction.Input ? -4 : nodeSize.x - 4;
+            float yOffset = titleHeight + (portIndex * portHeight) + portVerticalSpacing + 6 * m_CurrentGraph.zoom;
+            float xOffset = port.PortDirection == VisualFlowPort.Direction.Input ? -4 * m_CurrentGraph.zoom : nodeSize.x - 4 * m_CurrentGraph.zoom;
         
             var portCenter = new Vector2(nodeViewPosition.x + xOffset, nodeViewPosition.y + yOffset);
         
@@ -884,16 +1204,16 @@ namespace VerveEditor
 
             Handles.BeginGUI();
     
-            var startNodePos = m_SelectedOutputPort.Node.Position + m_GraphOffset;
-            var endNodePos = m_SelectedInputPort.Node.Position + m_GraphOffset;
+            var startNodePos = (m_SelectedOutputPort.Node.Position + m_CurrentGraph.offset) * m_CurrentGraph.zoom;
+            var endNodePos = (m_SelectedInputPort.Node.Position + m_CurrentGraph.offset) * m_CurrentGraph.zoom;
             
             var startPos = GetPortCenter(m_SelectedOutputPort, startNodePos);
             var endPos = GetPortCenter(m_SelectedInputPort, endNodePos);
     
-            var startTangent = startPos + Vector2.right * 80;
-            var endTangent = endPos + Vector2.left * 80;
+            var startTangent = startPos + Vector2.right * 80 * m_CurrentGraph.zoom;
+            var endTangent = endPos + Vector2.left * 80 * m_CurrentGraph.zoom;
     
-            Handles.DrawBezier(startPos, endPos, startTangent, endTangent, Color.yellow, null, CONNECTION_LINE_WIDTH);
+            Handles.DrawBezier(startPos, endPos, startTangent, endTangent, Color.yellow, null, kConnectionLineWidth * m_CurrentGraph.zoom);
     
             Handles.EndGUI();
         }
@@ -904,7 +1224,7 @@ namespace VerveEditor
         private Vector2 ScreenToGraphPosition(Vector2 screenPosition)
         {
             var viewLocalPos = screenPosition - m_GraphViewRect.position;
-            return viewLocalPos - m_GraphOffset;
+            return (viewLocalPos / m_CurrentGraph.zoom) - m_CurrentGraph.offset;
         }
         
         /// <summary>
@@ -995,7 +1315,7 @@ namespace VerveEditor
         
             var portCenter = new Vector2(nodePos.x + xOffset, nodePos.y + yOffset);
         
-            return portCenter;
+            return portCenter * m_CurrentGraph.zoom + m_CurrentGraph.offset * m_CurrentGraph.zoom;
         }
                 
         /// <summary>
@@ -1005,7 +1325,33 @@ namespace VerveEditor
         {
             var e = Event.current;
             
+            bool isMouseOverInspector = m_CurrentGraph.inspectorVisible && m_CurrentGraph.inspectorRect.Contains(e.mousePosition);
+            
+            if (m_IsInspectorDragging || m_IsInspectorResizing)
+            {
+                if (e.type == EventType.MouseUp)
+                {
+                    m_IsInspectorDragging = false;
+                    m_IsInspectorResizing = false;
+                }
+                return;
+            }
+            
+            if (isMouseOverInspector && (e.type == EventType.MouseDown || e.type == EventType.MouseDrag))
+            {
+                e.Use();
+                return;
+            }
+            
             if (!m_GraphViewRect.Contains(e.mousePosition)) return;
+            
+            if (e.type == EventType.ScrollWheel && !e.control && !e.alt && !e.shift)
+            {
+                float zoomDelta = -e.delta.y * 0.01f;
+                m_CurrentGraph.zoom = Mathf.Clamp(m_CurrentGraph.zoom + zoomDelta, kMinZoom, kMaxZoom);
+                e.Use();
+                return;
+            }
             
             switch (e.type)
             {
@@ -1032,12 +1378,32 @@ namespace VerveEditor
         /// </summary>
         private void HandleMouseDown(Event e)
         {
+            var clickedConnection = GetConnectionAtPosition(e.mousePosition);
+            if (clickedConnection != null)
+            {
+                m_SelectedConnection = clickedConnection;
+                m_SelectedNode = null;
+                m_SelectedPort = null;
+                
+                if (e.button == 1)
+                {
+                    ShowContextMenu(e.mousePosition);
+                }
+                e.Use();
+                return;
+            }
+            
             if (e.button == 1)
             {
-                var clickedConnection = GetConnectionAtPosition(e.mousePosition);
-                if (clickedConnection != null)
+                if (m_SelectedConnection != null)
                 {
-                    m_SelectedConnection = clickedConnection;
+                    m_SelectedConnection = null;
+                }
+                
+                var clickedConnectionForMenu = GetConnectionAtPosition(e.mousePosition);
+                if (clickedConnectionForMenu != null)
+                {
+                    m_SelectedConnection = clickedConnectionForMenu;
                     ShowContextMenu(e.mousePosition);
                     e.Use();
                     return;
@@ -1047,6 +1413,7 @@ namespace VerveEditor
             var clickedPort = GetPortAtPosition(e.mousePosition);
             if (clickedPort != null)
             {
+                m_SelectedConnection = null;
                 OnPortClicked(clickedPort);
                 e.Use();
                 return;
@@ -1055,6 +1422,7 @@ namespace VerveEditor
             var clickedNode = GetNodeAtPosition(e.mousePosition);
             if (clickedNode != null)
             {
+                m_SelectedConnection = null;
                 m_SelectedNode = clickedNode;
                 m_SelectedPort = null;
         
@@ -1109,21 +1477,23 @@ namespace VerveEditor
                 
         /// <summary>
         ///   <para>处理鼠标拖拽事件</para>
-        ///   <para>鼠标中键或Alt+左键拖拽视图</para>
         /// </summary>
+        /// <remarks>
+        ///   <para>鼠标中键或Alt+左键拖拽视图</para>
+        /// </remarks>
         private void HandleMouseDrag(Event e)
         {
             if (m_IsDragging && m_SelectedNode != null)
             {
-                // Undo.RecordObject(m_SelectedNode, "Move Node");
-                var delta = e.delta;
+                var delta = e.delta / m_CurrentGraph.zoom;
                 m_SelectedNode.Position += delta;
+                MarkDirty();
                 e.Use();
                 GUI.changed = true;
             }
             else if (e.button == 2 || (e.button == 0 && e.alt))
             {
-                m_GraphOffset += e.delta;
+                m_CurrentGraph.offset += e.delta / m_CurrentGraph.zoom;
                 e.Use();
                 GUI.changed = true;
             }
@@ -1131,14 +1501,27 @@ namespace VerveEditor
 
         /// <summary>
         ///   <para>处理按键按下事件</para>
+        /// </summary>
+        /// <remarks>
         ///   <para>按下F键聚焦图形</para>
         ///   <para>按下Delete键删除选中节点</para>
-        /// </summary>
+        ///   <para>按下Esc键取消选中</para>
+        ///   <para>按下Ctrl/Command + I键显示/隐藏属性面板</para>
+        ///   <para>按下Ctrl/Command + +键放大视图</para>
+        ///   <para>按下Ctrl/Command + -键缩小视图</para>
+        /// </remarks>
         private void HandleKeyDown(Event e)
         {
-            if (e.keyCode == KeyCode.Delete && m_SelectedNode != null)
+            if (e.keyCode == KeyCode.Delete)
             {
-                DeleteSelectedNode();
+                if (m_SelectedNode != null)
+                {
+                    DeleteSelectedNode();
+                }
+                else if (m_SelectedConnection != null)
+                {
+                    DeleteConnection(m_SelectedConnection);
+                }
                 e.Use();
             }
             else if (e.keyCode == KeyCode.F && m_CurrentGraph?.nodes != null)
@@ -1150,6 +1533,22 @@ namespace VerveEditor
             {
                 ClearPortSelection();
                 m_SelectedPort = null;
+                m_SelectedConnection = null;
+                e.Use();
+            }
+            else if (e.keyCode == KeyCode.I && e.command)
+            {
+                m_CurrentGraph.inspectorVisible = !m_CurrentGraph.inspectorVisible;
+                e.Use();
+            }
+            else if (e.keyCode == KeyCode.Equals && e.command)
+            {
+                m_CurrentGraph.zoom = Mathf.Clamp(m_CurrentGraph.zoom + kZoomStep, kMinZoom, kMaxZoom);
+                e.Use();
+            }
+            else if (e.keyCode == KeyCode.Minus && e.command)
+            {
+                m_CurrentGraph.zoom = Mathf.Clamp(m_CurrentGraph.zoom - kZoomStep, kMinZoom, kMaxZoom);
                 e.Use();
             }
         }
@@ -1185,10 +1584,8 @@ namespace VerveEditor
             {
                 if (outputPort?.CanConnectTo(inputPort) == true)
                 {
-                    // Undo.RecordObjects(new Object[] { outputPort.Node, inputPort.Node }, "Create Connection");
-                    
                     outputPort.ConnectTo(inputPort);
-                    SaveGraphChanges();
+                    MarkDirty();
                     
                     if (m_CurrentGraph != null)
                     {
@@ -1212,6 +1609,7 @@ namespace VerveEditor
         
             m_SelectedPort = port;
             m_SelectedNode = null;
+            m_SelectedConnection = null;
             
             if (port.PortDirection == VisualFlowPort.Direction.Input)
             {
@@ -1260,7 +1658,7 @@ namespace VerveEditor
         {
             if (m_CurrentGraph?.nodes == null || m_CurrentGraph.nodes.Count == 0)
             {
-                m_GraphOffset = Vector2.zero;
+                m_CurrentGraph.offset = Vector2.zero;
                 return;
             }
             
@@ -1271,7 +1669,7 @@ namespace VerveEditor
             
             var center = new Vector2((minX + maxX) * 0.5f, (minY + maxY) * 0.5f);
             
-            m_GraphOffset = -center + m_GraphViewRect.size * 0.5f;
+            m_CurrentGraph.offset = -center + m_GraphViewRect.size * 0.5f / m_CurrentGraph.zoom;
             
             GUI.changed = true;
         }
@@ -1288,34 +1686,28 @@ namespace VerveEditor
         /// <summary>
         ///   <para>创建节点</para>
         /// </summary>
-        /// <param name="nodeType">节点类型</param>
-        /// <param name="position">位置</param>
         private void CreateNodeFromTypeAtPosition(Type nodeType, Vector2 position)
         {
             if (m_CurrentGraph == null)
             {
                 CreateNewGraph();
-                if (m_CurrentGraph == null) return;
             }
             
             try
             {
-                // Undo.RecordObject(m_CurrentGraph, "Create Node");
-                var runtimeNode = (GameFlowNode)Activator.CreateInstance(nodeType);
+                var wrapper = GameFlowNodeWrapper.CreateWrapper((GameFlowNode)Activator.CreateInstance(nodeType), position);
                 
-                var wrapper = GameFlowNodeWrapper.CreateWrapper(runtimeNode, position);
-                
-                m_CurrentGraph.nodes.Add(wrapper);
-                // Undo.RegisterCreatedObjectUndo(wrapper, "Create Node");
                 AssetDatabase.AddObjectToAsset(wrapper, m_CurrentGraph);
+                m_CurrentGraph.nodes.Add(wrapper);
                 
                 if (m_CurrentGraph.nodes.Count == 1 && m_CurrentGraph.RootNode == null)
                 {
                     m_CurrentGraph.RootNode = wrapper;
                 }
-                
-                SaveGraphChanges();
-                
+
+                m_CurrentGraph.RebuildGraphReferences();
+            
+                MarkDirty();
                 GUI.changed = true;
             }
             catch (Exception ex)
@@ -1331,8 +1723,6 @@ namespace VerveEditor
         {
             if (m_SelectedNode == null || m_CurrentGraph == null) return;
             
-            // Undo.RecordObject(m_CurrentGraph, "Delete Node");
-    
             if (m_CurrentGraph.RootNode == m_SelectedNode)
             {
                 m_CurrentGraph.RootNode = null;
@@ -1352,13 +1742,11 @@ namespace VerveEditor
     
             if (m_SelectedNode != null)
             {
-                string nodeName = m_SelectedNode.name;
-        
                 DestroyImmediate(m_SelectedNode, true);
             }
     
             m_SelectedNode = null;
-            SaveGraphChanges();
+            MarkDirty();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
     
@@ -1373,19 +1761,44 @@ namespace VerveEditor
         private void CreateNewGraph()
         {
             var path = EditorUtility.SaveFilePanelInProject(
-                "Create Flow Graph", "NewFlowGraph", "asset", "Create a new flow graph");
+                "Create Flow Graph",
+                "NewFlowGraph",
+                "asset",
+                "Create a new flow graph");
                 
             if (!string.IsNullOrEmpty(path))
             {
                 var graph = CreateInstance<GameFlowGraphAsset>();
                 AssetDatabase.CreateAsset(graph, path);
                 m_CurrentGraph = graph;
+                
+                m_CurrentGraph.inspectorRect = new Rect(
+                    position.width - 310,
+                    30, 
+                    300, 
+                    400
+                );
+                
+                s_OpenWindows[path] = this;
+                
                 GUI.changed = true;
                 Focus();
                 FocusOnGraph();
             }
         }
         
+        /// <summary>
+        ///   <para>标记为有未保存的更改</para>
+        /// </summary>
+        private void MarkDirty()
+        {
+            if (!m_IsDirty)
+            {
+                m_IsDirty = true;
+                UpdateWindowTitle();
+            }
+        }
+
         /// <summary>
         ///   <para>保存图形更改</para>
         /// </summary>
@@ -1399,18 +1812,13 @@ namespace VerveEditor
                     if (node != null) EditorUtility.SetDirty(node);
                 }
                 AssetDatabase.SaveAssets();
-            }
-        }
-        
-        /// <summary>
-        ///   <para>保存流程图</para>
-        /// </summary>
-        private void SaveGraph()
-        {
-            if (m_CurrentGraph != null)
-            {
-                SaveGraphChanges();
                 AssetDatabase.Refresh();
+                
+                if (m_IsDirty)
+                {
+                    m_IsDirty = false;
+                    UpdateWindowTitle();
+                }
             }
         }
     }

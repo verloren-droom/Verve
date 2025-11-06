@@ -11,15 +11,26 @@ namespace Verve.UniEx
     ///   <para>流程图形资源</para>
     /// </summary>
     [System.Serializable, CreateAssetMenu(fileName = "New GameFlowGraph", menuName = "Verve/GameFlow/GameFlowGraph")]
+// #if UNITY_2021_2_OR_NEWER
+//     [Icon("Packages/com.verloren-droom.verve-unity-extension/Editor/Core/GameFlow/Icons/GameFlowGraphIcon.png")]
+// #endif
     public sealed class GameFlowGraphAsset : ScriptableObject
     {
-        [SerializeField, Tooltip("节点")] public List<GameFlowNodeWrapper> nodes = new List<GameFlowNodeWrapper>();
-        [SerializeField, Tooltip("根节点")] private GameFlowNodeWrapper m_RootNode;
+        [SerializeField, HideInInspector, Tooltip("节点")] public List<GameFlowNodeWrapper> nodes = new List<GameFlowNodeWrapper>();
+        [SerializeField, HideInInspector, Tooltip("根节点")] private GameFlowNodeWrapper m_RootNode;
+        
+#if UNITY_EDITOR
+        [SerializeField, HideInInspector, Tooltip("流程图偏移量")] public Vector2 offset;
+        [SerializeField, HideInInspector, Tooltip("流程图缩放级别")] public float zoom = 1.0f;
+        [SerializeField, HideInInspector, Tooltip("流程图图形检查器大小")] public Rect inspectorRect = new Rect(10, 30, 300, 400);
+        [SerializeField, HideInInspector, Tooltip("是否显示图形检查器")] public bool inspectorVisible = true;
+        [SerializeField, HideInInspector, Tooltip("图形检查器滚动位置")] public Vector2 inspectorScrollPos;
+#endif
 
         /// <summary>
         ///   <para>根节点</para>
         /// </summary>
-        public GameFlowNodeWrapper RootNode 
+        public GameFlowNodeWrapper RootNode
         {
             get
             {
@@ -81,11 +92,7 @@ namespace Verve.UniEx
         /// </summary>
         public void RebuildGraphReferences()
         {
-            if (nodes == null) 
-            {
-                Debug.LogWarning("Graph nodes list is null");
-                return;
-            }
+            nodes ??= new List<GameFlowNodeWrapper>();
 
             var nodeLookup = new Dictionary<string, GameFlowNodeWrapper>();
             foreach (var node in nodes)

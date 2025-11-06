@@ -3,7 +3,6 @@
 namespace VerveEditor
 {
     using Verve.UniEx;
-    using UnityEngine;
     using UnityEditor;
     
     
@@ -15,11 +14,41 @@ namespace VerveEditor
     {
         public override void OnInspectorGUI()
         {
-            GUILayout.Space(10);
-            if (GUILayout.Button("Open Game Flow Graph", GUILayout.Height(28)))
+            if (target == null) return;
+            GameFlowGraphAsset asset = target as GameFlowGraphAsset;
+    
+            serializedObject.Update();
+            
+            using var change = new EditorGUI.ChangeCheckScope();
+            
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Root Node", asset.RootNode?.NodeName ?? "No Set");
+            EditorGUILayout.LabelField("Nodes Count", (asset.nodes?.Count ?? 0).ToString());
+
+            if (change.changed)
             {
-                GameFlowGraphEditorWindow.OpenWindow();
+                serializedObject.ApplyModifiedProperties();
+                asset.RebuildGraphReferences();
             }
+        }
+
+        /// <summary>
+        ///   <para>打开资源</para>
+        /// </summary>
+        [UnityEditor.Callbacks.OnOpenAsset]
+        public static bool OnOpenAsset(int instanceID, int lineNumber)
+        {
+            string path = AssetDatabase.GetAssetPath(instanceID);
+            
+            if (!path.EndsWith($".asset", System.StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var asset = AssetDatabase.LoadAssetAtPath<GameFlowGraphAsset>(path);
+            if (asset == null)
+                return false;
+
+            GameFlowGraphEditorWindow.CreateNewOrOpenWindow(asset);
+            return true;
         }
     }
 }

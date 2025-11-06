@@ -18,7 +18,7 @@ namespace Verve.UniEx
         [SerializeField, Tooltip("节点名称"), ReadOnly] private string m_NodeName;
         [SerializeField, Tooltip("节点描述"), ReadOnly] private string m_Description;
         [SerializeField, Tooltip("节点位置"), ReadOnly] private Vector2 m_Position;
-        [SerializeField, Tooltip("节点大小"), ReadOnly] private Vector2 m_NodeSize = new Vector2(DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT);
+        [SerializeField, Tooltip("节点大小"), ReadOnly] private Vector2 m_NodeSize = new Vector2(kDefaultNodeWidth, kDefaultNodeHeight);
         
 #if UNITY_2019_4_OR_NEWER
         [SerializeField, Tooltip("被包装的节点"), SerializeReference] private IGameFlowNode m_WrappedNode;
@@ -61,22 +61,22 @@ namespace Verve.UniEx
         /// <summary>
         ///   <para>默认节点宽度</para>
         /// </summary>
-        public const float DEFAULT_NODE_WIDTH = 180f;
+        public const float kDefaultNodeWidth = 180f;
         
         /// <summary>
         ///   <para>默认节点高度</para>
         /// </summary>
-        public const float DEFAULT_NODE_HEIGHT = 80f;
+        public const float kDefaultNodeHeight = 80f;
         
         /// <summary>
         ///   <para>节点端口高度</para>
         /// </summary>
-        public const float PORT_HEIGHT = 22f;
+        public const float kPortHeight = 22f;
         
         /// <summary>
         ///   <para>按钮区域高度</para>
         /// </summary>
-        public const float BUTTON_AREA_HEIGHT = 40f;
+        public const float kButtonAreaHeight = 40f;
 
         /// <summary>
         ///   <para>节点端口类型定义</para>
@@ -112,6 +112,7 @@ namespace Verve.UniEx
         public static GameFlowNodeWrapper CreateWrapper(GameFlowNode node, Vector2 position)
         {
             var wrapper = CreateInstance<GameFlowNodeWrapper>();
+            // var wrapper = new GameFlowNodeWrapper();
             var nodeType = node.GetType();
 #if UNITY_EDITOR
             wrapper.hideFlags = HideFlags.HideInInspector | HideFlags.HideInHierarchy;
@@ -286,15 +287,15 @@ namespace Verve.UniEx
         private void UpdateNodeSize()
         {
             float portCount = Mathf.Max(m_InputPorts.Count, m_OutputPorts.Count);
-            float portHeight = portCount * PORT_HEIGHT;
+            float portHeight = portCount * kPortHeight;
             float buttonAreaHeight = 0f;
     
             if (m_WrappedNode is ICompositeGameFlowNode)
             {
-                buttonAreaHeight = BUTTON_AREA_HEIGHT;
+                buttonAreaHeight = kButtonAreaHeight;
             }
     
-            m_NodeSize = new Vector2(DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT + portHeight + buttonAreaHeight);
+            m_NodeSize = new Vector2(kDefaultNodeWidth, kDefaultNodeHeight + portHeight + buttonAreaHeight);
         }
 
         /// <summary>
