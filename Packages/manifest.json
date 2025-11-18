@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.code-philosophy.hybridclr": "https://github.com/focus-creative-games/hybridclr_unity.git",
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
     "com.unity.addressables": "1.19.19",
     "com.unity.cinemachine": "2.8.9",
@@ -11,6 +12,7 @@
     "com.unity.ide.vscode": "1.2.5",
     "com.unity.inputsystem": "1.5.1",
     "com.unity.learn.iet-framework": "3.1.1",
+    "com.unity.learn.iet-framework.authoring": "1.2.2",
     "com.unity.nuget.newtonsoft-json": "3.0.2",
     "com.unity.probuilder": "5.0.3",
     "com.unity.render-pipelines.universal": "12.1.10",

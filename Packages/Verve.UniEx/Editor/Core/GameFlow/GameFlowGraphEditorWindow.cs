@@ -66,8 +66,17 @@ namespace VerveEditor
         ///   <para>检查器标题高度</para>
         /// </summary>
         private const float kInspectorHeaderHeight = 25f;
+        /// <summary>
+        ///   <para>最小缩放比例</para>
+        /// </summary>
         private const float kMinZoom = 0.5f;
+        /// <summary>
+        ///   <para>最大缩放比例</para>
+        /// </summary>
         private const float kMaxZoom = 1.5f;
+        /// <summary>
+        ///   <para>缩放步进</para>
+        /// </summary>
         private const float kZoomStep = 0.1f;
         
         private static Dictionary<string, GameFlowGraphEditorWindow> s_OpenWindows = new Dictionary<string, GameFlowGraphEditorWindow>();
@@ -610,18 +619,20 @@ namespace VerveEditor
         {
             GUILayout.Label("Node Settings", EditorStyles.boldLabel);
             EditorGUILayout.Space();
-    
+
             if (m_SelectedNode != null && m_SelectedNode.WrappedNode != null)
             {
                 using var serializedNode = new SerializedObject(m_SelectedNode);
                 using var nodeChange = new EditorGUI.ChangeCheckScope();
                 serializedNode.Update();
-
+                
                 var nodeNameProp = serializedNode.FindProperty("m_NodeName");
                 var descriptionProp = serializedNode.FindProperty("m_Description");
-                EditorGUILayout.PropertyField(nodeNameProp);
-                EditorGUILayout.PropertyField(descriptionProp);
-
+                var tooltipProp = serializedNode.FindProperty("m_Tooltip");
+                EditorGUILayout.PropertyField(nodeNameProp, true);
+                EditorGUILayout.PropertyField(descriptionProp, true);
+                EditorGUILayout.PropertyField(tooltipProp, true);
+                
                 EditorGUILayout.Space();
 
                 var wrappedNodeProp = serializedNode.FindProperty("m_WrappedNode");
@@ -642,7 +653,7 @@ namespace VerveEditor
                     EditorGUILayout.PropertyField(childProperty, true);
                     enterChildren = false;
                 }
-
+                
                 if (nodeChange.changed)
                 {
                     serializedNode.ApplyModifiedProperties();
@@ -1016,7 +1027,7 @@ namespace VerveEditor
                     nodeStyle = m_CurrentGraph != null && node == m_CurrentGraph.RootNode ? Styles.RootNodeStyle : Styles.NodeStyle;
             }
             
-            GUI.Box(nodeRect, "", nodeStyle);
+            GUI.Box(nodeRect, new GUIContent(node.NodeName, node.Tooltip), nodeStyle);
             
             var titleRect = new Rect(nodeRect.x, nodeRect.y, nodeRect.width, 24 * m_CurrentGraph.zoom);
             EditorGUI.DrawRect(titleRect, new Color(0.2f, 0.2f, 0.2f, 1f));

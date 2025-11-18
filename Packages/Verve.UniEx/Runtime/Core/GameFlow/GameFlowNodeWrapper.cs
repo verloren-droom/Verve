@@ -16,6 +16,7 @@ namespace Verve.UniEx
     public sealed class GameFlowNodeWrapper : ScriptableObject
     {
         [SerializeField, Tooltip("节点名称"), ReadOnly] private string m_NodeName;
+        [SerializeField, Tooltip("节点标注")] private string m_Tooltip;
         [SerializeField, Tooltip("节点描述"), ReadOnly] private string m_Description;
         [SerializeField, Tooltip("节点位置"), ReadOnly] private Vector2 m_Position;
         [SerializeField, Tooltip("节点大小"), ReadOnly] private Vector2 m_NodeSize = new Vector2(kDefaultNodeWidth, kDefaultNodeHeight);
@@ -33,6 +34,7 @@ namespace Verve.UniEx
         public Vector2 Position { get => m_Position; set => m_Position = value; }
         public Vector2 NodeSize { get => m_NodeSize; set => m_NodeSize = value; }
         public string NodeName { get => m_NodeName; set => m_NodeName = value; }
+        public string Tooltip => m_Tooltip;
         
         /// <summary>
         ///   <para>被包装的节点</para>

@@ -20,7 +20,7 @@
   "samples": [
     {
       "displayName": "VirtualJoystick",
-      "description": "This sample contains a virtual joystick implementation.",
+      "description": "This sample contains a virtual joystick implementation for `Unity`, built using the `MVC`(Model-View-Controller) architecture.",
       "path": "Samples~/VirtualJoystick"
     }
   ]

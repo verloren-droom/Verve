@@ -1,6 +1,6 @@
 #if VERVE_UNIEX_0_0_1_OR_NEWER
 
-namespace Verve.UniEx.Sample
+namespace Verve.UniEx.Samples
 {
     using MVC;
     using UnityEngine;
@@ -9,7 +9,7 @@ namespace Verve.UniEx.Sample
     /// <summary>
     ///   <para>虚拟摇杆活动</para>
     /// </summary>
-    [AddComponentMenu("Verve/Sample/VirtualJoystickActivity")]
+    [AddComponentMenu("Verve/Samples/VirtualJoystickActivity")]
     public class VirtualJoystickActivity : ActivityBase
     {
         protected override void OnInitialized()

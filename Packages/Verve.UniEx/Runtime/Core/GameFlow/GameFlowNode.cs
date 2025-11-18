@@ -15,9 +15,9 @@ namespace Verve.UniEx
     /// </summary>
     [Serializable]
 #if UNITY_2019_4_OR_NEWER
-    public abstract class GameFlowNode : IGameFlowNode, ISerializationCallbackReceiver
+    public abstract class GameFlowNode : IGameFlowNode, ISerializationCallbackReceiver, ICloneable
 #else
-    public class GameFlowNode : IGameFlowNode, ISerializationCallbackReceiver
+    public class GameFlowNode : IGameFlowNode, ISerializationCallbackReceiver, ICloneable
 #endif
     {
         [SerializeField, Tooltip("游戏流程节点ID"), ReadOnly] private string m_NodeID;
@@ -91,6 +91,30 @@ namespace Verve.UniEx
             IsCompleted = true;
         }
 
+        /// <summary>
+        ///   <para>克隆</para>
+        /// </summary>
+        /// <returns>
+        ///   <para>克隆节点</para>
+        /// </returns>
+        public GameFlowNode Clone()
+        {
+            var clonedNode = Activator.CreateInstance(GetType()) as GameFlowNode;
+            
+            var fields = typeof(GameFlowNode).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            foreach (var field in fields)
+            {
+                if (field.Name != nameof(m_NodeID))
+                {
+                    field.SetValue(clonedNode, field.GetValue(this));
+                }
+            }
+            
+            clonedNode.m_NodeID = GenerateNodeID();
+            
+            return clonedNode;
+        }
+        
         void ISerializationCallbackReceiver.OnBeforeSerialize()
         {
             if (string.IsNullOrEmpty(m_NodeID))
@@ -105,6 +129,12 @@ namespace Verve.UniEx
             // {
             //     m_NodeID = GenerateNodeID();
             // }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        object ICloneable.Clone()
+        {
+            return Clone();
         }
     }
 }

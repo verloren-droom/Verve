@@ -7,6 +7,13 @@
 > [!WARNING]\
 > Requires a version of unity that supports path query parameter for git packages (`Unity >= 2019.3.4f1`, `Unity >= 2020.1a21`).
 
+## Samples
+
+- [VirtualJoystick](./Samples~/VirtualJoystick): This sample contains a virtual joystick implementation for `Unity`, built using the `MVC`(Model-View-Controller) architecture.
+  <div align="center" background-color="transparent" style="text-align:center; background-color:transparent;">
+    <img src='https://github.com/verloren-droom/imgur/raw/master/images/Verve-VirtualJoystick.gif' width="640px" alt="Virtual Joystick Demo"/>
+  </div>
+
 ## Dependencies
 - [Verve.Core](https://github.com/verloren-droom/Verve)
 - [NuGetForUnity](https://github.com/GlitchEnzo/NuGetForUnity)

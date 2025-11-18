@@ -1,28 +1,27 @@
 #if VERVE_UNIEX_0_0_1_OR_NEWER
 
-namespace Verve.UniEx.Sample
+namespace Verve.UniEx.Samples
 {
     using MVC;
     using Verve.MVC;
     using UnityEngine;
     using UnityEngine.UI;
-    using System.Collections;
     using UnityEngine.EventSystems;
     
     
     /// <summary>
     ///   <para>虚拟摇杆</para>
     /// </summary>
-    [AddComponentMenu("Verve/Sample/VirtualJoystick")]
+    [AddComponentMenu("Verve/Samples/VirtualJoystick")]
     public class VirtualJoystick : ViewBase, IController
     {
-        public override IActivity GetActivity() => VirtualJoystickActivity.Instance;
-        
         [SerializeField, Tooltip("虚拟摇杆类型")] private VirtualJoystickType m_JoystickType = VirtualJoystickType.Fixed;
         [SerializeField, Tooltip("最远拖拽距离"), Min(0)] private float m_MaxDistance = 120;
         [SerializeField, Tooltip("可触摸范围")] private Image m_TouchScope;
         [SerializeField, Tooltip("虚拟摇杆背景")] private Image m_BK;
         [SerializeField, Tooltip("虚拟摇杆控制杆")] private Image m_Control;
+        
+        public override IActivity GetActivity() => VirtualJoystickActivity.Instance;
         
         /// <summary>
         ///   <para>虚拟摇杆类型</para>
@@ -31,17 +30,17 @@ namespace Verve.UniEx.Sample
         public enum VirtualJoystickType
         {
             /// <summary>
-            /// 固定
+            ///   <para>固定</para>
             /// </summary>
-            Fixed,
+            [Tooltip("固定")] Fixed,
             /// <summary>
-            /// 触发
+            ///   <para>触发</para>
             /// </summary>
-            Trigger,
+            [Tooltip("触发")] Trigger,
             /// <summary>
-            /// 跟随
+            ///   <para>跟随</para>
             /// </summary>
-            Follow,
+            [Tooltip("跟随")] Follow,
         }
 
         private VirtualJoystickModel m_JoystickModel;
@@ -140,6 +139,35 @@ namespace Verve.UniEx.Sample
             }
 
             m_JoystickModel.Direction.Value = m_Control.transform.localPosition.normalized;
+        }
+
+        private void Update()
+        {
+#if UNITY_EDITOR
+
+            if (Input.GetKeyDown(KeyCode.Alpha1))
+                m_JoystickType = VirtualJoystickType.Fixed;
+            else if (Input.GetKeyDown(KeyCode.Alpha2))
+                m_JoystickType = VirtualJoystickType.Trigger;
+            else if (Input.GetKeyDown(KeyCode.Alpha3))
+                m_JoystickType = VirtualJoystickType.Follow;
+#endif
+        }
+
+        private void OnGUI()
+        {
+#if UNITY_EDITOR
+            GUIStyle style = new GUIStyle(GUI.skin.label);
+            style.normal.textColor = Color.red;
+            style.fontSize = 30;
+            style.fontStyle = FontStyle.Bold;
+    
+            GUILayout.BeginVertical();
+            GUILayout.Space(20);
+            GUILayout.Label($"Joystick Type (Press 1/2/3): {m_JoystickType}", style);
+            GUILayout.Label($"Max Distance: {m_MaxDistance}", style);
+            GUILayout.EndVertical();
+#endif
         }
     }
 
