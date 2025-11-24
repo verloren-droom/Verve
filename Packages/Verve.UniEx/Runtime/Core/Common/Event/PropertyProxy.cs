@@ -6,8 +6,9 @@ namespace Verve.UniEx
     using UnityEngine;
     using System.Threading;
     using System.ComponentModel;
+    using System.Collections.Generic;
     using System.Runtime.CompilerServices;
-
+    
     
     /// <summary>
     ///   <para>变量代理</para>
@@ -15,19 +16,76 @@ namespace Verve.UniEx
     /// </summary>
     /// <typeparam name="T">变量类型</typeparam>
     [Serializable]
-    public partial class PropertyProxy<T> : INotifyPropertyChanged
+    public partial class PropertyProxy<T> : INotifyPropertyChanged, IEquatable<PropertyProxy<T>>
     {
-        [SerializeField] protected T m_Value;
+        [SerializeField, Tooltip("当前值")] protected T m_Value;
         protected Func<T, T, bool> m_Comparer;
-        private event PropertyChangedEventHandler m_PropertyChanged;
-
+        
+        private PropertyChangedEventHandler m_PropertyChanged;
+        private Action<T> m_ValueChanged;
+        
+        private static readonly PropertyChangedEventArgs s_ValueChangedEventArgs = new PropertyChangedEventArgs(nameof(Value));
+        
         /// <summary>
         ///   <para>属性改变事件</para>
         /// </summary>
         public event PropertyChangedEventHandler PropertyChanged
         {
-            add => Interlocked.CompareExchange(ref m_PropertyChanged, (PropertyChangedEventHandler)Delegate.Combine(m_PropertyChanged, value), null);
-            remove => Interlocked.CompareExchange(ref m_PropertyChanged, (PropertyChangedEventHandler)Delegate.Remove(m_PropertyChanged, value), null);
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            add
+            {
+                var current = m_PropertyChanged;
+                PropertyChangedEventHandler comparand;
+                do
+                {
+                    comparand = current;
+                    var newHandler = (PropertyChangedEventHandler)Delegate.Combine(comparand, value);
+                    current = Interlocked.CompareExchange(ref m_PropertyChanged, newHandler, comparand);
+                } while (current != comparand);
+            }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            remove
+            {
+                var current = m_PropertyChanged;
+                PropertyChangedEventHandler comparand;
+                do
+                {
+                    comparand = current;
+                    var newHandler = (PropertyChangedEventHandler)Delegate.Remove(comparand, value);
+                    current = Interlocked.CompareExchange(ref m_PropertyChanged, newHandler, comparand);
+                } while (current != comparand);
+            }
+        }
+
+        /// <summary>
+        ///   <para>值改变事件</para>
+        /// </summary>
+        public event Action<T> ValueChanged
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            add
+            {
+                var current = m_ValueChanged;
+                Action<T> comparand;
+                do
+                {
+                    comparand = current;
+                    var newHandler = (Action<T>)Delegate.Combine(comparand, value);
+                    current = Interlocked.CompareExchange(ref m_ValueChanged, newHandler, comparand);
+                } while (current != comparand);
+            }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            remove
+            {
+                var current = m_ValueChanged;
+                Action<T> comparand;
+                do
+                {
+                    comparand = current;
+                    var newHandler = (Action<T>)Delegate.Remove(comparand, value);
+                    current = Interlocked.CompareExchange(ref m_ValueChanged, newHandler, comparand);
+                } while (current != comparand);
+            }
         }
 
         /// <summary>
@@ -35,68 +93,119 @@ namespace Verve.UniEx
         /// </summary>
         public T Value
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => m_Value;
             set
             {
-                if (m_Comparer(value, m_Value)) return;
+                if (m_Comparer != null ? m_Comparer(value, m_Value) : 
+                    (value is IEquatable<T> equatable ? equatable.Equals(m_Value) : 
+                     EqualityComparer<T>.Default.Equals(value, m_Value)))
+                    return;
+                    
                 m_Value = value;
-                OnPropertyChanged(nameof(m_Value));
+                
+                m_ValueChanged?.Invoke(value);
+                m_PropertyChanged?.Invoke(this, s_ValueChangedEventArgs);
             }
         }
 
         /// <summary>
-        ///   <para>构造函数</para>
-        /// </summary>
-        /// <param name="comparer">比较函数</param>
-        public PropertyProxy(Func<T, T, bool> comparer = null)
-        {
-            m_Comparer = comparer ?? ((v1, v2) => v1?.Equals(v2) ?? false);
-        }
-        
-        /// <summary>
-        ///   <para>构造函数</para>
+        ///   <para>变量代理构造函数</para>
         /// </summary>
         /// <param name="defaultValue">默认值</param>
         /// <param name="comparer">比较函数</param>
-        public PropertyProxy(T defaultValue, Func<T, T, bool> comparer = null) : this(comparer)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public PropertyProxy(T defaultValue = default, Func<T, T, bool> comparer = null)
         {
             m_Value = defaultValue;
-        }
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            m_PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        public override string ToString() => m_Value?.ToString() ?? "null";
-
-        /// <summary>
-        ///   <para>添加监听</para>
-        /// </summary>
-        /// <param name="propertyChanged">监听函数</param>
-        public void AddListener(PropertyChangedEventHandler propertyChanged)
-        {
-            m_PropertyChanged += propertyChanged;
+            m_Comparer = comparer;
         }
         
         /// <summary>
-        ///   <para>移除监听</para>
+        ///   <para>设置值（不触发事件）</para>
+        /// </summary>
+        /// <param name="value">新值</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetValueWithoutEvent(T value)
+        {
+            m_Value = value;
+        }
+        
+        /// <summary>
+        ///   <para>添加值改变监听</para>
         /// </summary>
         /// <param name="propertyChanged">监听函数</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddListener(PropertyChangedEventHandler propertyChanged)
+        {
+            PropertyChanged += propertyChanged;
+        }
+        
+        /// <summary>
+        ///   <para>添加值改变监听</para>
+        /// </summary>
+        /// <param name="valueChanged">监听函数</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddListener(Action<T> valueChanged)
+        {
+            ValueChanged += valueChanged;
+        }
+        
+        /// <summary>
+        ///   <para>移除值改变监听</para>
+        /// </summary>
+        /// <param name="propertyChanged">监听函数</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveListener(PropertyChangedEventHandler propertyChanged)
         {
-            m_PropertyChanged -= propertyChanged;
+            PropertyChanged -= propertyChanged;
         }
-
+        
+        /// <summary>
+        ///   <para>移除值改变监听</para>
+        /// </summary>
+        /// <param name="valueChanged">监听函数</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void RemoveListener(Action<T> valueChanged)
+        {
+            ValueChanged -= valueChanged;
+        }
+        
         /// <summary>
         ///   <para>移除所有监听</para>
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveAllListeners()
         {
             m_PropertyChanged = null;
+            m_ValueChanged = null;
         }
         
-        public static implicit operator T(PropertyProxy<T> proxy) => proxy.Value;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(PropertyProxy<T> other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return EqualityComparer<T>.Default.Equals(m_Value, other.m_Value);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override bool Equals(object obj)
+            => Equals(obj as PropertyProxy<T>);
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override int GetHashCode() 
+            => m_Value?.GetHashCode() ?? 0;
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override string ToString()
+            => m_Value?.ToString() ?? "null";
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator T(PropertyProxy<T> proxy) => proxy.m_Value;
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator PropertyProxy<T>(T value) => new PropertyProxy<T>(value);
     }
 }
 
