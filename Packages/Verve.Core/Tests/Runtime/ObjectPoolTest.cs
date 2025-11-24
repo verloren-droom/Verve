@@ -22,7 +22,7 @@ namespace Verve.Tests
             Assert.AreEqual(USE_TIP, obj.State);
             pool.Release(obj);
             Assert.AreEqual(UNUSE_TIP, obj.State);
-            pool.Clear(true);
+            pool.Clear();
             Assert.AreEqual(DESTROY_TIP, obj.State);
         }
         

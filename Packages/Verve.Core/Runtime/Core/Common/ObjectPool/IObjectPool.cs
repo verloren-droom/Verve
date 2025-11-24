@@ -11,6 +11,16 @@ namespace Verve
     public interface IObjectPool<T>
     {
         /// <summary>
+        ///   <para>对象池当前数量</para>
+        /// </summary>
+        public int Count { get; }
+        
+        /// <summary>
+        ///   <para>对象池容量</para>
+        /// </summary>
+        public int Capacity { get; }
+
+        /// <summary>
         ///   <para>从对象池中取出对象</para>
         /// </summary>
         /// <param name="predicate">筛选条件</param>
@@ -44,7 +54,6 @@ namespace Verve
         /// <summary>
         ///   <para>清空对象池</para>
         /// </summary>
-        /// <param name="isDestroy">是否调用销毁</param>
-        void Clear(bool isDestroy = true);
+        void Clear();
     }
 }
