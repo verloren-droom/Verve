@@ -4,8 +4,8 @@ on:
   push:
     branches: [ main, master ]
     paths:
-      - 'Packages/Verve.Core/**'
-      - 'Packages/Verve.UniEx/**'
+      - 'Verve.Core/**'
+      - 'Verve.UniEx/**'
       - 'Documentation/**'
       - 'README.md'
       - '.github/workflows/documentation.yml'

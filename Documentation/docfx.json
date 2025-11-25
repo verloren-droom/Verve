@@ -3,7 +3,7 @@
         {
             "src": [
                 {
-                    "src": "../Packages/Verve.Core",
+                    "src": "../Verve.Core",
                     "files": [
                         "**/*.cs"
                     ],
@@ -16,7 +16,7 @@
                     ]
                 },
                 {
-                    "src": "../Packages/Verve.UniEx",
+                    "src": "../Verve.UniEx",
                     "files": [
                         "**/*.cs"
                     ],
