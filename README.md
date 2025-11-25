@@ -14,5 +14,5 @@
 > A modular development framework designed for games, providing a pluggable `GameFeatures` system.
 
 ## Packages
-- [**Verve.Core**](Verve.Core): Foundational systems and architecture.
-- [**Verve.UniEx**](Verve.UniEx): Unity editor extensions and runtime tools.
+- [**Verve.Core**](./Verve.Core): Foundational systems and architecture.
+- [**Verve.UniEx**](./Verve.UniEx): Unity editor extensions and runtime tools.
