@@ -1,11 +1,12 @@
 {
-  "name": "com.verloren-droom.verve-core",
+  "name": "com.benfach.verve.core",
   "displayName": "Verve Core",
-  "version": "0.0.1-prerelease",
+  "version": "0.0.1-preview",
   "description": "A .NET development framework.",
   "author": {
     "name": "Benfach"
   },
+  "keywords": ["Framework", "Core"],
   "license": "See LICENSE.md file",
   "repository": {
     "type": "git",

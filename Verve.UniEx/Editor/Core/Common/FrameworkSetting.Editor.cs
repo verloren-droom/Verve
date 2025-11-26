@@ -10,7 +10,7 @@ namespace VerveEditor
     [InitializeOnLoad]
     public static partial class FrameworkSettingEditor
     {
-        public const string PACKAGE_NAME = "com.verloren-droom.verve-unity-extension";
+        public const string PACKAGE_NAME = "com.benfach.verve.uniex";
 
         public static string FRAMEWORK_MACRO =>
             $"VERVE_UNIEX_{GetVersionNumber(GetPackageInfo(PACKAGE_NAME).version).Replace('.', '_')}_OR_NEWER"; 

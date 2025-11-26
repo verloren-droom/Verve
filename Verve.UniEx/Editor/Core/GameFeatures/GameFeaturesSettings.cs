@@ -15,7 +15,7 @@ namespace VerveEditor
     ///   <para>游戏功能设置</para>
     ///   <para>用于管理和保存游戏功能模块和配置文件</para>
     /// </summary>
-    [FilePath("ProjectSettings/Packages/com.verloren-droom.verve-unity-extension/GameFeaturesSettings.asset", FilePathAttribute.Location.ProjectFolder)]
+    [FilePath("ProjectSettings/Packages/com.benfach.verve.uniex/GameFeaturesSettings.asset", FilePathAttribute.Location.ProjectFolder)]
     internal class GameFeaturesSettings : ScriptableSingleton<GameFeaturesSettings>
     {
         [SerializeField, Tooltip("扩展方法输出目录")] public string extensionOutputDir = "Assets/FeaturesGenerated";

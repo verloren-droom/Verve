@@ -1,17 +1,18 @@
 {
-  "name": "com.verloren-droom.verve-unity-extension",
+  "name": "com.benfach.verve.uniex",
   "displayName": "Verve UniEx",
-  "version": "0.0.1-prerelease",
+  "version": "0.0.1-preview",
   "unity": "2018.3",
   "description": "A .NET development framework for Unity.",
   "dependencies": {
-    "com.verloren-droom.verve-core": "0.0.1-prerelease",
+    "com.benfach.verve.core": "0.0.1-preview",
     "com.unity.addressables": "1.19.19",
     "com.unity.modules.assetbundle": "1.0.0"
   },
   "author": {
     "name": "Benfach"
   },
+  "keywords": ["UnityExtension", "Framework"],
   "license": "See LICENSE.md file",
   "repository": {
     "type": "git",

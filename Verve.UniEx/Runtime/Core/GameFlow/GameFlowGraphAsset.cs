@@ -12,7 +12,7 @@ namespace Verve.UniEx
     /// </summary>
     [System.Serializable, CreateAssetMenu(fileName = "New GameFlowGraph", menuName = "Verve/GameFlow/GameFlowGraph")]
 // #if UNITY_2021_2_OR_NEWER
-//     [Icon("Packages/com.verloren-droom.verve-unity-extension/Editor/Core/GameFlow/Icons/GameFlowGraphIcon.png")]
+//     [Icon("Packages/com.benfach.verve.uniex/Editor/Core/GameFlow/Icons/GameFlowGraphIcon.png")]
 // #endif
     public sealed class GameFlowGraphAsset : ScriptableObject
     {

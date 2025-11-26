@@ -49,7 +49,7 @@ namespace VerveEditor
         /// <summary>
         ///   <para>标题ICON路径</para>
         /// </summary>
-        private const string kTitleIcon = "Packages/com.verloren-droom.verve-unity-extension/Editor/Core/GameFlow/Icons/GameFlowGraphIcon_64x64.png";
+        private const string kTitleIcon = "Packages/com.benfach.verve.uniex/Editor/Core/GameFlow/Icons/GameFlowGraphIcon_64x64.png";
         /// <summary>
         ///   <para>默认标题</para>
         /// </summary>

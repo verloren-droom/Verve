@@ -32,7 +32,7 @@
 //         /// <summary>
 //         ///   <para>流程图标</para>
 //         /// </summary>
-//         private const string kAssetIcon = "Packages/com.verloren-droom.verve-unity-extension/Editor/Core/GameFlow/Icons/GameFlowGraphIcon.png";
+//         private const string kAssetIcon = "Packages/com.benfach.verve.uniex/Editor/Core/GameFlow/Icons/GameFlowGraphIcon.png";
 //         /// <summary>
 //         ///   <para>默认流程图布局</para>
 //         /// </summary>
