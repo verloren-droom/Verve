@@ -2,25 +2,13 @@
     "name": "Verve.UniEx",
     "rootNamespace": "Verve.UniEx",
     "references": [
-        "Unity.Addressables",
-        "Unity.InputSystem",
-        "Unity.ResourceManager",
-        "Verve.Core",
-        "NuGetForUnity",
-        "Cinemachine"
+        "Verve.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": true,
     "overrideReferences": true,
-    "precompiledReferences": [
-        "Newtonsoft.Json.dll",
-        "Microsoft.Extensions.DependencyInjection.dll",
-        "Microsoft.Extensions.DependencyInjection.Abstractions.dll",
-        "NuGetForUnity.PluginAPI.dll",
-        "protobuf-net.Core.dll",
-        "protobuf-net.dll"
-    ],
+    "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],

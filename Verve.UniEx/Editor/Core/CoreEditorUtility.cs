@@ -426,6 +426,74 @@ namespace VerveEditor
                 EditorUtility.DisplayDialog("Error", $"{templateFileName} Template file not found", "OK");
             }
         }
+        
+        /// <summary>
+        ///   <para>创建纯色纹理</para>
+        /// </summary>
+        /// <param name="width">宽</param>
+        /// <param name="height">高</param>
+        /// <param name="col">背景色</param>
+        /// <returns>
+        ///   <para>纯色纹理</para>
+        /// /returns>
+        public static Texture2D MakeTex(int width, int height, Color col)
+        {
+            Color[] pix = new Color[width * height];
+            for (int i = 0; i < pix.Length; i++)
+                pix[i] = col;
+            Texture2D result = new Texture2D(width, height);
+            result.SetPixels(pix);
+            result.Apply();
+            return result;
+        }
+        
+        /// <summary>
+        ///   <para>查找类型的MonoScript</para>
+        /// </summary>
+        /// <param name="type">类型</param>
+        /// <returns>
+        ///   <para>Mono脚本</para>
+        /// /returns>
+        public static MonoScript FindMonoScriptForType(Type type)
+        {
+            if (type == null) return null;
+            
+            var typeName = type.Name;
+            var fullTypeName = type.FullName;
+            
+            if (typeName.Contains("`"))
+            {
+                typeName = typeName[..typeName.IndexOf('`')];
+            }
+
+            var guids = AssetDatabase.FindAssets("t:MonoScript");
+            for (int i = 0; i < guids.Length; i++)
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guids[i]);
+                var script = AssetDatabase.LoadAssetAtPath<MonoScript>(path);
+                if (script != null)
+                {
+                    var scriptClass = script.GetClass();
+                    if (scriptClass == type)
+                    {
+                        return script;
+                    }
+                    
+                    if (script.name == typeName || script.name == type.Name)
+                    {
+                        return script;
+                    }
+                    
+                    var scriptText = script.text;
+                    if (fullTypeName != null && scriptText.Contains(fullTypeName))
+                    {
+                        return script;
+                    }
+                }
+            }
+            
+            return null;
+        }
     }
 }
 
