@@ -1,0 +1,17 @@
+{
+    "name": "Verve.ScriptRuntime",
+    "rootNamespace": "Verve",
+    "references": [
+        "Verve.Core",
+        "HybridCLR.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

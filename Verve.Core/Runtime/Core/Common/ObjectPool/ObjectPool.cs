@@ -13,10 +13,10 @@ namespace Verve
     /// </summary>
     /// <typeparam name="T">对象类型</typeparam>
     [Serializable]
-    public class ObjectPool<T> : IObjectPool<T> where T : class
+    public class ObjectPool<T> : IObjectPool<T>
     {
-        private readonly ConcurrentQueue<T> m_Pool = new ConcurrentQueue<T>();
-        private int m_Capacity = 0;
+        private readonly ConcurrentQueue<T> m_Pool;
+        private int m_Capacity;
         
         private readonly Func<T> m_OnCreateObject;
         private readonly Action<T> m_OnGetFromPool;
@@ -25,9 +25,16 @@ namespace Verve
         
         public int Count => m_Pool?.Count ?? 0;
         
+        /// <summary>
+        ///   <para>对象池容量</para>
+        ///   <para>对象池容量不能小于0</para>
+        ///   <para>当设置的新容量小于当前池中对象的数量时，会从池中移除并销毁多余的对象</para>
+        /// </summary>
         public int Capacity
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => m_Capacity;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 if (value < 0)
@@ -37,16 +44,15 @@ namespace Verve
                 m_Capacity = value;
                 if (Count > value)
                 {
-                    while (Count > value)
+                    while (Count > value && m_Pool.TryDequeue(out var obj))
                     {
-                        m_Pool.TryDequeue(out var obj);
                         m_OnDestroyObject?.Invoke(obj);
                     }
                 }
             }
         }
         
-        
+
         /// <summary>
         ///   <para>对象池构造函数</para>
         /// </summary>
@@ -63,32 +69,38 @@ namespace Verve
             m_OnReleaseToPool = onReleaseToPool;
             m_OnDestroyObject = onDestroyObject;
             m_Capacity = capacity > 0 ? capacity : throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity cannot be negative.");
-            
+            m_Pool = new ConcurrentQueue<T>();
             for (int i = 0; i < Math.Min(Math.Max(preSize, 0), m_Capacity); i++)
             {
-                Release(m_OnCreateObject?.Invoke());
+                Release(m_OnCreateObject());
             }
+        }
+
+        ~ObjectPool()
+        {
+            Clear();
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T Get(Predicate<T> predicate = null)
         {
-            if (m_Pool == null) { return null; }
+            if (m_Pool == null) { return default; }
+            
             if (predicate == null)
             {
-                if (m_Pool.TryDequeue(out T obj))
+                if (m_Pool.TryDequeue(out var obj))
                 {
                     m_OnGetFromPool?.Invoke(obj);
                     return obj;
                 }
-                return m_Pool.Count < m_Capacity ? m_OnCreateObject() : null;
+                return m_Pool.Count < m_Capacity ? m_OnCreateObject() : default;
             }
             
-            int bufferSize = Math.Min(m_Pool.Count, 256);
-            T[] tempBuffer = ArrayPool<T>.Shared.Rent(bufferSize);
-            int writeIndex = 0;
-            bool found = false;
-            T result = null;
+            var bufferSize = Math.Min(m_Pool.Count, 256);
+            var tempBuffer = ArrayPool<T>.Shared.Rent(bufferSize);
+            var writeIndex = 0;
+            var found = false;
+            T result = default;
             
             try 
             {
@@ -134,8 +146,9 @@ namespace Verve
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Release(T element)
         {
-            if (element == null || m_Pool == null) { return; }
-            if (m_Pool.Count < m_Capacity)
+            if (element == null || m_Pool == null || m_Pool.Contains(element)) { return; }
+            
+            if (Count < m_Capacity)
             {
                 m_OnReleaseToPool?.Invoke(element);
                 m_Pool.Enqueue(element);
@@ -149,9 +162,9 @@ namespace Verve
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ReleaseRange(IEnumerable<T> elements)
         {
-            if (m_Pool == null) { return; }
-            int availableSlots = m_Capacity - m_Pool.Count;
-            int count = 0;
+            if (m_Pool == null || elements == null || !elements.Any()) { return; }
+            var availableSlots = m_Capacity - Count;
+            var count = 0;
             
             foreach (var element in elements)
             {
@@ -168,16 +181,7 @@ namespace Verve
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
-            if (m_Pool == null) { return; }
-            while (m_Pool.TryDequeue(out var obj))
-            {
-                try
-                {
-                    m_OnDestroyObject?.Invoke(obj);
-                }
-                catch { }
-            }
-            m_Pool.Clear();
+            Capacity = 0;
         }
     }
 }

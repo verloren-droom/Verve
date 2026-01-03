@@ -10,20 +10,7 @@
                     "exclude": [
                         "**/Tests/**",
                         "**/Demo/**",
-                        "**/Samples/**",
-                        "**/Properties/AssemblyInfo.cs",
-                        "**/AssemblyInfo.cs"
-                    ]
-                },
-                {
-                    "src": "../Verve.UniEx",
-                    "files": [
-                        "**/*.cs"
-                    ],
-                    "exclude": [
-                        "**/Tests/**",
-                        "**/Demo/**",
-                        "**/Samples/**",
+                        "**/Samples~/**",
                         "**/Properties/AssemblyInfo.cs",
                         "**/AssemblyInfo.cs"
                     ]

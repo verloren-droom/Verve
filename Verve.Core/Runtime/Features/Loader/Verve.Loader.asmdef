@@ -2,7 +2,9 @@
   "name": "Verve.Loader",
   "rootNamespace": "Verve",
   "references": [
-    "Verve.Core"
+    "Verve.Core",
+    "Unity.ResourceManager",
+    "Unity.Addressables"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
@@ -12,5 +14,5 @@
   "autoReferenced": true,
   "defineConstraints": [],
   "versionDefines": [],
-  "noEngineReferences": true
+  "noEngineReferences": false
 }

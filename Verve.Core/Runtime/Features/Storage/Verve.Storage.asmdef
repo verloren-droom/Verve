@@ -1,21 +1,16 @@
 {
-    "name": "Verve.Storage",
-    "rootNamespace": "Verve",
-    "references": [
-        "Verve.Core",
-        "Verve.Serializable",
-        "Verve.Platform"
-    ],
-    "includePlatforms": [],
-    "excludePlatforms": [],
-    "allowUnsafeCode": true,
-    "overrideReferences": true,
-    "precompiledReferences": [
-        "protobuf-net.dll",
-        "protobuf-net.Core.dll"
-    ],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": true
+  "name": "Verve.Storage",
+  "rootNamespace": "Verve",
+  "references": [
+    "Verve.Core"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": true,
+  "overrideReferences": true,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }

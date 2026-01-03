@@ -1,0 +1,19 @@
+{
+    "name": "Verve.Sample",
+    "rootNamespace": "Verve",
+    "references": [
+        "Verve.Core",
+        "Verve.UniEx.Editor"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "VERVE_UNIEX_0_0_1_OR_NEWER"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
