@@ -1,6 +1,7 @@
 namespace Verve
 {
     using System;
+    using System.Collections.Generic;
     using System.Runtime.CompilerServices;
 
     
@@ -13,143 +14,182 @@ namespace Verve
         ///   <para>为行动者添加组件</para>
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="world">所在世界</param>
+        /// <param name="direction">同步方向</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ref T AddComponent<T>(this Actor self, World world) where T : struct, IComponent
-        {
-            if (world == null) throw new ArgumentNullException(nameof(world));
-            return ref world.AddComponent<T>(self);
-        }
+        public static ref T AddComponent<T>(this Actor self, World world, NetworkSyncDirection direction = NetworkSyncDirection.None)
+            where T : struct, IComponent
+            => ref (world ?? throw new ArgumentNullException(nameof(world))).AddComponent<T>(self, direction);
 
         /// <summary>
         ///   <para>获取行动者组件引用</para>
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="world">所在世界</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ref T GetComponent<T>(this Actor self, World world) where T : struct, IComponent
-        {
-            if (world == null) throw new ArgumentNullException(nameof(world));
-            return ref world.GetComponent<T>(self);
-        }
+        public static ref T GetComponent<T>(this Actor self, World world)
+            where T : struct, IComponent
+            => ref (world ?? throw new ArgumentNullException(nameof(world))).GetComponent<T>(self);
+        
+        /// <summary>
+        ///   <para>获取或添加行动者组件引用</para>
+        /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="world">所在世界</param>
+        /// <param name="direction">同步方向</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ref T GetOrAddComponent<T>(this Actor self, World world, NetworkSyncDirection direction = NetworkSyncDirection.None)
+            where T : struct, IComponent
+            => ref (world ?? throw new ArgumentNullException(nameof(world))).GetOrAddComponent<T>(self, direction);
 
         /// <summary>
         ///   <para>尝试获取行动者组件</para>
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="world">所在世界</param>
         /// <param name="component">组件</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetComponent<T>(this Actor self, World world, out T component) where T : struct, IComponent
-        {
-            if (world == null) throw new ArgumentNullException(nameof(world));
-            return world.TryGetComponent(self, out component);
-        }
+        public static bool TryGetComponent<T>(this Actor self, World world, out T component)
+            where T : struct, IComponent
+            => (world ?? throw new ArgumentNullException(nameof(world))).TryGetComponent(self, out component);
 
         /// <summary>
         ///   <para>移除行动者组件</para>
         /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="world">所在世界</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool RemoveComponent<T>(this Actor self, World world) where T : struct, IComponent
-        {
-            if (world == null) throw new ArgumentNullException(nameof(world));
-            return world.RemoveComponent<T>(self);
-        }
+        public static bool RemoveComponent<T>(this Actor self, World world)
+            where T : struct, IComponent
+            => (world ?? throw new ArgumentNullException(nameof(world))).RemoveComponent<T>(self);
 
         /// <summary>
         ///   <para>设置行动者组件数据</para>
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="world">所在世界</param>
         /// <param name="component">组件数据</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SetComponent<T>(this Actor self, World world, in T component) where T : struct, IComponent
-        {
-            if (world == null) throw new ArgumentNullException(nameof(world));
-            world.SetComponent(self, component);
-        }
+        public static void SetComponent<T>(this Actor self, World world, in T component)
+            where T : struct, IComponent
+            => (world ?? throw new ArgumentNullException(nameof(world))).SetComponent(self, component);
 
         /// <summary>
         ///   <para>判断行动者是否拥有组件</para>
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="world">所在世界</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool HasComponent<T>(this Actor actor, World world) where T : struct, IComponent
-        {
-            if (world == null) throw new ArgumentNullException(nameof(world));
-            return world.HasComponent<T>(actor);
-        }
+        public static bool HasComponent<T>(this Actor self, World world)
+            where T : struct, IComponent
+            => (world ?? throw new ArgumentNullException(nameof(world))).HasComponent<T>(self);
 
         /// <summary>
         ///   <para>判断行动者是否存活</para>
         /// </summary>
+        /// <param name="world">所在世界</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsAlive(this Actor self, World world)
-        {
-            if (world == null) throw new ArgumentNullException(nameof(world));
-            return world.IsActorAlive(self);
-        }
+            => (world ?? throw new ArgumentNullException(nameof(world))).IsActorAlive(self);
 
         /// <summary>
         ///   <para>销毁行动者</para>
         /// </summary>
+        /// <param name="world">所在世界</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Destroy(this Actor self, World world)
-        {
-            if (world == null) throw new ArgumentNullException(nameof(world));
-            world.DestroyActor(self);
-        }
+            => (world ?? throw new ArgumentNullException(nameof(world))).DestroyActor(self);
 
         /// <summary>
         ///   <para>为行动者添加能力</para>
         /// </summary>
         /// <typeparam name="T">能力类型</typeparam>
+        /// <param name="world">所在世界</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T AddCapability<T>(this Actor self, World world) where T : Capability, new()
-        {
-            if (world == null) throw new ArgumentNullException(nameof(world));
-            return world.AddCapability<T>(self);
-        }
+        public static T AddCapability<T>(this Actor self, World world)
+            where T : Capability, new()
+            => (world ?? throw new ArgumentNullException(nameof(world))).AddCapability<T>(self);
 
         /// <summary>
         ///   <para>移除行动者上的指定能力</para>
         /// </summary>
         /// <typeparam name="T">能力类型</typeparam>
+        /// <param name="world">所在世界</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool RemoveCapability<T>(this Actor self, World world) where T : Capability
-        {
-            if (world == null) throw new ArgumentNullException(nameof(world));
-            return world.RemoveCapability<T>(self);
-        }
+        public static bool RemoveCapability<T>(this Actor self, World world)
+            where T : Capability
+            => (world ?? throw new ArgumentNullException(nameof(world))).RemoveCapability<T>(self);
 
         /// <summary>
         ///   <para>应用表单到行动者</para>
         /// </summary>
+        /// <param name="world">所在世界</param>
         /// <param name="sheet">表单</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static SheetInstance ApplySheet(this Actor self, World world, CapabilitySheet sheet)
-        {
-            if (world == null) throw new ArgumentNullException(nameof(world));
-            return world.ApplySheet(self, sheet);
-        }
+        public static SheetInstance ApplySheet(this Actor self, World world, CapabilitySheet sheet, CapabilitySheetApplyMode mode = CapabilitySheetApplyMode.All)
+            => (world ?? throw new ArgumentNullException(nameof(world))).ApplySheet(self, sheet, mode);
         
-                /// <summary>
+        /// <summary>
+        ///   <para>移除指定表单实例</para>
+        /// </summary>
+        /// <param name="world">所在世界</param>
+        /// <param name="instance">表单实例</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool RemoveSheet(this Actor self, World world, SheetInstance instance)
+            => (world ?? throw new ArgumentNullException(nameof(world))).RemoveSheet(self, instance);
+        
+        /// <summary>
+        ///   <para>移除全部表单</para>
+        /// </summary>
+        /// <param name="world">所在世界</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void RemoveAllSheets(this Actor self, World world)
+            => (world ?? throw new ArgumentNullException(nameof(world))).RemoveAllSheets(self);
+        
+        /// <summary>
+        ///   <para>获取表单实例列表</para>
+        /// </summary>
+        /// <param name="world">所在世界</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static IReadOnlyList<SheetInstance> GetActorSheets(this Actor self, World world)
+            => (world ?? throw new ArgumentNullException(nameof(world))).GetActorSheets(self);
+        
+        /// <summary>
         ///   <para>添加组件（当前活跃世界）</para>
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="direction">同步方向</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ref T AddComponent<T>(this Actor self) where T : struct, IComponent
-            => ref self.AddComponent<T>(Game.World);
+        public static ref T AddComponent<T>(this Actor self, NetworkSyncDirection direction = NetworkSyncDirection.None) 
+            where T : struct, IComponent 
+            => ref self.AddComponent<T>(Game.World, direction);
         
         /// <summary>
         ///   <para>获取组件（当前活跃世界）</para>
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ref T GetComponent<T>(this Actor self) where T : struct, IComponent
+        public static ref T GetComponent<T>(this Actor self)
+            where T : struct, IComponent
             => ref self.GetComponent<T>(Game.World);
+        
+        /// <summary>
+        ///   <para>获取或添加组件（当前活跃世界）</para>
+        /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="direction">同步方向</param>
+        public static ref T GetOrAddComponent<T>(this Actor self, NetworkSyncDirection direction = NetworkSyncDirection.None)
+            where T : struct, IComponent
+            => ref self.GetOrAddComponent<T>(Game.World, direction);
         
         /// <summary>
         ///   <para>尝试获取组件（当前活跃世界）</para>
         /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="component">组件</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetComponent<T>(this Actor self, out T component) where T : struct, IComponent
+        public static bool TryGetComponent<T>(this Actor self, out T component)
+            where T : struct, IComponent
             => self.TryGetComponent(Game.World, out component);
         
         /// <summary>
@@ -158,7 +198,8 @@ namespace Verve
         /// <typeparam name="T">组件类型</typeparam>
         /// <param name="component">组件</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void SetComponent<T>(this Actor self, in T component) where T : struct, IComponent
+        public static void SetComponent<T>(this Actor self, in T component)
+            where T : struct, IComponent
             => self.SetComponent(Game.World, component);
         
         /// <summary>
@@ -166,8 +207,9 @@ namespace Verve
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool HasComponent<T>(this Actor actor) where T : struct, IComponent
-            => actor.HasComponent<T>(Game.World);
+        public static bool HasComponent<T>(this Actor self)
+            where T : struct, IComponent
+            => self.HasComponent<T>(Game.World);
     
         /// <summary>
         ///   <para>检查行动者是否存活（当前活跃世界）</para>
@@ -188,7 +230,8 @@ namespace Verve
         /// </summary>
         /// <typeparam name="T">能力类型</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T AddCapability<T>(this Actor self) where T : Capability, new()
+        public static T AddCapability<T>(this Actor self)
+            where T : Capability, new()
             => self.AddCapability<T>(Game.World);
 
         /// <summary>
@@ -196,15 +239,39 @@ namespace Verve
         /// </summary>
         /// <typeparam name="T">能力类型</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool RemoveCapability<T>(this Actor self) where T : Capability
+        public static bool RemoveCapability<T>(this Actor self)
+            where T : Capability
             => self.RemoveCapability<T>(Game.World);
 
         /// <summary>
         ///   <para>为行动者应用表单（当前活跃世界）</para>
         /// </summary>
         /// <param name="sheet">表单</param>
+        /// <param name="mode">应用模式</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static SheetInstance ApplySheet(this Actor self, CapabilitySheet sheet)
-            => self.ApplySheet(Game.World, sheet);
+        public static SheetInstance ApplySheet(this Actor self, CapabilitySheet sheet, CapabilitySheetApplyMode mode = CapabilitySheetApplyMode.All)
+            => self.ApplySheet(Game.World, sheet, mode);
+
+        /// <summary>
+        ///   <para>移除指定表单实例（当前活跃世界）</para>
+        /// </summary>
+        /// <param name="instance">表单实例</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool RemoveSheet(this Actor self, SheetInstance instance)
+            => self.RemoveSheet(Game.World, instance);
+        
+        /// <summary>
+        ///   <para>移除全部表单（当前活跃世界）</para>
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void RemoveAllSheets(this Actor self)
+            => self.RemoveAllSheets(Game.World);
+        
+        /// <summary>
+        ///   <para>获取表单实例列表（当前活跃世界）</para>
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static IReadOnlyList<SheetInstance> GetActorSheets(this Actor self)
+            => self.GetActorSheets(Game.World);
     }
 }

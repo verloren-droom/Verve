@@ -43,6 +43,9 @@ namespace Verve
             position.x += velocity.x * deltaTime;
             position.y += velocity.y * deltaTime;
             position.z += velocity.z * deltaTime;
+            
+            this.MarkComponentDirty<PositionComponent>();
+            this.MarkComponentDirty<VelocityComponent>();
         }
         
         /// <summary>

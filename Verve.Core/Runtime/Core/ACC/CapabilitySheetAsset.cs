@@ -20,6 +20,7 @@ namespace Verve
         {
             [SerializeField] private string m_TypeName;
             [SerializeField] private string m_AssemblyQualifiedName;
+            [SerializeField] private NetworkSyncDirection m_Direction = NetworkSyncDirection.None;
 
             public string TypeName 
             { 
@@ -31,6 +32,12 @@ namespace Verve
             { 
                 get => m_AssemblyQualifiedName;
                 set => m_AssemblyQualifiedName = value;
+            }
+
+            public NetworkSyncDirection Direction
+            {
+                get => m_Direction;
+                set => m_Direction = value;
             }
 
             public bool IsValid => Type.GetType(m_AssemblyQualifiedName) != null;
@@ -46,6 +53,19 @@ namespace Verve
 
                 m_TypeName = type.Name;
                 m_AssemblyQualifiedName = type.AssemblyQualifiedName;
+                m_Direction = NetworkSyncDirection.None;
+            }
+
+            public TypeEntry(Type type, NetworkSyncDirection direction)
+            {
+                if (type == null)
+                {
+                    return;
+                }
+
+                m_TypeName = type.Name;
+                m_AssemblyQualifiedName = type.AssemblyQualifiedName;
+                m_Direction = direction;
             }
 
             public Type GetSystemType()
@@ -125,7 +145,7 @@ namespace Verve
         /// <summary>
         ///   <para>添加组件类型</para>
         /// </summary>
-        public bool AddComponentType(Type componentType)
+        public bool AddComponentType(Type componentType, NetworkSyncDirection direction = NetworkSyncDirection.None)
         {
             if (componentType == null || 
                 !typeof(IComponent).IsAssignableFrom(componentType) ||
@@ -135,7 +155,7 @@ namespace Verve
             if (m_ComponentTypes.Any(e => e.AssemblyQualifiedName == componentType.AssemblyQualifiedName))
                 return false;
 
-            m_ComponentTypes.Add(new TypeEntry(componentType));
+            m_ComponentTypes.Add(new TypeEntry(componentType, direction));
             return true;
         }
 
@@ -204,7 +224,7 @@ namespace Verve
                 
                 var type = entry.GetSystemType();
                 if (type != null)
-                    sheet.AddComponent(type);
+                    sheet.AddComponent(type, entry.Direction);
             }
 
             foreach (var subSheetAsset in m_SubSheets)
@@ -230,8 +250,15 @@ namespace Verve
             foreach (var type in sheet.CapabilityTypes)
                 AddCapabilityType(type);
 
-            foreach (var type in sheet.ComponentTypes)
-                AddComponentType(type);
+            var componentTypes = sheet.ComponentTypes;
+            var componentDirections = sheet.ComponentDirections;
+
+            for (int i = 0; i < componentTypes.Count; i++)
+            {
+                var type = componentTypes[i];
+                var direction = i < componentDirections.Count ? componentDirections[i] : NetworkSyncDirection.None;
+                AddComponentType(type, direction);
+            }
         }
 
         private bool HasCircularReference(CapabilitySheetAsset target)

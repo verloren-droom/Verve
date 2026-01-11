@@ -14,7 +14,7 @@ namespace Verve
         /// </summary>
         public static class RandomUtility
         {
-            [ThreadStatic] private static readonly Random s_Random = new Random(Guid.NewGuid().GetHashCode());
+            [ThreadStatic] private static readonly Random s_Random = new Random(Guid.NewGuid().GetHashCode() ^ Environment.TickCount);
             
             /// <summary>
             ///   <para>获取一个0-1的随机浮点数</para>
@@ -46,7 +46,7 @@ namespace Verve
             ///   <para>获取一个64位随机整数</para>
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static long RandInt64() => ((long)s_Random.Next() << 32) | s_Random.Next();
+            public static long RandInt64() => ((long)(uint)s_Random.Next() << 32) | (uint)s_Random.Next();
             
             /// <summary>
             ///   <para>生成 [min, max) 范围内的随机整数</para>

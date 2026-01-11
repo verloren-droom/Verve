@@ -6,16 +6,15 @@ namespace Verve
     public interface ICrypto
     {
         /// <summary>
-        ///   <para>加密</para>
+        ///   <para>加密数据</para>
         /// </summary>
         /// <param name="data">待加密数据</param>
         /// <returns>
         ///   <para>加密后的数据</para>
         /// </returns>
         byte[] Encrypt(byte[] data);
-        
         /// <summary>
-        ///   <para>解密</para>
+        ///   <para>解密数据</para>
         /// </summary>
         /// <param name="encrypted">待解密数据</param>
         /// <returns>

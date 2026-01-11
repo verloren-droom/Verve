@@ -2,6 +2,7 @@
 
 namespace Verve.Editor
 {
+    using Verve;
     using System;
     using System.Linq;
     using UnityEngine;
@@ -208,9 +209,22 @@ namespace Verve.Editor
                 sb.AppendLine("// Components");
                 foreach (var entry in m_Target.ComponentTypeEntries)
                 {
-                    if (entry.IsValid)
+                    if (!entry.IsValid)
+                        continue;
+
+                    var type = entry.GetSystemType();
+                    if (type == null)
+                        continue;
+
+                    var direction = entry.Direction;
+                    if (direction == NetworkSyncDirection.None)
                     {
-                        sb.AppendLine($"{variableName}.{nameof(CapabilitySheet.AddComponent)}<{entry.GetSystemType().Name}>();");
+                        sb.AppendLine($"{variableName}.{nameof(CapabilitySheet.AddComponent)}<{type.Name}>();");
+                    }
+                    else
+                    {
+                        var directionCode = $"{nameof(NetworkSyncDirection)}.{direction}";
+                        sb.AppendLine($"{variableName}.{nameof(CapabilitySheet.AddComponent)}<{type.Name}>({directionCode});");
                     }
                 }
                 sb.AppendLine();
@@ -350,7 +364,8 @@ namespace Verve.Editor
 
                 rect.y += 2;
                 float iconWidth = 20;
-                float nameWidth = rect.width - iconWidth - 10;
+                float directionWidth = 140;
+                float nameWidth = rect.width - iconWidth - directionWidth - 15;
 
                 Rect iconRect = new Rect(rect.x, rect.y, iconWidth, EditorGUIUtility.singleLineHeight);
                 if (entry.IsValid)
@@ -369,6 +384,13 @@ namespace Verve.Editor
                     EditorGUIUtility.singleLineHeight
                 );
                 
+                Rect directionRect = new Rect(
+                    rect.x + iconWidth + 10 + nameWidth,
+                    rect.y,
+                    directionWidth,
+                    EditorGUIUtility.singleLineHeight
+                );
+                
                 var style = entry.IsValid ? EditorStyles.label : EditorStyles.boldLabel;
                 var color = entry.IsValid ? Color.white : Color.red;
                 
@@ -380,6 +402,13 @@ namespace Verve.Editor
                 if (nameRect.Contains(Event.current.mousePosition))
                 {
                     GUI.tooltip = entry.AssemblyQualifiedName;
+                }
+
+                var newDirection = (NetworkSyncDirection)EditorGUI.EnumPopup(directionRect, entry.Direction);
+                if (newDirection != entry.Direction)
+                {
+                    entry.Direction = newDirection;
+                    EditorUtility.SetDirty(m_Target);
                 }
             };
 

@@ -2,13 +2,11 @@
     "name": "Verve.Editor",
     "rootNamespace": "Verve.Editor",
     "references": [
-        "Verve.UniEx.Gameplay",
         "HybridCLR.Editor",
         "Verve.Core",
         "Verve.Debug",
         "Verve.Input",
         "Verve.Loader",
-        "Verve.MVC",
         "Verve.AI",
         "Verve.ScriptRuntime"
     ],

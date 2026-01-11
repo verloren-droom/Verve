@@ -5,11 +5,12 @@
 namespace Verve
 {
     using System;
-    using System.Text;
     using System.Buffers;
     using System.Threading;
     using System.Reflection;
     using System.Diagnostics;
+    using System.Buffers.Binary;
+    using System.Threading.Tasks;
     using System.Collections.Generic;
     using System.Runtime.InteropServices;
     using System.Runtime.CompilerServices;
@@ -161,7 +162,7 @@ namespace Verve
     /// </summary>
     internal static class ComponentTypeRegistry
     {
-        private static int s_NextTypeId = 1;
+        [ThreadStatic] private static int s_NextTypeId = 1;
         private static readonly Dictionary<Type, ComponentTypeId> s_TypeToId = new(128);
         private static readonly Dictionary<int, Type> s_IdToType = new(128);
         private static readonly object s_Lock = new();
@@ -612,7 +613,7 @@ namespace Verve
     /// </summary>
     internal static class CapabilityTypeRegistry
     {
-        private static int s_NextTypeId = 1;
+        [ThreadStatic] private static int s_NextTypeId = 1;
         private static readonly Dictionary<Type, CapabilityTypeId> s_TypeToId = new(256);
         private static readonly Dictionary<int, Type> s_IdToType = new(256);
         private static readonly object s_Lock = new();
@@ -672,7 +673,7 @@ namespace Verve
     /// </summary>
     internal static class TagRegistry
     {
-        private static int s_NextTagId = 1;
+        [ThreadStatic] private static int s_NextTagId = 1;
         private static readonly Dictionary<string, TagId> s_NameToId = new(32);
         private static readonly Dictionary<int, string> s_IdToName = new(32);
         private static readonly object s_Lock = new();
@@ -1247,8 +1248,20 @@ namespace Verve
             try
             {
                 m_Lock.Enter(ref lockTaken);
-                ref var comp = ref Get(actor);
-                comp = component;
+
+                int actorIndex = actor.Index;
+                if (actorIndex < 0 || actorIndex >= m_Sparse.Length)
+                    ThrowActorNotFound(actor);
+
+                int denseIndex = m_Sparse[actorIndex];
+                if (denseIndex < 0 || denseIndex >= m_Count)
+                    ThrowComponentNotFound(actor);
+
+                ref var entry = ref m_Entries[denseIndex];
+                if (!entry.isActive || entry.actorVersion != actor.Version)
+                    ThrowComponentInvalid(actor);
+
+                entry.value = component;
             }
             finally
             {
@@ -1265,11 +1278,15 @@ namespace Verve
 
                 if (m_Count > 0)
                 {
+                    for (int i = 0; i < m_Count; i++)
+                    {
+                        int actorIndex = m_Dense[i];
+                        if (actorIndex >= 0 && actorIndex < m_Sparse.Length)
+                            m_Sparse[actorIndex] = -1;
+                    }
+
                     Array.Clear(m_Entries, 0, m_Count);
                     Array.Clear(m_Dense, 0, m_Count);
-
-                    for (int i = 0; i < m_Count; i++)
-                        m_Sparse[m_Dense[i]] = -1;
 
                     m_Count = 0;
                 }
@@ -1480,7 +1497,11 @@ namespace Verve
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
-            m_TagBlocks?.Clear();
+            if (m_TagBlocks != null)
+            {
+                m_TagBlocks.Clear();
+                m_TagBlocks = null;
+            }
         }
     }
 
@@ -1546,6 +1567,7 @@ namespace Verve
         private readonly SpinLock m_PoolLock;
         private readonly ReaderWriterLockSlim m_ActorLock;
         private readonly Dictionary<int, IComponentPool> m_ComponentPools;
+        private readonly bool m_EnableMultiThreading;
 
         private bool m_IsDisposed;
 
@@ -1563,16 +1585,22 @@ namespace Verve
         ///   <para>空闲槽位数量</para>
         /// </summary>
         public int FreeActorCount => m_FreeCount;
+        
+        /// <summary>
+        ///   <para>是否启用多线程</para>
+        /// </summary>
+        public bool EnableMultiThreading => m_EnableMultiThreading;
 
         internal ActorManager(ActorManagerOptions options)
         {
             m_Capacity = options.initialCapacity;
             m_GrowthFactor = options.growthFactor;
+            m_EnableMultiThreading = options.enableMultiThreading;
 
             m_Actors = new ActorData[m_Capacity];
             m_FreeList = new int[m_Capacity];
 
-            m_ActorLock = options.enableMultiThreading
+            m_ActorLock = m_EnableMultiThreading
                 ? new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion)
                 : null;
 
@@ -1665,7 +1693,7 @@ namespace Verve
                 ref var actorData = ref m_Actors[actor.Index];
 
                 foreach (var typeId in actorData.componentMask)
-                    RemoveComponentByTypeId(actor, typeId);
+                    RemoveComponentByTypeIdUnsafe(actor, typeId);
 
                 if (actorData.capabilities != null)
                 {
@@ -1913,7 +1941,16 @@ namespace Verve
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool RemoveComponent<T>(Actor actor) where T : struct, IComponent
         {
-            return RemoveComponentByTypeId(actor, ComponentTypeRegistry<T>.id);
+            m_ActorLock?.EnterWriteLock();
+            try
+            {
+                if (!IsActorAliveUnsafe(actor)) return false;
+                return RemoveComponentByTypeIdUnsafe(actor, ComponentTypeRegistry<T>.id);
+            }
+            finally
+            {
+                m_ActorLock?.ExitWriteLock();
+            }
         }
 
         public void SetComponent<T>(Actor actor, in T component) where T : struct, IComponent
@@ -1954,7 +1991,7 @@ namespace Verve
             }
         }
 
-        public List<Actor> QueryActorsWithComponent<T>() where T : struct, IComponent
+        public IReadOnlyList<Actor> QueryActorsWithComponent<T>() where T : struct, IComponent
         {
             var result = new List<Actor>();
 
@@ -1982,7 +2019,7 @@ namespace Verve
             return result;
         }
 
-        public List<Actor> QueryActorsWithComponents(params Type[] componentTypes)
+        public IReadOnlyList<Actor> QueryActorsWithComponents(params Type[] componentTypes)
         {
             if (componentTypes == null || componentTypes.Length == 0)
                 return new List<Actor>();
@@ -2098,25 +2135,23 @@ namespace Verve
             return actorData.isAlive && actorData.version == actor.Version;
         }
 
-        private bool RemoveComponentByTypeId(Actor actor, int typeId)
+        private bool RemoveComponentByTypeIdUnsafe(Actor actor, int typeId)
         {
-            if (!IsActorAliveUnsafe(actor)) return false;
-
             bool lockTaken = false;
             try
             {
                 m_PoolLock.Enter(ref lockTaken);
                 if (!m_ComponentPools.TryGetValue(typeId, out var pool)) return false;
                 if (!pool.Remove(actor)) return false;
-
-                ref var actorData = ref m_Actors[actor.Index];
-                actorData.componentMask.Remove(typeId);
-                return true;
             }
             finally
             {
                 if (lockTaken) m_PoolLock.Exit();
             }
+
+            ref var actorData = ref m_Actors[actor.Index];
+            actorData.componentMask.Remove(typeId);
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2221,6 +2256,8 @@ namespace Verve
     [Serializable]
     internal sealed class ActionQueue
     {
+        private const int PARALLEL_MIN_COUNT = 16;
+        
         private readonly List<CapabilityTickGroup> m_Groups;
         private readonly Dictionary<int, CapabilityTickGroup> m_GroupMap;
         private readonly Dictionary<Capability, (int groupIndex, int listIndex, bool isActive)> m_CapabilityIndices;
@@ -2291,7 +2328,7 @@ namespace Verve
         }
 
         public void Update(float deltaTime, Func<Capability, bool> shouldActivate,
-            Func<Capability, bool> shouldDeactivate)
+            Func<Capability, bool> shouldDeactivate, bool enableParallel)
         {
             EnsureSorted();
             
@@ -2300,25 +2337,14 @@ namespace Verve
             for (int i = 0; i < m_Groups.Count; i++)
             {
                 var activeList = m_Groups[i].activeCapabilities;
-                
-                for (int j = 0; j < activeList.Count; j++)
-                {
-                    var capability = activeList[j];
-                    if (capability?.IsDisposed == true) continue;
-                        
-                    try
-                    {
-                        capability?.TickActive(deltaTime);
-                    }
-                    catch (Exception ex)
-                    {
-                        HandleCapabilityException(capability, ex);
-                    }
-                }
+                if (enableParallel)
+                    TickCapabilitiesParallel(activeList, deltaTime);
+                else
+                    TickCapabilitiesSequential(activeList, deltaTime);
             }
         }
 
-        public void Update(float deltaTime, Func<Capability, bool> shouldActivate, Func<Capability, bool> shouldDeactivate, int targetTickGroup)
+        public void Update(float deltaTime, Func<Capability, bool> shouldActivate, Func<Capability, bool> shouldDeactivate, int targetTickGroup, bool enableParallel)
         {
             EnsureSorted();
             
@@ -2327,21 +2353,10 @@ namespace Verve
             if (m_GroupMap.TryGetValue(targetTickGroup, out var group))
             {
                 var activeList = group.activeCapabilities;
-            
-                for (int j = 0; j < activeList.Count; j++)
-                {
-                    var capability = activeList[j];
-                    if (capability?.IsDisposed == true) continue;
-                    
-                    try
-                    {
-                        capability?.TickActive(deltaTime);
-                    }
-                    catch (Exception ex)
-                    {
-                        HandleCapabilityException(capability, ex);
-                    }
-                }
+                if (enableParallel)
+                    TickCapabilitiesParallel(activeList, deltaTime);
+                else
+                    TickCapabilitiesSequential(activeList, deltaTime);
             }
         }
         
@@ -2505,11 +2520,86 @@ namespace Verve
             return lo;
         }
         
+        private void TickCapabilitiesSequential(List<Capability> activeList, float deltaTime)
+        {
+            for (int j = 0; j < activeList.Count; j++)
+            {
+                var capability = activeList[j];
+                TickCapability(capability, deltaTime);
+            }
+        }
+        
+        private void TickCapabilitiesParallel(List<Capability> activeList, float deltaTime)
+        {
+            if (activeList.Count < PARALLEL_MIN_COUNT)
+            {
+                TickCapabilitiesSequential(activeList, deltaTime);
+                return;
+            }
+            
+            int index = 0;
+            int count = activeList.Count;
+            
+            while (index < count)
+            {
+                var capability = activeList[index];
+                if (capability == null || capability.IsDisposed)
+                {
+                    TickCapability(capability, deltaTime);
+                    index++;
+                    continue;
+                }
+                
+                int tickOrder = capability.TickOrder;
+                int start = index;
+                int end = index + 1;
+                
+                while (end < count)
+                {
+                    var next = activeList[end];
+                    if (next == null || next.IsDisposed || next.TickOrder != tickOrder)
+                        break;
+                    end++;
+                }
+                
+                int segmentLength = end - start;
+                if (segmentLength <= 1)
+                {
+                    TickCapability(capability, deltaTime);
+                }
+                else
+                {
+                    Parallel.For(start, end, i =>
+                    {
+                        var c = activeList[i];
+                        TickCapability(c, deltaTime);
+                    });
+                }
+                
+                index = end;
+            }
+        }
+        
+        private void TickCapability(Capability capability, float deltaTime)
+        {
+            if (capability == null || capability.IsDisposed) return;
+            
+            try
+            {
+                capability.TickActive(deltaTime);
+            }
+            catch (Exception ex)
+            {
+                HandleCapabilityException(capability, ex);
+            }
+        }
+        
         private void HandleCapabilityException(Capability capability, Exception ex)
         {
             capability.IsActive = false;
 #if DEBUG
-            Game.LogError($"Capability {capability.GetType().Name} error: {ex}");
+            // Game.LogError($"Capability {capability.GetType().Name} error: {ex}");
+            throw new Exception($"Capability {capability.GetType().Name} error: {ex}");
 #endif
         }
     }
@@ -2519,20 +2609,44 @@ namespace Verve
     #region 表单系统
     
     /// <summary>
+    ///   <para>能力表单应用模式</para>
+    /// </summary>
+    public enum CapabilitySheetApplyMode : byte
+    {
+        /// <summary>
+        ///   <para>应用全部</para>
+        /// </summary>
+        All = 0,
+        /// <summary>
+        ///   <para>仅组件</para>
+        /// </summary>
+        ComponentsOnly = 1,
+    }
+    
+    /// <summary>
     ///   <para>能力表单</para>
     /// </summary>
     [Serializable]
     public sealed class CapabilitySheet
     {
+        private static readonly Dictionary<Type, MethodInfo> s_AddComponentMethods = new(64);
+        private static readonly Dictionary<Type, MethodInfo> s_SetComponentMethods = new(64);
+        private static readonly Dictionary<Type, MethodInfo> s_AddCapabilityMethods = new(64);
+        private static readonly Dictionary<Type, MethodInfo> s_RemoveCapabilityMethods = new(64);
+        private static readonly object s_MethodCacheLock = new();
+
         private readonly List<Type> m_CapabilityTypes = new(16);
         private readonly List<Type> m_ComponentTypes = new(16);
+        private readonly List<NetworkSyncDirection> m_ComponentDirections = new(16);
         private readonly List<CapabilitySheet> m_SubSheets = new(8);
         
         public IReadOnlyList<Type> CapabilityTypes => m_CapabilityTypes;
         public IReadOnlyList<Type> ComponentTypes => m_ComponentTypes;
+        public IReadOnlyList<NetworkSyncDirection> ComponentDirections => m_ComponentDirections;
         public IReadOnlyList<CapabilitySheet> SubSheets => m_SubSheets;
         
-        public CapabilitySheet AddCapability<T>() where T : Capability
+        public CapabilitySheet AddCapability<T>()
+            where T : Capability
         {
             m_CapabilityTypes.Add(typeof(T));
             return this;
@@ -2548,13 +2662,15 @@ namespace Verve
             return this;
         }
         
-        public CapabilitySheet AddComponent<T>() where T : struct, IComponent
+        public CapabilitySheet AddComponent<T>(NetworkSyncDirection direction = NetworkSyncDirection.None)
+            where T : struct, IComponent
         {
             m_ComponentTypes.Add(typeof(T));
+            m_ComponentDirections.Add(direction);
             return this;
         }
         
-        public CapabilitySheet AddComponent(Type componentType)
+        public CapabilitySheet AddComponent(Type componentType, NetworkSyncDirection direction = NetworkSyncDirection.None)
         {
             if (componentType == null) throw new ArgumentNullException(nameof(componentType));
             if (!typeof(IComponent).IsAssignableFrom(componentType))
@@ -2563,6 +2679,7 @@ namespace Verve
                 throw new ArgumentException($"Component {componentType.Name} must be a struct");
             
             m_ComponentTypes.Add(componentType);
+            m_ComponentDirections.Add(direction);
             return this;
         }
         
@@ -2573,40 +2690,58 @@ namespace Verve
             return this;
         }
         
-        public SheetInstance ApplyTo(Actor actor, World world)
+        public SheetInstance ApplyTo(Actor actor, World world, CapabilitySheetApplyMode mode = CapabilitySheetApplyMode.All)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
             
-            var instance = new SheetInstance(this, actor, world);
-            
-            foreach (var subSheet in m_SubSheets)
+            var instance = new SheetInstance(actor, world);
+
+            for (int i = 0; i < m_SubSheets.Count; i++)
             {
-                var subInstance = subSheet.ApplyTo(actor, world);
-                instance.AddSubInstance(subInstance);
+                instance.AddSubInstance(m_SubSheets[i].ApplyTo(actor, world, mode));
             }
             
-            foreach (var componentType in m_ComponentTypes)
+            for (int i = 0; i < m_ComponentTypes.Count; i++)
             {
-                AddComponentGeneric(componentType, actor, world);
+                var componentType = m_ComponentTypes[i];
+                var direction = i < m_ComponentDirections.Count
+                    ? m_ComponentDirections[i]
+                    : NetworkSyncDirection.None;
+                AddComponentGeneric(componentType, actor, world, direction);
             }
             
-            foreach (var capabilityType in m_CapabilityTypes)
+            if (mode == CapabilitySheetApplyMode.All)
             {
-                AddCapabilityToActor(capabilityType, actor, world, instance);
+                foreach (var capabilityType in m_CapabilityTypes)
+                {
+                    AddCapabilityToActor(capabilityType, actor, world, instance);
+                }
             }
             
             return instance;
         }
         
-        public static void RemoveFrom(Actor actor, World world, SheetInstance instance)
+        public static void RemoveFrom(SheetInstance instance)
         {
-            if (instance == null) return;
-            instance.RemoveFromActor();
+            instance?.RemoveFromActor();
         }
         
-        private static void AddComponentGeneric(Type componentType, Actor actor, World world)
+        private static void AddComponentGeneric(Type componentType, Actor actor, World world, NetworkSyncDirection direction)
         {
-            var method = typeof(World).GetMethod(nameof(World.SetComponent))?.MakeGenericMethod(componentType);
+            var method = GetAddComponentMethod(componentType);
+            if (method != null)
+            {
+                try
+                {
+                    method.Invoke(world, new object[] { actor, direction });
+                    return;
+                }
+                catch
+                {
+                }
+            }
+
+            method = GetSetComponentMethod(componentType);
             if (method != null)
             {
                 var defaultValue = Activator.CreateInstance(componentType);
@@ -2616,11 +2751,94 @@ namespace Verve
         
         private static void AddCapabilityToActor(Type capabilityType, Actor actor, World world, SheetInstance instance)
         {
-            var method = typeof(World).GetMethod(nameof(World.AddCapability))?
-                .MakeGenericMethod(capabilityType);
+            var method = GetAddCapabilityMethod(capabilityType);
 
             if (method?.Invoke(world, new object[] { actor }) is Capability capability)
                 instance.AddCapability(capability);
+        }
+
+        private static MethodInfo GetAddComponentMethod(Type componentType)
+        {
+            if (componentType == null) return null;
+            if (s_AddComponentMethods.TryGetValue(componentType, out var method))
+                return method;
+
+            lock (s_MethodCacheLock)
+            {
+                if (s_AddComponentMethods.TryGetValue(componentType, out method))
+                    return method;
+
+                var generic = typeof(World).GetMethod(nameof(World.AddComponent));
+                if (generic == null)
+                    return null;
+
+                method = generic.MakeGenericMethod(componentType);
+                s_AddComponentMethods[componentType] = method;
+                return method;
+            }
+        }
+
+        private static MethodInfo GetSetComponentMethod(Type componentType)
+        {
+            if (componentType == null) return null;
+            if (s_SetComponentMethods.TryGetValue(componentType, out var method))
+                return method;
+
+            lock (s_MethodCacheLock)
+            {
+                if (s_SetComponentMethods.TryGetValue(componentType, out method))
+                    return method;
+
+                var generic = typeof(World).GetMethod(nameof(World.SetComponent));
+                if (generic == null)
+                    return null;
+
+                method = generic.MakeGenericMethod(componentType);
+                s_SetComponentMethods[componentType] = method;
+                return method;
+            }
+        }
+
+        private static MethodInfo GetAddCapabilityMethod(Type capabilityType)
+        {
+            if (capabilityType == null) return null;
+            if (s_AddCapabilityMethods.TryGetValue(capabilityType, out var method))
+                return method;
+
+            lock (s_MethodCacheLock)
+            {
+                if (s_AddCapabilityMethods.TryGetValue(capabilityType, out method))
+                    return method;
+
+                var generic = typeof(World).GetMethod(nameof(World.AddCapability));
+                if (generic == null)
+                    return null;
+
+                method = generic.MakeGenericMethod(capabilityType);
+                s_AddCapabilityMethods[capabilityType] = method;
+                return method;
+            }
+        }
+
+        internal static MethodInfo GetRemoveCapabilityMethod(Type capabilityType)
+        {
+            if (capabilityType == null) return null;
+            if (s_RemoveCapabilityMethods.TryGetValue(capabilityType, out var method))
+                return method;
+
+            lock (s_MethodCacheLock)
+            {
+                if (s_RemoveCapabilityMethods.TryGetValue(capabilityType, out method))
+                    return method;
+
+                var generic = typeof(World).GetMethod(nameof(World.RemoveCapability));
+                if (generic == null)
+                    return null;
+
+                method = generic.MakeGenericMethod(capabilityType);
+                s_RemoveCapabilityMethods[capabilityType] = method;
+                return method;
+            }
         }
     }
     
@@ -2630,16 +2848,14 @@ namespace Verve
     [Serializable]
     public sealed class SheetInstance : IDisposable
     {
-        private readonly CapabilitySheet m_Sheet;
         private readonly Actor m_Actor;
         private readonly World m_World;
         private readonly List<Capability> m_Capabilities = new(16);
         private readonly List<SheetInstance> m_SubInstances = new(8);
         private bool m_IsDisposed;
 
-        internal SheetInstance(CapabilitySheet sheet, Actor actor, World world)
+        internal SheetInstance(Actor actor, World world)
         {
-            m_Sheet = sheet ?? throw new ArgumentNullException(nameof(sheet));
             m_Actor = actor;
             m_World = world ?? throw new ArgumentNullException(nameof(world));
         }
@@ -2658,6 +2874,9 @@ namespace Verve
             m_Capabilities.Add(capability);
         }
         
+        /// <summary>
+        ///   <para>从Actor中移除表单实例</para>
+        /// </summary>
         public void RemoveFromActor()
         {
             if (m_IsDisposed) return;
@@ -2677,8 +2896,7 @@ namespace Verve
         
         private static void RemoveCapabilityGeneric(Type capabilityType, Actor actor, World world)
         {
-            var method = typeof(World).GetMethod(nameof(World.RemoveCapability))?
-                .MakeGenericMethod(capabilityType);
+            var method = CapabilitySheet.GetRemoveCapabilityMethod(capabilityType);
             method?.Invoke(world, new object[] { actor });
         }
         
@@ -2707,7 +2925,7 @@ namespace Verve
             m_Lock = new SpinLock(false);
         }
         
-        public SheetInstance ApplySheet(Actor actor, CapabilitySheet sheet)
+        public SheetInstance ApplySheet(Actor actor, CapabilitySheet sheet, CapabilitySheetApplyMode mode = CapabilitySheetApplyMode.All)
         {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             
@@ -2716,7 +2934,7 @@ namespace Verve
             {
                 m_Lock.Enter(ref lockTaken);
                 
-                var instance = sheet.ApplyTo(actor, m_World);
+                var instance = sheet.ApplyTo(actor, m_World, mode);
                 
                 if (!m_ActorSheets.TryGetValue(actor, out var instances))
                 {
@@ -2956,7 +3174,7 @@ namespace Verve
 
             ProcessDirtyActors();
 
-            m_ActionQueue.Update(deltaTime, m_ShouldActivate, m_ShouldDeactivate);
+            m_ActionQueue.Update(deltaTime, m_ShouldActivate, m_ShouldDeactivate, m_World.Actors.EnableMultiThreading);
         }
         
         /// <summary>
@@ -2971,7 +3189,8 @@ namespace Verve
             m_ActionQueue.Update(deltaTime, 
                 m_ShouldActivate,
                 m_ShouldDeactivate,
-                (int)tickGroup);
+                (int)tickGroup,
+                m_World.Actors.EnableMultiThreading);
         }
 
         /// <summary>
@@ -3163,865 +3382,1048 @@ namespace Verve
     
     #endregion
     
-    #region 网络同步系统
-
+    #region 网络同步系统（Beta）
+    
     /// <summary>
-    ///   <para>网络同步角色</para>
-    /// </summary>
-    [Serializable]
-    public enum NetworkSyncRole : byte
-    {
-        /// <summary>
-        ///   <para>不同步</para>
-        /// </summary>
-        None,
-        /// <summary>
-        ///   <para>服务器</para>
-        /// </summary>
-        Server,
-        /// <summary>
-        ///   <para>客户端</para>
-        /// </summary>
-        Client,
-        /// <summary>
-        ///   <para>主机（既是服务器又是客户端）</para>
-        /// </summary>
-        Host
-    }
-
-    /// <summary>
-    ///   <para>网络同步方向（仅发送 / 仅接收 / 双向）</para>
-    /// </summary>
-    [Serializable]
-    public enum NetworkSyncDirection : byte
-    {
-        /// <summary>
-        ///   <para>无</para>
-        /// </summary>
-        None,
-        /// <summary>
-        ///   <para>仅发送</para>
-        /// </summary>
-        SendOnly,
-        /// <summary>
-        ///   <para>仅接收</para>
-        /// </summary>
-        ReceiveOnly,
-        /// <summary>
-        ///   <para>双向</para>
-        /// </summary>
-        SendAndReceive
-    }
-
-    /// <summary>
-    ///   <para>网络同步传输接口</para>
+    ///   <para>网络传输接口</para>
     /// </summary>
     public interface INetworkSyncTransport : IDisposable
     {
         /// <summary>
-        ///   <para>从远端接收数据到缓冲区</para>
+        ///   <para>当前是否处于可用连接状态</para>
+        /// </summary>
+        bool IsConnected { get; }
+        /// <summary>
+        ///   <para>接收一帧网络数据（非阻塞，返回0表示当前无数据）</para>
         /// </summary>
         /// <param name="buffer">用于接收数据的缓冲区</param>
-        /// <param name="offset">写入缓冲区的起始偏移</param>
-        /// <param name="count">最大接收字节数（不超过缓冲区可用空间）</param>
-        int Receive(byte[] buffer, int offset, int count);
+        /// <returns>实际接收的字节数，若为0表示当前无数据</returns>
+        int Receive(Span<byte> buffer);
         /// <summary>
-        ///   <para>将缓冲区中的数据发送到远端</para>
+        ///   <para>发送一帧网络数据</para>
         /// </summary>
-        /// <param name="buffer">要发送的数据缓冲区</param>
-        /// <param name="offset">要发送数据在缓冲区中的起始偏移</param>
-        /// <param name="count">要发送的字节数</param>
-        void Send(byte[] buffer, int offset, int count);
+        /// <param name="buffer">待发送数据缓冲区</param>
+        void Send(ReadOnlySpan<byte> buffer);
+    }
+
+    /// <summary>
+    ///   <para>网络同步收发方向</para>
+    /// </summary>
+    [Serializable, Flags]
+    public enum NetworkSyncDirection : byte
+    {
+        /// <summary>
+        ///   <para>不进行发送或接收</para>
+        /// </summary>
+        None = 0,
+        /// <summary>
+        ///   <para>仅发送本地数据</para>
+        /// </summary>
+        Send = 1 << 0,
+        /// <summary>
+        ///   <para>仅接收远端数据</para>
+        /// </summary>
+        Receive = 1 << 1,
+        /// <summary>
+        ///   <para>同时发送与接收</para>
+        /// </summary>
+        SendAndReceive = Send | Receive,
+    }
+
+    /// <summary>
+    ///   <para>网络同步配置</para>
+    /// </summary>
+    [Serializable]
+    public readonly struct NetworkSyncOptions
+    {
+        private const int MIN_PACKET_SIZE = 512;            // 最小数据包大小
+        private const int MAX_PACKET_SIZE = 256 * 1024;     // 最大数据包大小
+        private const int DEFAULT_PACKET_SIZE = 64 * 1024;  // 默认数据包大小
+        
+        /// <summary>
+        ///   <para>全局收发方向</para>
+        /// </summary>
+        public readonly NetworkSyncDirection direction;
+        /// <summary>
+        ///   <para>发送间隔（秒）</para>
+        /// </summary>
+        public readonly float sendInterval;
+        /// <summary>
+        ///   <para>接收间隔（秒）</para>
+        /// </summary>
+        public readonly float receiveInterval;
+        /// <summary>
+        ///   <para>发送时使用的Tick组</para>
+        /// </summary>
+        public readonly TickGroup sendTickGroup;
+        /// <summary>
+        ///   <para>接收时使用的Tick组</para>
+        /// </summary>
+        public readonly TickGroup receiveTickGroup;
+        /// <summary>
+        /// <para>最大数据包大小（字节）</para>
+        /// </summary>
+        public readonly int maxPacketSize;
+        /// <summary>
+        ///   <para>数据包标识符</para>
+        /// </summary>
+        public readonly byte packetMagic;
+        /// <summary>
+        ///   <para>数据包版本</para>
+        /// </summary>
+        public readonly byte packetVersion;
+
+        /// <summary>
+        ///   <para>是否启用发送</para>
+        /// </summary>
+        public bool EnableSend
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => (direction & NetworkSyncDirection.Send) != 0;
+        }
+
+        /// <summary>
+        ///   <para>是否启用接收</para>
+        /// </summary>
+        public bool EnableReceive
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => (direction & NetworkSyncDirection.Receive) != 0;
+        }
+        
+        public NetworkSyncOptions(
+            NetworkSyncDirection direction,
+            float sendInterval = 0.05f,
+            float receiveInterval = 0.05f,
+            TickGroup sendTickGroup = TickGroup.Late,
+            TickGroup receiveTickGroup = TickGroup.Early,
+            int maxPacketSize = DEFAULT_PACKET_SIZE,
+            byte packetMagic = 0xAC,
+            byte packetVersion = 1
+            )
+        {
+            this.direction = direction;
+            this.sendInterval = Math.Max(sendInterval, 0f);
+            this.receiveInterval = Math.Max(receiveInterval, 0f);
+            this.sendTickGroup = sendTickGroup;
+            this.receiveTickGroup = receiveTickGroup;
+            this.maxPacketSize = Math.Clamp(maxPacketSize <= 0 ? DEFAULT_PACKET_SIZE : maxPacketSize, MIN_PACKET_SIZE, MAX_PACKET_SIZE);
+            this.packetMagic = packetMagic;
+            this.packetVersion = packetVersion;
+        }
     }
 
     /// <summary>
     ///   <para>网络同步写入器</para>
     /// </summary>
-    public struct NetworkWriter
+    internal ref struct NetworkSyncWriter
     {
-        public byte[] buffer;
-        public int position;
-        public int length;
+        private readonly Span<byte> m_Buffer;
+        private int m_Length;
+        private bool m_HasError;
 
-        /// <summary>
-        ///   <para>使用外部缓冲区创建写入器</para>
-        /// </summary>
-        /// <param name="buffer">外部提供的可写入缓冲区</param>
-        public NetworkWriter(byte[] buffer)
+        public NetworkSyncWriter(Span<byte> buffer)
         {
-            this.buffer = buffer ?? throw new ArgumentNullException(nameof(buffer));
-            position = 0;
-            length = buffer.Length;
+            m_Buffer = buffer;
+            m_Length = 0;
+            m_HasError = false;
         }
 
-        /// <summary>
-        ///   <para>写入缓冲区剩余字节数</para>
-        /// </summary>
-        public int Remaining => length - position;
+        public int Length { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => m_HasError ? 0 : m_Length; }
 
-        /// <summary>
-        ///   <para>尝试写入一个 32 位整数</para>
-        /// </summary>
-        /// <param name="value">要写入的整数</param>
-        public bool TryWriteInt32(int value)
+        public bool HasError { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => m_HasError; }
+
+        public ReadOnlySpan<byte> WrittenSpan
         {
-            if (position + 4 > length) return false;
-            buffer[position++] = (byte)value;
-            buffer[position++] = (byte)(value >> 8);
-            buffer[position++] = (byte)(value >> 16);
-            buffer[position++] = (byte)(value >> 24);
-            return true;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => m_HasError ? ReadOnlySpan<byte>.Empty : m_Buffer.Slice(0, m_Length);
         }
 
-        /// <summary>
-        ///   <para>尝试写入一个单精度浮点数</para>
-        /// </summary>
-        /// <param name="value">要写入的浮点数</param>
-        public bool TryWriteSingle(float value)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryReserve(int size)
         {
-            if (position + 4 > length) return false;
-            var union = new SingleInt32Union { singleValue = value };
-            int intValue = union.intValue;
-            buffer[position++] = (byte)intValue;
-            buffer[position++] = (byte)(intValue >> 8);
-            buffer[position++] = (byte)(intValue >> 16);
-            buffer[position++] = (byte)(intValue >> 24);
-            return true;
-        }
-
-        /// <summary>
-        ///   <para>尝试写入一个布尔值</para>
-        /// </summary>
-        /// <param name="value">要写入的布尔值</param>
-        public bool TryWriteBoolean(bool value)
-        {
-            if (position + 1 > length) return false;
-            buffer[position++] = value ? (byte)1 : (byte)0;
-            return true;
-        }
-
-        /// <summary>
-        ///   <para>尝试写入一个字符串</para>
-        /// </summary>
-        /// <param name="value">要写入的字符串</param>
-        /// <param name="encoding">字符串编码</param>
-        public bool TryWriteString(string value, Encoding encoding = null)
-        {
-            if (value == null)
+            if (m_HasError) return false;
+            if (size < 0 || m_Length + size > m_Buffer.Length)
             {
-                return TryWriteInt32(-1);
+                m_HasError = true;
+                return false;
             }
-
-            int byteCount = System.Text.Encoding.UTF8.GetByteCount(value);
-            if (position + 4 + byteCount > length) return false;
-            if (!TryWriteInt32(byteCount)) return false;
-            (encoding ?? Encoding.UTF8).GetBytes(value, 0, value.Length, buffer, position);
-            position += byteCount;
             return true;
         }
 
-        /// <summary>
-        ///   <para>尝试从指定数组写入一段字节序列</para>
-        /// </summary>
-        /// <param name="data">源数据数组</param>
-        /// <param name="offset">源数组起始偏移</param>
-        /// <param name="count">要写入的字节数</param>
-        public bool TryWriteBytes(byte[] data, int offset, int count)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteByte(byte value)
         {
-            if (data == null) return false;
-            if (offset < 0 || count < 0 || offset + count > data.Length) return false;
-            if (position + count > length) return false;
-            Buffer.BlockCopy(data, offset, buffer, position, count);
-            position += count;
-            return true;
+            if (!TryReserve(1)) return;
+            m_Buffer[m_Length++] = value;
         }
 
-        [StructLayout(LayoutKind.Explicit)]
-        private struct SingleInt32Union
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteInt16(short value)
         {
-            [FieldOffset(0)] public float singleValue;
-            [FieldOffset(0)] public int intValue;
+            if (!TryReserve(2)) return;
+            BinaryPrimitives.WriteInt16LittleEndian(m_Buffer.Slice(m_Length, 2), value);
+            m_Length += 2;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteInt32(int value)
+        {
+            if (!TryReserve(4)) return;
+            BinaryPrimitives.WriteInt32LittleEndian(m_Buffer.Slice(m_Length, 4), value);
+            m_Length += 4;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteInt64(long value)
+        {
+            if (!TryReserve(8)) return;
+            BinaryPrimitives.WriteInt64LittleEndian(m_Buffer.Slice(m_Length, 8), value);
+            m_Length += 8;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteBytes(ReadOnlySpan<byte> value)
+        {
+            if (!TryReserve(value.Length)) return;
+            value.CopyTo(m_Buffer.Slice(m_Length, value.Length));
+            m_Length += value.Length;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Span<byte> GetSpan(int size)
+        {
+            if (!TryReserve(size)) return Span<byte>.Empty;
+            var span = m_Buffer.Slice(m_Length, size);
+            m_Length += size;
+            return span;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteInt32At(int position, int value)
+        {
+            if (m_HasError) return;
+            if (position < 0 || position + 4 > m_Buffer.Length)
+            {
+                m_HasError = true;
+                return;
+            }
+            BinaryPrimitives.WriteInt32LittleEndian(m_Buffer.Slice(position, 4), value);
         }
     }
 
     /// <summary>
     ///   <para>网络同步读取器</para>
     /// </summary>
-    public struct NetworkReader
+    internal ref struct NetworkSyncReader
     {
-        public readonly byte[] buffer;
-        public readonly int length;
-        public int position;
+        private ReadOnlySpan<byte> m_Buffer;
+        private int m_Position;
+        private bool m_HasError;
 
-        /// <summary>
-        ///   <para>使用外部缓冲区创建读取器</para>
-        /// </summary>
-        /// <param name="buffer">外部提供的只读缓冲区</param>
-        /// <param name="length">有效数据长度</param>
-        public NetworkReader(byte[] buffer, int length)
+        public NetworkSyncReader(ReadOnlySpan<byte> buffer)
         {
-            this.buffer = buffer ?? throw new ArgumentNullException(nameof(buffer));
-            this.length = length;
-            position = 0;
+            m_Buffer = buffer;
+            m_Position = 0;
+            m_HasError = false;
         }
 
-        /// <summary>
-        ///   <para>剩余可读取的字节数</para>
-        /// </summary>
-        public int Remaining => length - position;
+        public bool HasError { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => m_HasError; }
 
-        /// <summary>
-        ///   <para>尝试读取一个 32 位整数</para>
-        /// </summary>
-        /// <param name="value">读取到的整数</param>
-        public bool TryReadInt32(out int value)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryConsume(int size)
         {
-            value = 0;
-            if (position + 4 > length) return false;
-            value = buffer[position]
-                    | (buffer[position + 1] << 8)
-                    | (buffer[position + 2] << 16)
-                    | (buffer[position + 3] << 24);
-            position += 4;
-            return true;
-        }
-
-        /// <summary>
-        ///   <para>尝试读取一个单精度浮点数</para>
-        /// </summary>
-        /// <param name="value">读取到的浮点数</param>
-        public bool TryReadSingle(out float value)
-        {
-            value = 0f;
-            if (position + 4 > length) return false;
-            value = BitConverter.ToSingle(buffer, position);
-            position += 4;
-            return true;
-        }
-
-        /// <summary>
-        ///   <para>尝试读取一个布尔值</para>
-        /// </summary>
-        /// <param name="value">读取到的布尔值</param>
-        public bool TryReadBoolean(out bool value)
-        {
-            value = false;
-            if (position + 1 > length) return false;
-            value = buffer[position++] != 0;
-            return true;
-        }
-
-        /// <summary>
-        ///   <para>尝试读取一个字符串</para>
-        /// </summary>
-        /// <param name="value">读取到的字符串</param>
-        /// <param name="encoding">字符串编码</param>
-        public bool TryReadString(out string value, Encoding encoding = null)
-        {
-            value = null;
-            if (!TryReadInt32(out var byteCount)) return false;
-            if (byteCount < 0)
+            if (m_HasError) return false;
+            if (size < 0 || m_Position + size > m_Buffer.Length)
             {
-                return true;
+                m_HasError = true;
+                return false;
             }
-
-            if (position + byteCount > length) return false;
-            value = (encoding ?? Encoding.UTF8).GetString(buffer, position, byteCount);
-            position += byteCount;
             return true;
         }
-        
-        /// <summary>
-        ///   <para>尝试读取一段字节序列到目标数组</para>
-        /// </summary>
-        /// <param name="destination">目标数组</param>
-        /// <param name="offset">写入目标数组的起始偏移</param>
-        /// <param name="count">要读取的字节数</param>
-        public bool TryReadBytes(byte[] destination, int offset, int count)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public byte ReadByte()
         {
-            if (destination == null) return false;
-            if (offset < 0 || count < 0 || offset + count > destination.Length) return false;
-            if (position + count > length) return false;
-            Buffer.BlockCopy(buffer, position, destination, offset, count);
-            position += count;
-            return true;
+            if (!TryConsume(1)) return 0;
+            return m_Buffer[m_Position++];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public short ReadInt16()
+        {
+            if (!TryConsume(2)) return 0;
+            short value = BinaryPrimitives.ReadInt16LittleEndian(m_Buffer.Slice(m_Position, 2));
+            m_Position += 2;
+            return value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int ReadInt32()
+        {
+            if (!TryConsume(4)) return 0;
+            int value = BinaryPrimitives.ReadInt32LittleEndian(m_Buffer.Slice(m_Position, 4));
+            m_Position += 4;
+            return value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public long ReadInt64()
+        {
+            if (!TryConsume(8)) return 0;
+            long value = BinaryPrimitives.ReadInt64LittleEndian(m_Buffer.Slice(m_Position, 8));
+            m_Position += 8;
+            return value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ReadOnlySpan<byte> ReadBytes(int length)
+        {
+            if (!TryConsume(length)) return ReadOnlySpan<byte>.Empty;
+            var span = m_Buffer.Slice(m_Position, length);
+            m_Position += length;
+            return span;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Skip(int length)
+        {
+            if (!TryConsume(length)) return;
+            m_Position += length;
         }
     }
-
+    
     /// <summary>
-    ///   <para>网络同步组件序列化委托</para>
+    ///   <para>网络同步包头格式化器</para>
     /// </summary>
-    public delegate void NetworkComponentSerialize<T>(ref T component, ref NetworkWriter writer) where T : struct, IComponent;
-
-    /// <summary>
-    ///   <para>网络同步组件反序列化委托</para>
-    /// </summary>
-    public delegate void NetworkComponentDeserialize<T>(ref T component, ref NetworkReader reader) where T : struct, IComponent;
-
-    /// <summary>
-    ///   <para>网络同步组件属性（用于声明该组件参与网络同步）</para>
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Struct)]
-    public sealed class NetworkSyncComponentAttribute : Attribute
+    public interface INetworkPacketHeaderFormatter
     {
         /// <summary>
-        ///   <para>同步方向</para>
+        ///   <para>写入网络同步包头</para>
         /// </summary>
-        public readonly NetworkSyncDirection direction;
+        /// <param name="buffer">缓冲区</param>
+        /// <param name="options">网络同步选项</param>
+        /// <param name="sequence">序列号</param>
+        int WriteHeader(Span<byte> buffer, in NetworkSyncOptions options, int sequence);
         /// <summary>
-        ///   <para>最大可序列化字节数</para>
+        ///   <para>尝试读取网络同步包头</para>
         /// </summary>
-        public readonly int maxSerializedSize;
+        /// <param name="buffer">缓冲区</param>
+        /// <param name="options">网络同步选项</param>
+        /// <param name="headerSize">包头大小</param>
+        bool TryReadHeader(ReadOnlySpan<byte> buffer, in NetworkSyncOptions options, out int headerSize, out int sequence);
+    }
 
-        public NetworkSyncComponentAttribute(NetworkSyncDirection direction, int maxSerializedSize = 0)
+    /// <summary>
+    ///   <para>默认网络同步包头格式化器</para>
+    /// </summary>
+    internal sealed class DefaultNetworkPacketHeaderFormatter : InstanceBase<DefaultNetworkPacketHeaderFormatter>, INetworkPacketHeaderFormatter
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int WriteHeader(Span<byte> buffer, in NetworkSyncOptions options, int sequence)
         {
-            this.direction = direction;
-            this.maxSerializedSize = maxSerializedSize;
+            if (buffer.Length < 8) return 0;
+            buffer[0] = options.packetMagic;
+            buffer[1] = options.packetVersion;
+            BinaryPrimitives.WriteInt16LittleEndian(buffer.Slice(2, 2), 0);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(4, 4), sequence);
+            return 8;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryReadHeader(ReadOnlySpan<byte> buffer, in NetworkSyncOptions options, out int headerSize, out int sequence)
+        {
+            headerSize = 0;
+            sequence = 0;
+            if (buffer.Length < 8) return false;
+            byte magic = buffer[0];
+            byte version = buffer[1];
+            if (magic != options.packetMagic || version != options.packetVersion)
+                return false;
+            sequence = BinaryPrimitives.ReadInt32LittleEndian(buffer.Slice(4, 4));
+            headerSize = 8;
+            return true;
         }
     }
-    
+
     /// <summary>
-    ///   <para>网络同步组件字段属性（标记需要自动序列化的字段，目前支持int、float、string和bool常用类型）</para>
+    ///   <para>网络组件序列化器</para>
     /// </summary>
-    [AttributeUsage(AttributeTargets.Field)]
-    public sealed class NetworkSyncFieldAttribute : Attribute { }
-    
+    public interface INetworkComponentSerializer
+    {
+        /// <summary>
+        ///   <para>获取组件大小</para>
+        /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="value">组件实例</param>
+        int GetSize<T>(in T value) where T : struct, IComponent;
+        /// <summary>
+        ///   <para>写入组件数据</para>
+        /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="buffer">缓冲区</param>
+        /// <param name="value">组件实例</param>
+        void Write<T>(Span<byte> buffer, in T value) where T : struct, IComponent;
+        /// <summary>
+        ///   <para>读取组件数据</para>
+        /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="buffer">缓冲区</param>
+        /// <param name="value">组件实例</param>
+        void Read<T>(ReadOnlySpan<byte> buffer, ref T value) where T : struct, IComponent;
+    }
+
+    /// <summary>
+    ///   <para>自定义二进制网络组件序列化器</para>
+    /// </summary>
+    internal sealed class BinaryNetworkComponentSerializer : InstanceBase<BinaryNetworkComponentSerializer>, INetworkComponentSerializer
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int GetSize<T>(in T value) where T : struct, IComponent
+        {
+            var temp = value;
+            var span = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref temp, 1));
+            return span.Length;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Write<T>(Span<byte> buffer, in T value) where T : struct, IComponent
+        {
+            var temp = value;
+            var span = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref temp, 1));
+            span.CopyTo(buffer);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Read<T>(ReadOnlySpan<byte> buffer, ref T value) where T : struct, IComponent
+        {
+            value = default;
+            if (buffer.IsEmpty)
+                return;
+
+            var valueSpan = MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref value, 1));
+            int length = buffer.Length <= valueSpan.Length ? buffer.Length : valueSpan.Length;
+            buffer.Slice(0, length).CopyTo(valueSpan);
+        }
+    }
+
+    /// <summary>
+    ///   <para>网络同步类型ID</para>
+    /// </summary>
+    internal static class NetworkSyncTypeId
+    {
+        /// <summary>
+        ///   <para>获取类型ID</para>
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Get(Type type)
+        {
+            if (type == null) throw new ArgumentNullException(nameof(type));
+            var name = type.FullName;
+            if (string.IsNullOrEmpty(name))
+                name = type.Name;
+
+            unchecked
+            {
+                int hash = 23;
+                for (int i = 0; i < name.Length; i++)
+                    hash = hash * 31 + name[i];
+                return hash;
+            }
+        }
+    }
+
     /// <summary>
     ///   <para>网络同步组件处理接口</para>
     /// </summary>
-    internal interface INetworkComponentSyncHandler
+    internal interface IComponentSyncHandler
     {
-        int ComponentTypeId { get; }
+        int NetworkTypeId { get; }
         NetworkSyncDirection Direction { get; }
-        int MaxSerializedSize { get; }
-        void WriteOutgoing(World world, ref NetworkWriter writer);
-        void ApplyIncoming(World world, ref NetworkReader reader, Actor actor);
+        void RegisterActor(in Actor actor);
+        void UnregisterActor(in Actor actor);
+        void MarkDirty(in Actor actor);
+        bool WriteToPacket(World world, ref NetworkSyncWriter writer, INetworkComponentSerializer serializer, NetworkSyncManager manager);
+        void ReadFromPacket(World world, ref NetworkSyncReader reader, INetworkComponentSerializer serializer, NetworkSyncManager manager);
     }
-    
+
     /// <summary>
-    ///   <para>网络同步组件注册表</para>
+    ///   <para>网络同步组件处理类</para>
     /// </summary>
-    internal static class NetworkComponentSyncRegistry
+    /// <typeparam name="T">组件类型</typeparam>
+    internal sealed class ComponentSyncHandler<T> : IComponentSyncHandler
+        where T : struct, IComponent
     {
-        private static readonly Dictionary<int, INetworkComponentSyncHandler> s_Handlers = new Dictionary<int, INetworkComponentSyncHandler>(64);
-        private static readonly object s_Lock = new object();
+        private readonly int m_NetworkTypeId;
+        private readonly NetworkSyncDirection m_Direction;
+        private Actor[] m_ReplicatedActors;
+        private int m_ReplicatedCount;
+        private Actor[] m_DirtyActors;
+        private int m_DirtyCount;
 
-        internal static void RegisterComponent<T>(
-            NetworkSyncDirection direction,
-            int maxSerializedSize,
-            NetworkComponentSerialize<T> serialize,
-            NetworkComponentDeserialize<T> deserialize) where T : struct, IComponent
+        internal ComponentSyncHandler(NetworkSyncDirection direction)
         {
-            if (direction == NetworkSyncDirection.None) return;
-            if (serialize == null && (direction == NetworkSyncDirection.SendOnly || direction == NetworkSyncDirection.SendAndReceive)) return;
-            if (deserialize == null && (direction == NetworkSyncDirection.ReceiveOnly || direction == NetworkSyncDirection.SendAndReceive)) return;
+            m_NetworkTypeId = NetworkSyncTypeId.Get(typeof(T));
+            m_Direction = direction;
+        }
 
-            var typeId = ComponentTypeRegistry<T>.id;
-            var handler = new NetworkComponentSyncHandler<T>(typeId, direction, maxSerializedSize, serialize, deserialize);
+        public int NetworkTypeId { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => m_NetworkTypeId; }
+        public NetworkSyncDirection Direction { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => m_Direction; }
 
-            lock (s_Lock)
+        public void RegisterActor(in Actor actor)
+        {
+            m_ReplicatedActors ??= new Actor[16];
+
+            long id = actor.id;
+            for (int i = 0; i < m_ReplicatedCount; i++)
             {
-                s_Handlers[typeId] = handler;
-            }
-        }
-
-        internal static void UnregisterComponent(int componentTypeId)
-        {
-            lock (s_Lock)
-            {
-                s_Handlers.Remove(componentTypeId);
-            }
-        }
-
-        internal static void Clear()
-        {
-            lock (s_Lock)
-            {
-                s_Handlers.Clear();
-            }
-        }
-
-        internal static INetworkComponentSyncHandler[] GetHandlersSnapshot()
-        {
-            lock (s_Lock)
-            {
-                if (s_Handlers.Count == 0) return Array.Empty<INetworkComponentSyncHandler>();
-                var array = new INetworkComponentSyncHandler[s_Handlers.Count];
-                int index = 0;
-                foreach (var pair in s_Handlers)
-                {
-                    array[index++] = pair.Value;
-                }
-                return array;
-            }
-        }
-
-        internal static bool TryGetHandler(int componentTypeId, out INetworkComponentSyncHandler handler)
-        {
-            lock (s_Lock)
-            {
-                return s_Handlers.TryGetValue(componentTypeId, out handler);
-            }
-        }
-    }
-    
-    /// <summary>
-    ///   <para>网络同步组件句柄</para>
-    /// </summary>
-    internal sealed class NetworkComponentSyncHandler<T> : INetworkComponentSyncHandler where T : struct, IComponent
-    {
-        public int ComponentTypeId { get; }
-        public NetworkSyncDirection Direction { get; }
-        public int MaxSerializedSize { get; }
-
-        private readonly NetworkComponentSerialize<T> m_Serialize;
-        private readonly NetworkComponentDeserialize<T> m_Deserialize;
-
-        public NetworkComponentSyncHandler(
-            int componentTypeId,
-            NetworkSyncDirection direction,
-            int maxSerializedSize,
-            NetworkComponentSerialize<T> serialize,
-            NetworkComponentDeserialize<T> deserialize)
-        {
-            ComponentTypeId = componentTypeId;
-            Direction = direction;
-            MaxSerializedSize = maxSerializedSize > 0 ? maxSerializedSize : 0;
-            m_Serialize = serialize;
-            m_Deserialize = deserialize;
-        }
-
-        public void WriteOutgoing(World world, ref NetworkWriter writer)
-        {
-            if (Direction != NetworkSyncDirection.SendOnly && Direction != NetworkSyncDirection.SendAndReceive) return;
-
-            var actorManager = world.Actors;
-            var pool = actorManager.GetPool<T>();
-            if (pool == null || pool.Count == 0) return;
-
-            var context = new OutgoingContext(writer, this);
-            pool.ForEach(ref context, OutgoingContext.WriteComponent);
-            writer = context.writer;
-        }
-
-        public void ApplyIncoming(World world, ref NetworkReader reader, Actor actor)
-        {
-            if (Direction != NetworkSyncDirection.ReceiveOnly && Direction != NetworkSyncDirection.SendAndReceive) return;
-            if (!world.IsActorAlive(actor)) return;
-
-            ref var component = ref world.HasComponent<T>(actor)
-                ? ref world.GetComponent<T>(actor)
-                : ref world.AddComponent<T>(actor);
-
-            m_Deserialize?.Invoke(ref component, ref reader);
-        }
-
-        private struct OutgoingContext
-        {
-            public NetworkWriter writer;
-            public readonly NetworkComponentSyncHandler<T> handler;
-
-            public OutgoingContext(NetworkWriter writer, NetworkComponentSyncHandler<T> handler)
-            {
-                this.writer = writer;
-                this.handler = handler;
+                if (m_ReplicatedActors[i].id == id)
+                    return;
             }
 
-            public static void WriteComponent(ref OutgoingContext context, Actor actor, ref T component)
+            if (m_ReplicatedCount >= m_ReplicatedActors.Length)
             {
-                var headerSize = 12;
-                var maxSize = context.handler.MaxSerializedSize;
-                var required = headerSize + (maxSize > 0 ? maxSize : 0);
-                if (maxSize > 0 && context.writer.Remaining < required) return;
-
-                if (!context.writer.TryWriteInt32(context.handler.ComponentTypeId)) return;
-                if (!context.writer.TryWriteInt32(actor.Index)) return;
-                if (!context.writer.TryWriteInt32(actor.Version)) return;
-
-                context.handler.m_Serialize?.Invoke(ref component, ref context.writer);
+                int newLength = m_ReplicatedActors.Length << 1;
+                Array.Resize(ref m_ReplicatedActors, newLength);
             }
-        }
-    }
-    
-    /// <summary>
-    ///   <para>网络同步自动注册器</para>
-    /// </summary>
-    internal static class NetworkSyncAutoRegistrar
-    {
-        private static bool s_Initialized;
-        private static readonly object s_Lock = new object();
 
-        internal static void EnsureInitialized()
-        {
-            if (s_Initialized) return;
-            lock (s_Lock)
-            {
-                if (s_Initialized) return;
-                Initialize();
-                s_Initialized = true;
-            }
+            m_ReplicatedActors[m_ReplicatedCount++] = actor;
         }
 
-        private static void Initialize()
+        public void UnregisterActor(in Actor actor)
         {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            for (int i = 0; i < assemblies.Length; i++)
-            {
-                Type[] types = null;
-                try
-                {
-                    types = assemblies[i].GetTypes();
-                }
-                catch (ReflectionTypeLoadException ex)
-                {
-                    types = ex.Types;
-                }
-
-                if (types == null) continue;
-
-                for (int j = 0; j < types.Length; j++)
-                {
-                    var type = types[j];
-                    if (type == null) continue;
-                    if (!type.IsValueType) continue;
-                    if (!typeof(IComponent).IsAssignableFrom(type)) continue;
-
-                    var attr = Attribute.GetCustomAttribute(type, typeof(NetworkSyncComponentAttribute)) as NetworkSyncComponentAttribute;
-                    if (attr == null) continue;
-
-                    RegisterComponentFromAttribute(type, attr);
-                }
-            }
-        }
-
-        private static void RegisterComponentFromAttribute(Type componentType, NetworkSyncComponentAttribute attribute)
-        {
-            if (attribute.direction == NetworkSyncDirection.None) return;
-
-            var method = typeof(NetworkSyncAutoRegistrar).GetMethod(nameof(RegisterGeneric), BindingFlags.Static | BindingFlags.NonPublic);
-            if (method == null) return;
-
-            MethodInfo genericMethod = null;
-            try
-            {
-                genericMethod = method.MakeGenericMethod(componentType);
-            }
-            catch
-            {
+            if (m_ReplicatedActors == null || m_ReplicatedCount == 0)
                 return;
-            }
 
-            try
+            long id = actor.id;
+            for (int i = 0; i < m_ReplicatedCount; i++)
             {
-                genericMethod.Invoke(null, new object[] { attribute });
-            }
-            catch
-            {
+                if (m_ReplicatedActors[i].id != id)
+                    continue;
+
+                int last = --m_ReplicatedCount;
+                if (i != last)
+                    m_ReplicatedActors[i] = m_ReplicatedActors[last];
+                break;
             }
         }
 
-        private static void RegisterGeneric<T>(NetworkSyncComponentAttribute attribute) where T : struct, IComponent
+        public void MarkDirty(in Actor actor)
         {
-            NetworkComponentSerialize<T> serialize = null;
-            NetworkComponentDeserialize<T> deserialize = null;
+            m_DirtyActors ??= new Actor[64];
 
-            var fields = typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            var syncFields = new List<FieldInfo>();
-            for (int i = 0; i < fields.Length; i++)
+            long id = actor.id;
+            for (int i = 0; i < m_DirtyCount; i++)
             {
-                if (Attribute.IsDefined(fields[i], typeof(NetworkSyncFieldAttribute)))
-                    syncFields.Add(fields[i]);
+                if (m_DirtyActors[i].id == id)
+                    return;
             }
 
-            if (syncFields.Count > 0)
+            if (m_DirtyCount >= m_DirtyActors.Length)
             {
-                var fieldArray = syncFields.ToArray();
-
-                serialize = (ref T component, ref NetworkWriter writer) =>
-                {
-                    object boxed = component;
-                    for (int i = 0; i < fieldArray.Length; i++)
-                    {
-                        var field = fieldArray[i];
-                        var fieldType = field.FieldType;
-                        var typeCode = Type.GetTypeCode(fieldType);
-                        var value = field.GetValue(boxed);
-
-                        switch (typeCode)
-                        {
-                            case TypeCode.Int32:
-                                writer.TryWriteInt32((int)value);
-                                break;
-                            case TypeCode.Single:
-                                writer.TryWriteSingle((float)value);
-                                break;
-                            case TypeCode.Boolean:
-                                writer.TryWriteBoolean((bool)value);
-                                break;
-                            case TypeCode.String:
-                                writer.TryWriteString((string)value);
-                                break;
-                        }
-                    }
-
-                    component = (T)boxed;
-                };
-
-                deserialize = (ref T component, ref NetworkReader reader) =>
-                {
-                    object boxed = component;
-                    for (int i = 0; i < fieldArray.Length; i++)
-                    {
-                        var field = fieldArray[i];
-                        var fieldType = field.FieldType;
-                        var typeCode = Type.GetTypeCode(fieldType);
-
-                        switch (typeCode)
-                        {
-                            case TypeCode.Int32:
-                                if (reader.TryReadInt32(out var intValue))
-                                    field.SetValue(boxed, intValue);
-                                break;
-                            case TypeCode.Single:
-                                if (reader.TryReadSingle(out var floatValue))
-                                    field.SetValue(boxed, floatValue);
-                                break;
-                            case TypeCode.Boolean:
-                                if (reader.TryReadBoolean(out var boolValue))
-                                    field.SetValue(boxed, boolValue);
-                                break;
-                            case TypeCode.String:
-                                if (reader.TryReadString(out var stringValue))
-                                    field.SetValue(boxed, stringValue);
-                                break;
-                        }
-                    }
-
-                    component = (T)boxed;
-                };
+                int newLength = m_DirtyActors.Length << 1;
+                Array.Resize(ref m_DirtyActors, newLength);
             }
 
-            NetworkSync.RegisterComponent(attribute.direction, attribute.maxSerializedSize, serialize, deserialize);
+            m_DirtyActors[m_DirtyCount++] = actor;
+        }
+
+        public bool WriteToPacket(World world, ref NetworkSyncWriter writer, INetworkComponentSerializer serializer, NetworkSyncManager manager)
+        {
+            if (m_DirtyCount == 0) return false;
+
+            int entryCount = 0;
+            for (int i = 0; i < m_DirtyCount; i++)
+            {
+                var actor = m_DirtyActors[i];
+                if (!world.IsActorAlive(actor)) continue;
+                if (!IsActorReplicated(actor.id)) continue;
+                entryCount++;
+            }
+
+            if (entryCount == 0)
+            {
+                m_DirtyCount = 0;
+                return false;
+            }
+
+            writer.WriteInt32(m_NetworkTypeId);
+            writer.WriteInt32(entryCount);
+
+            int written = 0;
+            for (int i = 0; i < m_DirtyCount; i++)
+            {
+                var actor = m_DirtyActors[i];
+                if (!world.IsActorAlive(actor))
+                    continue;
+
+                if (!IsActorReplicated(actor.id))
+                    continue;
+
+                long networkId = manager.GetOrCreateNetworkEntityId(actor);
+                writer.WriteInt64(networkId);
+                ref var component = ref world.GetComponent<T>(actor);
+                int size = serializer.GetSize(in component);
+                writer.WriteInt32(size);
+
+                if (size > 0)
+                {
+                    var span = writer.GetSpan(size);
+                    if (span.Length == size)
+                    {
+                        serializer.Write(span, in component);
+                    }
+                }
+
+                written++;
+
+                if (writer.HasError)
+                    break;
+                if (written >= entryCount)
+                    break;
+            }
+
+            m_DirtyCount = 0;
+            return !writer.HasError && entryCount > 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool IsActorReplicated(long id)
+        {
+            if (m_ReplicatedActors == null || m_ReplicatedCount == 0)
+                return false;
+            for (int i = 0; i < m_ReplicatedCount; i++)
+            {
+                if (m_ReplicatedActors[i].id == id)
+                    return true;
+            }
+            return false;
+        }
+
+        public void ReadFromPacket(World world, ref NetworkSyncReader reader, INetworkComponentSerializer serializer, NetworkSyncManager manager)
+        {
+            int entryCount = reader.ReadInt32();
+            if (reader.HasError || entryCount <= 0)
+                return;
+
+            for (int i = 0; i < entryCount; i++)
+            {
+                long actorId = reader.ReadInt64();
+                if (reader.HasError)
+                    return;
+
+                int size = reader.ReadInt32();
+                if (reader.HasError || size < 0)
+                    return;
+
+                var actor = manager.ResolveActorFromNetworkId(actorId);
+                if (!world.IsActorAlive(actor))
+                {
+                    if (size > 0)
+                    {
+                        reader.Skip(size);
+                        if (reader.HasError)
+                            return;
+                    }
+                    continue;
+                }
+
+                ReadOnlySpan<byte> payload = size > 0 ? reader.ReadBytes(size) : ReadOnlySpan<byte>.Empty;
+                if (reader.HasError)
+                    return;
+
+                bool hasComponent = world.HasComponent<T>(actor);
+                if (!hasComponent)
+                {
+                    ref var added = ref world.AddComponent<T>(actor);
+                    serializer.Read(payload, ref added);
+                }
+                else
+                {
+                    ref var existing = ref world.GetComponent<T>(actor);
+                    serializer.Read(payload, ref existing);
+                }
+
+                if (reader.HasError)
+                    return;
+            }
         }
     }
-    
-    /// <summary>
-    ///   <para>网络同步选项</para>
-    /// </summary>
-    [Serializable]
-    public readonly struct NetworkSyncOptions
-    {
-        /// <summary>
-        ///   <para>本地在网络中的角色</para>
-        /// </summary>
-        public readonly NetworkSyncRole role;
-        /// <summary>
-        ///   <para>发送频率（每秒发送次数，0表示仅按 Tick 调用时立即发送）</para>
-        /// </summary>
-        public readonly int sendTickRate;
-        /// <summary>
-        ///   <para>单个数据包的最大字节数</para>
-        /// </summary>
-        public readonly int maxPacketSize;
-        /// <summary>
-        ///   <para>底层传输实现</para>
-        /// </summary>
-        public readonly INetworkSyncTransport transport;
-
-        /// <summary>
-        ///   <para>完整配置网络同步的构造函数</para>
-        /// </summary>
-        /// <param name="role">本地网络同步角色</param>
-        /// <param name="transport">底层传输实现</param>
-        /// <param name="sendTickRate">
-        ///   <para>发送频率（每秒发送次数，&lt;=0 表示每帧都允许发送）</para>
-        /// </param>
-        /// <param name="maxPacketSize">
-        ///   <para>单个数据包最大字节数（用于约束缓冲区大小，&lt;=0 时使用默认 1024 字节）</para>
-        /// </param>
-        public NetworkSyncOptions(
-            NetworkSyncRole role,
-            INetworkSyncTransport transport,
-            int sendTickRate = 30,
-            int maxPacketSize = 1024)
-        {
-            this.role = role;
-            this.transport = transport;
-            this.sendTickRate = sendTickRate <= 0 ? 0 : sendTickRate;
-            this.maxPacketSize = maxPacketSize <= 0 ? 1024 : maxPacketSize;
-        }
-
-        /// <summary>
-        ///   <para>关闭网络同步的预设配置</para>
-        /// </summary>
-        public static NetworkSyncOptions None => new NetworkSyncOptions(NetworkSyncRole.None, null);
-    }
 
     /// <summary>
-    ///   <para>网络同步管理</para>
+    ///   <para>网络同步管理器</para>
     /// </summary>
     internal sealed class NetworkSyncManager : IDisposable
     {
         private readonly World m_World;
-        private readonly INetworkSyncTransport m_Transport;
-        private readonly NetworkSyncRole m_Role;
-        private readonly float m_TickInterval;
-        private readonly int m_MaxPacketSize;
-        private float m_AccumulatedTime;
+        private readonly NetworkSyncOptions m_Options;
+        private readonly Dictionary<int, IComponentSyncHandler> m_ComponentHandlers;
+        private readonly Dictionary<long, Actor> m_RemoteActors = new Dictionary<long, Actor>(128);
+        private readonly Dictionary<long, long> m_ActorToNetworkIds = new Dictionary<long, long>(128);
+        private readonly byte[] m_SendBuffer;
+        private readonly byte[] m_ReceiveBuffer;
+        private readonly object m_SyncLock = new object();
+
+        private INetworkSyncTransport m_Transport;
+        private INetworkComponentSerializer m_ComponentSerializer;
+        private INetworkPacketHeaderFormatter m_HeaderFormatter;
+        private int m_Sequence;
+        private long m_NextLocalNetworkId = -1;
+        private float m_SendTimer;
+        private float m_ReceiveTimer;
         private bool m_IsDisposed;
 
         internal NetworkSyncManager(World world, NetworkSyncOptions options)
         {
-            NetworkSync.EnsureAutoRegister();
             m_World = world ?? throw new ArgumentNullException(nameof(world));
-            m_Transport = options.transport ?? throw new ArgumentNullException(nameof(options.transport));
-            m_Role = options.role;
-            m_MaxPacketSize = options.maxPacketSize > 0 ? options.maxPacketSize : 1400;
-            m_TickInterval = options.sendTickRate > 0 ? 1f / options.sendTickRate : 0f;
+            m_Options = options;
+
+            m_SendBuffer = new byte[options.maxPacketSize];
+            m_ReceiveBuffer = new byte[options.maxPacketSize];
+            m_ComponentHandlers = new Dictionary<int, IComponentSyncHandler>(16);
+            m_ComponentSerializer = BinaryNetworkComponentSerializer.Instance;
+            m_HeaderFormatter = DefaultNetworkPacketHeaderFormatter.Instance;
         }
+
+        internal Actor ResolveActorFromNetworkId(long networkId)
+        {
+            if (networkId == 0)
+                return Actor.none;
+
+            lock (m_SyncLock)
+            {
+                if (m_RemoteActors.TryGetValue(networkId, out var mapped) && m_World.IsActorAlive(mapped))
+                    return mapped;
+
+                var actor = m_World.CreateActor();
+                m_RemoteActors[networkId] = actor;
+                m_ActorToNetworkIds[actor.id] = networkId;
+                return actor;
+            }
+        }
+
+        internal long GetOrCreateNetworkEntityId(in Actor actor)
+        {
+            long actorId = actor.id;
+            if (actor.IsNone || actorId == 0)
+                return 0;
+            lock (m_SyncLock)
+            {
+                if (m_ActorToNetworkIds.TryGetValue(actorId, out var existing))
+                    return existing;
+
+                long networkId = m_NextLocalNetworkId--;
+                m_ActorToNetworkIds[actorId] = networkId;
+                m_RemoteActors[networkId] = actor;
+                return networkId;
+            }
+        }
+
+        internal void OnActorDestroyed(in Actor actor)
+        {
+            lock (m_SyncLock)
+            {
+                long actorId = actor.id;
+                if (actorId != 0 && m_ActorToNetworkIds.TryGetValue(actorId, out var networkId))
+                {
+                    m_ActorToNetworkIds.Remove(actorId);
+                    m_RemoteActors.Remove(networkId);
+                }
+
+                foreach (var handler in m_ComponentHandlers.Values)
+                {
+                    handler?.UnregisterActor(actor);
+                }
+            }
+        }
+        
+        ~NetworkSyncManager() => Dispose();
 
         public void Dispose()
         {
             if (m_IsDisposed) return;
-            m_IsDisposed = true;
-            m_Transport?.Dispose();
+
+            lock (m_SyncLock)
+            {
+                if (m_IsDisposed) return;
+
+                try
+                {
+                    m_Transport?.Dispose();
+                }
+                finally
+                {
+                    m_Transport = null;
+                    m_ComponentHandlers.Clear();
+                    m_RemoteActors.Clear();
+                    m_ActorToNetworkIds.Clear();
+                    m_IsDisposed = true;
+                }
+            }
         }
 
-        internal void Tick(float deltaTime)
+        public void RegisterReplicatedComponent<T>(NetworkSyncDirection direction, in Actor actor)
+            where T : struct, IComponent
         {
-            if (m_World == null || m_IsDisposed || m_Transport == null) return;
+            if (m_IsDisposed) return;
+            int networkTypeId = NetworkSyncTypeId.Get(typeof(T));
 
-            if (m_TickInterval > 0f)
+            lock (m_SyncLock)
             {
-                m_AccumulatedTime += deltaTime;
-                if (m_AccumulatedTime < m_TickInterval)
+                if (!m_ComponentHandlers.TryGetValue(networkTypeId, out var handler))
                 {
-                    ProcessIncoming();
+                    handler = new ComponentSyncHandler<T>(direction);
+                    m_ComponentHandlers[networkTypeId] = handler;
+                }
+
+                handler.RegisterActor(actor);
+                handler.MarkDirty(actor);
+            }
+        }
+
+        public void UnregisterReplicatedComponent<T>(in Actor actor)
+            where T : struct, IComponent
+        {
+            int networkTypeId = NetworkSyncTypeId.Get(typeof(T));
+            lock (m_SyncLock)
+            {
+                if (m_ComponentHandlers.TryGetValue(networkTypeId, out var handler))
+                {
+                    handler.UnregisterActor(actor);
+                }
+            }
+        }
+
+        public void MarkComponentDirty<T>(in Actor actor)
+            where T : struct, IComponent
+        {
+            if (m_IsDisposed) return;
+
+            int networkTypeId = NetworkSyncTypeId.Get(typeof(T));
+
+            lock (m_SyncLock)
+            {
+                if (m_ComponentHandlers.TryGetValue(networkTypeId, out var handler))
+                {
+                    handler.MarkDirty(actor);
+                }
+            }
+        }
+
+        public void SetTransport(INetworkSyncTransport transport)
+        {
+            if (m_IsDisposed)
+            {
+                transport?.Dispose();
+                return;
+            }
+
+            lock (m_SyncLock)
+            {
+                if (ReferenceEquals(m_Transport, transport)) return;
+
+                var old = m_Transport;
+                m_Transport = transport;
+                m_SendTimer = 0f;
+                m_ReceiveTimer = 0f;
+                m_Sequence = 0;
+
+                old?.Dispose();
+            }
+        }
+
+        internal void SetSerializer(INetworkComponentSerializer serializer)
+        {
+            if (m_IsDisposed) return;
+            lock (m_SyncLock)
+            {
+                if (ReferenceEquals(m_ComponentSerializer, serializer)) return;
+                m_ComponentSerializer = serializer ?? BinaryNetworkComponentSerializer.Instance;
+            }
+        }
+
+        internal void SetHeaderFormatter(INetworkPacketHeaderFormatter formatter)
+        {
+            if (m_IsDisposed) return;
+            lock (m_SyncLock)
+            {
+                if (ReferenceEquals(m_HeaderFormatter, formatter)) return;
+                m_HeaderFormatter = formatter ?? DefaultNetworkPacketHeaderFormatter.Instance;
+            }
+        }
+        
+        internal void BeforeTick(float deltaTime, TickGroup tickGroup)
+        {
+            if (m_IsDisposed) return;
+            if (!m_Options.EnableReceive) return;
+            if (tickGroup != m_Options.receiveTickGroup) return;
+
+            m_ReceiveTimer += deltaTime;
+            if (m_ReceiveTimer < m_Options.receiveInterval)
+                return;
+            m_ReceiveTimer = 0f;
+
+            while (true)
+            {
+                int received;
+                INetworkSyncTransport transport;
+                INetworkPacketHeaderFormatter headerFormatter;
+
+                lock (m_SyncLock)
+                {
+                    transport = m_Transport;
+                    headerFormatter = m_HeaderFormatter;
+                    if (transport == null || !transport.IsConnected)
+                        break;
+
+                    received = transport.Receive(m_ReceiveBuffer);
+                }
+
+                if (received <= 0)
+                    break;
+
+                var span = new ReadOnlySpan<byte>(m_ReceiveBuffer, 0, received);
+                if (!headerFormatter.TryReadHeader(span, in m_Options, out int headerSize, out int sequence))
+                    break;
+                if (headerSize < 0 || headerSize > span.Length)
+                    break;
+
+                var reader = new NetworkSyncReader(span.Slice(headerSize));
+                ProcessIncoming(ref reader);
+                if (reader.HasError)
+                    break;
+            }
+        }
+        
+        internal void AfterTick(float deltaTime, TickGroup tickGroup)
+        {
+            if (m_IsDisposed) return;
+            if (!m_Options.EnableSend) return;
+            if (tickGroup != m_Options.sendTickGroup) return;
+            if (m_ComponentHandlers.Count == 0) return;
+
+            m_SendTimer += deltaTime;
+            if (m_SendTimer < m_Options.sendInterval)
+                return;
+            m_SendTimer = 0f;
+
+            INetworkSyncTransport transport;
+            INetworkPacketHeaderFormatter headerFormatter;
+            INetworkComponentSerializer serializer;
+            lock (m_SyncLock)
+            {
+                transport = m_Transport;
+                if (transport == null || !transport.IsConnected)
                     return;
-                }
-                m_AccumulatedTime -= m_TickInterval;
+                headerFormatter = m_HeaderFormatter;
+                serializer = m_ComponentSerializer;
             }
 
-            if (m_Role == NetworkSyncRole.Server || m_Role == NetworkSyncRole.Host || m_Role == NetworkSyncRole.Client)
+            var buffer = m_SendBuffer.AsSpan();
+            int sequence = Interlocked.Increment(ref m_Sequence);
+            int headerSize = headerFormatter.WriteHeader(buffer, in m_Options, sequence);
+            if (headerSize <= 0 || headerSize >= buffer.Length)
+                return;
+
+            var writer = new NetworkSyncWriter(buffer.Slice(headerSize));
+
+            int typeCountPosition = writer.Length;
+            writer.WriteInt32(0);
+
+            int typeCount = 0;
+
+            lock (m_SyncLock)
             {
-                FlushOutgoing();
+                foreach (var handler in m_ComponentHandlers.Values)
+                {
+                    if (handler == null) continue;
+                    if ((handler.Direction & NetworkSyncDirection.Send) == 0)
+                        continue;
+
+                    int beforeLength = writer.Length;
+                    bool wrote = handler.WriteToPacket(m_World, ref writer, serializer, this);
+                    if (writer.HasError)
+                        break;
+
+                    if (wrote && writer.Length > beforeLength)
+                        typeCount++;
+                }
             }
 
-            ProcessIncoming();
+            if (writer.HasError || typeCount == 0)
+                return;
+
+            writer.WriteInt32At(typeCountPosition, typeCount);
+
+            int totalLength = headerSize + writer.Length;
+            if (totalLength <= 0 || totalLength > buffer.Length)
+                return;
+
+            lock (m_SyncLock)
+            {
+                transport = m_Transport;
+                if (transport == null || !transport.IsConnected)
+                    return;
+
+                transport.Send(new ReadOnlySpan<byte>(m_SendBuffer, 0, totalLength));
+            }
         }
 
-        /// <summary>
-        ///   <para>刷新发送数据包</para>
-        /// </summary>
-        private void FlushOutgoing()
+        private void ProcessIncoming(ref NetworkSyncReader reader)
         {
-            var handlers = NetworkComponentSyncRegistry.GetHandlersSnapshot();
-            if (handlers == null || handlers.Length == 0) return;
+            int typeCount = reader.ReadInt32();
+            if (reader.HasError || typeCount <= 0)
+                return;
 
-            var buffer = ArrayPool<byte>.Shared.Rent(m_MaxPacketSize);
-            try
+            for (int i = 0; i < typeCount; i++)
             {
-                var writer = new NetworkWriter(buffer);
+                int typeId = reader.ReadInt32();
+                if (reader.HasError)
+                    return;
 
-                for (int i = 0; i < handlers.Length; i++)
+                IComponentSyncHandler handler;
+                lock (m_SyncLock)
                 {
-                    handlers[i].WriteOutgoing(m_World, ref writer);
-                    if (writer.Remaining <= 0) break;
+                    m_ComponentHandlers.TryGetValue(typeId, out handler);
                 }
 
-                if (writer.position > 0)
+                if (handler == null || (handler.Direction & NetworkSyncDirection.Receive) == 0)
                 {
-                    m_Transport.Send(buffer, 0, writer.position);
+                    SkipComponentSegment(ref reader);
+                    if (reader.HasError)
+                        return;
+                    continue;
                 }
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer, false);
+
+                handler.ReadFromPacket(m_World, ref reader, m_ComponentSerializer, this);
+                if (reader.HasError)
+                    return;
             }
         }
 
-        /// <summary>
-        ///   <para>处理接收数据包（每个“组件同步单元”的包头是 12 字节）</para>
-        /// </summary>
-        private void ProcessIncoming()
+        private static void SkipComponentSegment(ref NetworkSyncReader reader)
         {
-            var buffer = ArrayPool<byte>.Shared.Rent(m_MaxPacketSize);
-            try
+            int entryCount = reader.ReadInt32();
+            if (reader.HasError || entryCount <= 0)
+                return;
+
+            for (int i = 0; i < entryCount; i++)
             {
-                while (true)
+                reader.ReadInt64();
+                int size = reader.ReadInt32();
+                if (reader.HasError)
+                    return;
+
+                if (size > 0)
                 {
-                    int received = m_Transport.Receive(buffer, 0, buffer.Length);
-                    if (received <= 0) break;
-
-                    var reader = new NetworkReader(buffer, received);
-                    while (reader.Remaining >= 12)
-                    {
-                        if (!reader.TryReadInt32(out var componentTypeId)) break;
-                        if (!reader.TryReadInt32(out var actorIndex)) break;
-                        if (!reader.TryReadInt32(out var actorVersion)) break;
-                        if (!NetworkComponentSyncRegistry.TryGetHandler(componentTypeId, out var handler)) break;
-
-                        var actor = new Actor(actorIndex, actorVersion);
-                        handler.ApplyIncoming(m_World, ref reader, actor);
-                    }
+                    reader.Skip(size);
+                    if (reader.HasError)
+                        return;
                 }
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer, false);
             }
         }
     }
-
-    /// <summary>
-    ///   <para>网络同步静态入口</para>
-    /// </summary>
-    public static class NetworkSync
-    {
-        /// <summary>
-        ///   <para>是否启用自动组件注册</para>
-        /// </summary>
-        public static bool enabled = true;
-
-        internal static void EnsureAutoRegister()
-        {
-            if (enabled)
-            {
-                NetworkSyncAutoRegistrar.EnsureInitialized();
-            }
-        }
-
-        /// <summary>
-        ///   <para>注册网络同步组件</para>
-        /// </summary>
-        /// <typeparam name="T">组件类型</typeparam>
-        /// <param name="direction">同步方向</param>
-        /// <param name="maxSerializedSize">
-        ///   <para>组件最大序列化字节数，用于预估单包上限（0 表示未知大小，不做前置检查）</para>
-        /// </param>
-        /// <param name="serialize">序列化委托（根据组件状态写入网络缓冲区）</param>
-        /// <param name="deserialize">反序列化委托（从网络缓冲区读取并应用到组件）</param>
-        public static void RegisterComponent<T>(
-            NetworkSyncDirection direction,
-            int maxSerializedSize,
-            NetworkComponentSerialize<T> serialize,
-            NetworkComponentDeserialize<T> deserialize) where T : struct, IComponent
-            => NetworkComponentSyncRegistry.RegisterComponent(direction, maxSerializedSize, serialize, deserialize);
-
-        /// <summary>
-        ///   <para>注销已注册的网络同步组件</para>
-        /// </summary>
-        /// <typeparam name="T">组件类型</typeparam>
-        public static void UnregisterComponent<T>() where T : struct, IComponent
-            => NetworkComponentSyncRegistry.UnregisterComponent(ComponentTypeRegistry<T>.id);
-
-        /// <summary>
-        ///   <para>清空所有已注册的网络同步组件</para>
-        /// </summary>
-        public static void ClearAllComponents()
-            => NetworkComponentSyncRegistry.Clear();
-    }
-
+    
     #endregion
     
     #region 世界系统
@@ -4053,7 +4455,7 @@ namespace Verve
         /// <summary>
         ///   <para>表单管理器</para>
         /// </summary>
-        public SheetManager Sheets { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => Capabilities.Sheets;}
+        public SheetManager Sheets { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => Capabilities.Sheets; }
 
         /// <summary>
         ///   <para>是否已释放</para>
@@ -4078,15 +4480,13 @@ namespace Verve
             Name = string.IsNullOrWhiteSpace(name) ? "Unnamed World" : name;
             Actors = new ActorManager(actorManagerOptions ?? ActorManagerOptions.Default);
             Capabilities = new CapabilityManager(this);
-            var netOptions = networkSyncOptions ?? NetworkSyncOptions.None;
-            if (netOptions.role != NetworkSyncRole.None && netOptions.transport != null)
-            {
-                m_NetworkSync = new NetworkSyncManager(this, netOptions);
-            }
+            m_NetworkSync = networkSyncOptions.HasValue
+                ? new NetworkSyncManager(this, networkSyncOptions.Value)
+                : null;
         }
-        
+
         ~World() => Dispose();
-        
+
         /// <summary>
         ///   <para>创建一个行动者</para>
         /// </summary>
@@ -4096,49 +4496,90 @@ namespace Verve
         /// <summary>
         ///   <para>批量创建行动者</para>
         /// </summary>
+        /// <param name="count">数量</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Actor[] CreateActors(int count) => Actors.CreateActors(count);
         
         /// <summary>
         ///   <para>销毁一个行动者</para>
         /// </summary>
+        /// <param name="actor">目标行动者</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void DestroyActor(Actor actor) => Actors.DestroyActor(actor);
+        public void DestroyActor(Actor actor)
+        {
+            m_NetworkSync?.OnActorDestroyed(actor);
+            Actors.DestroyActor(actor);
+        }
         
         /// <summary>
         ///   <para>为行动者添加组件</para>
         /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="actor">目标行动者</param>
+        /// <param name="direction">网络同步方向</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T AddComponent<T>(Actor actor) where T : struct, IComponent
+        public ref T AddComponent<T>(Actor actor, NetworkSyncDirection direction = NetworkSyncDirection.None)
+            where T : struct, IComponent
         {
             ref var component = ref Actors.AddComponent<T>(actor);
             Capabilities.MarkActorDirty(actor);
+            if (direction != NetworkSyncDirection.None)
+            {
+                m_NetworkSync?.RegisterReplicatedComponent<T>(direction, actor);
+                MarkComponentDirty<T>(actor);
+            }
             return ref component;
         }
-        
+
         /// <summary>
         ///   <para>获取行动者组件引用</para>
         /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="actor">目标行动者</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T GetComponent<T>(Actor actor) where T : struct, IComponent
+        public ref T GetComponent<T>(Actor actor)
+            where T : struct, IComponent
             => ref Actors.GetComponent<T>(actor);
+        
+        /// <summary>
+        ///   <para>获取或添加行动者组件</para>
+        /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="actor">目标行动者</param>
+        /// <param name="direction">网络同步方向</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref T GetOrAddComponent<T>(Actor actor, NetworkSyncDirection direction = NetworkSyncDirection.None)
+            where T : struct, IComponent
+        {
+            if (HasComponent<T>(actor))
+                return ref GetComponent<T>(actor);
+            return ref AddComponent<T>(actor, direction);
+        }
         
         /// <summary>
         ///   <para>尝试获取行动者组件</para>
         /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="actor">目标行动者</param>
+        /// <param name="component">组件数据</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetComponent<T>(Actor actor, out T component) where T : struct, IComponent
+        public bool TryGetComponent<T>(Actor actor, out T component)
+            where T : struct, IComponent
             => Actors.TryGetComponent(actor, out component);
         
         /// <summary>
         ///   <para>移除行动者组件</para>
         /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="actor">目标行动者</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool RemoveComponent<T>(Actor actor) where T : struct, IComponent
+        public bool RemoveComponent<T>(Actor actor)
+            where T : struct, IComponent
         {
             bool removed = Actors.RemoveComponent<T>(actor);
             if (removed)
             {
+                UnregisterReplicatedComponent<T>(actor);
                 Capabilities.MarkActorDirty(actor);
             }
             return removed;
@@ -4147,128 +4588,209 @@ namespace Verve
         /// <summary>
         ///   <para>设置行动者组件数据</para>
         /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="actor">目标行动者</param>
+        /// <param name="component">组件数据</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetComponent<T>(Actor actor, in T component) where T : struct, IComponent
+        public void SetComponent<T>(Actor actor, in T component)
+            where T : struct, IComponent
         {
             Actors.SetComponent(actor, component);
             Capabilities.MarkActorDirty(actor);
+            MarkComponentDirty<T>(actor);
         }
         
         /// <summary>
         ///   <para>判断行动者是否拥有组件</para>
         /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="actor">目标行动者</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasComponent<T>(Actor actor) where T : struct, IComponent
+        public bool HasComponent<T>(Actor actor)
+            where T : struct, IComponent
             => Actors.HasComponent<T>(actor);
-
+        
         /// <summary>
         ///   <para>判断行动者是否存活</para>
         /// </summary>
+        /// <param name="actor">目标行动者</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsActorAlive(Actor actor) => Actors.IsActorAlive(actor);
         
         /// <summary>
-        ///   <para>为行动者添加能力</para>
+        ///   <para>添加能力</para>
         /// </summary>
+        /// <typeparam name="T">能力类型</typeparam>
+        /// <param name="actor">目标行动者</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T AddCapability<T>(Actor actor) where T : Capability, new()
+        public T AddCapability<T>(Actor actor)
+            where T : Capability, new()
             => Capabilities.AddCapability<T>(actor);
         
         /// <summary>
-        ///   <para>移除行动者上的指定能力</para>
+        ///   <para>移除指定能力</para>
         /// </summary>
+        /// <typeparam name="T">能力类型</typeparam>
+        /// <param name="actor">目标行动者</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool RemoveCapability<T>(Actor actor) where T : Capability
+        public bool RemoveCapability<T>(Actor actor)
+            where T : Capability
             => Capabilities.RemoveCapability<T>(actor);
         
         /// <summary>
-        ///   <para>阻塞行动者上的标签</para>
+        ///   <para>阻塞标签</para>
         /// </summary>
+        /// <param name="actor">目标行动者</param>
+        /// <param name="tagId">标签ID</param>
+        /// <param name="instigator">触发者</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void BlockTag(Actor actor, TagId tagId, object instigator)
             => Capabilities.BlockTag(actor, tagId, instigator);
         
         /// <summary>
-        ///   <para>解除阻塞行动者上的标签</para>
+        ///   <para>解除阻塞标签</para>
         /// </summary>
+        /// <param name="actor">目标行动者</param>
+        /// <param name="tagId">标签ID</param>
+        /// <param name="instigator">触发者</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void UnblockTag(Actor actor, TagId tagId, object instigator)
             => Capabilities.UnblockTag(actor, tagId, instigator);
         
         /// <summary>
-        ///   <para>查询行动者上的标签是否被阻塞</para>
+        ///   <para>查询标签是否被阻塞</para>
         /// </summary>
+        /// <param name="actor">目标行动者</param>
+        /// <param name="tagId">标签ID</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsTagBlocked(Actor actor, TagId tagId)
             => Capabilities.IsTagBlocked(actor, tagId);
         
         /// <summary>
-        ///   <para>应用表单到行动者</para>
+        ///   <para>应用表单</para>
         /// </summary>
+        /// <param name="actor">目标行动者</param>
+        /// <param name="sheet">表单</param>
+        /// <param name="mode">应用模式</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public SheetInstance ApplySheet(Actor actor, CapabilitySheet sheet)
-            => Capabilities.Sheets.ApplySheet(actor, sheet);
+        public SheetInstance ApplySheet(Actor actor, CapabilitySheet sheet, CapabilitySheetApplyMode mode = CapabilitySheetApplyMode.All)
+            => Sheets.ApplySheet(actor, sheet, mode);
         
         /// <summary>
-        ///   <para>移除行动者上的指定表单实例</para>
+        ///   <para>移除指定表单实例</para>
         /// </summary>
+        /// <param name="actor">目标行动者</param>
+        /// <param name="instance">表单实例</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool RemoveSheet(Actor actor, SheetInstance instance)
-            => Capabilities.Sheets.RemoveSheet(actor, instance);
+            => Sheets.RemoveSheet(actor, instance);
         
         /// <summary>
-        ///   <para>移除行动者上的全部表单</para>
+        ///   <para>移除全部表单</para>
         /// </summary>
+        /// <param name="actor">目标行动者</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveAllSheets(Actor actor)
-            => Capabilities.Sheets.RemoveAllSheets(actor);
+            => Sheets.RemoveAllSheets(actor);
         
         /// <summary>
-        ///   <para>获取行动者的表单实例列表</para>
+        ///   <para>获取表单实例列表</para>
         /// </summary>
+        /// <param name="actor">目标行动者</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IReadOnlyList<SheetInstance> GetActorSheets(Actor actor)
-            => Capabilities.Sheets.GetActorSheets(actor);
+            => Sheets.GetActorSheets(actor);
         
         /// <summary>
         ///   <para>查询拥有指定组件的全部行动者</para>
         /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public List<Actor> QueryActorsWithComponent<T>() where T : struct, IComponent
+        public IReadOnlyList<Actor> QueryActorsWithComponent<T>()
+            where T : struct, IComponent
             => Actors.QueryActorsWithComponent<T>();
         
         /// <summary>
         ///   <para>查询同时拥有指定多组件的全部行动者</para>
         /// </summary>
+        /// <param name="componentTypes">组件类型列表</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public List<Actor> QueryActorsWithComponents(params Type[] componentTypes)
+        public IReadOnlyList<Actor> QueryActorsWithComponents(params Type[] componentTypes)
             => Actors.QueryActorsWithComponents(componentTypes);
+
+        /// <summary>
+        ///   <para>设置网络传输实现</para>
+        /// </summary>
+        /// <param name="transport">网络同步传输接口</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetNetworkTransport(INetworkSyncTransport transport)
+            => m_NetworkSync?.SetTransport(transport);
         
         /// <summary>
-        ///   <para>执行世界逻辑帧（按TickGroup分组驱动所有能力）</para>
+        ///   <para>设置网络同步组件序列化器</para>
+        /// </summary>
+        /// <param name="serializer">网络同步组件序列化器</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetNetworkSerializer(INetworkComponentSerializer serializer)
+            => m_NetworkSync?.SetSerializer(serializer);
+        
+        /// <summary>
+        ///   <para>设置网络同步头部格式化器</para>
+        /// </summary>
+        /// <param name="formatter">网络同步头部格式化器</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetNetworkHeaderFormatter(INetworkPacketHeaderFormatter formatter)
+            => m_NetworkSync?.SetHeaderFormatter(formatter);
+        
+        /// <summary>
+        ///   <para>取消注册网络同步组件</para>
+        /// </summary>
+        /// <param name="actor">行动者</param>
+        /// <typeparam name="T">组件类型</typeparam>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void UnregisterReplicatedComponent<T>(Actor actor)
+            where T : struct, IComponent
+            => m_NetworkSync?.UnregisterReplicatedComponent<T>(actor);
+        
+        /// <summary>
+        ///   <para>手动标记指定组件为脏数据</para>
+        /// </summary>
+        /// <param name="actor">行动者</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void MarkComponentDirty<T>(Actor actor)
+            where T : struct, IComponent
+            => m_NetworkSync?.MarkComponentDirty<T>(actor);
+        
+        /// <summary>
+        ///   <para>执行世界逻辑帧（按<see cref="TickGroup"/>分组驱动所有能力）</para>
         /// </summary>
         /// <param name="deltaTime">帧间隔</param>
+        [Obsolete("Please use Tick(float deltaTime, TickGroup tickGroup) instead.")]
         internal void Tick(float deltaTime)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(World));
-            Capabilities?.Update(deltaTime * m_TimeScale);
-            m_NetworkSync?.Tick(deltaTime * m_TimeScale);
+            float scaledDelta = deltaTime * m_TimeScale;
+            m_NetworkSync?.BeforeTick(scaledDelta, TickGroup.Gameplay);
+            Capabilities?.Update(scaledDelta);
+            m_NetworkSync?.AfterTick(scaledDelta, TickGroup.Gameplay);
         }
         
         /// <summary>
-        ///   <para>执行指定TickGroup分组世界逻辑帧</para>
+        ///   <para>执行指定<see cref="TickGroup"/>分组世界逻辑帧</para>
         /// </summary>
         /// <param name="deltaTime">帧间隔</param>
         /// <param name="tickGroup">更新分组</param>
         internal void Tick(float deltaTime, TickGroup tickGroup)
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(World));
-            Capabilities?.Update(deltaTime * m_TimeScale, tickGroup);
-            m_NetworkSync?.Tick(deltaTime * m_TimeScale);
+            float scaledDelta = deltaTime * m_TimeScale;
+            m_NetworkSync?.BeforeTick(scaledDelta, tickGroup);
+            Capabilities?.Update(scaledDelta, tickGroup);
+            m_NetworkSync?.AfterTick(scaledDelta, tickGroup);
         }
         
         /// <summary>
-        ///   <para>清理世界（清空行动者与能力管理器）</para>
+        ///   <para>清理世界</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
@@ -4287,9 +4809,9 @@ namespace Verve
 
             try
             {
+                m_NetworkSync?.Dispose();
                 Capabilities?.Dispose();
                 Actors?.Dispose();
-                m_NetworkSync?.Dispose();
             }
             finally
             {

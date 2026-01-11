@@ -1,6 +1,5 @@
 namespace Verve.Samples
 {
-    using MVC;
     using UnityEngine;
     
     
@@ -8,7 +7,7 @@ namespace Verve.Samples
     ///   <para>虚拟摇杆活动</para>
     /// </summary>
     [AddComponentMenu("Verve/Samples/VirtualJoystickActivity")]
-    public class VirtualJoystickActivity : ActivityBase
+    public sealed class VirtualJoystickActivity : ActivityBase
     {
         protected override void OnInitialized()
         {

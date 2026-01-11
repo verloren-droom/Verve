@@ -7,23 +7,23 @@ namespace Verve
     /// <summary>
     ///   <para>位置组件</para>
     /// </summary>
-    [Serializable, NetworkSyncComponent(NetworkSyncDirection.SendAndReceive, 16)]
+    [Serializable]
     public struct PositionComponent : IComponent
     {
         /// <summary>
         ///   <para>X 坐标</para>
         /// </summary>
-        [NetworkSyncField] public float x;
+        public float x;
         
         /// <summary>
         ///   <para>Y 坐标</para>
         /// </summary>
-        [NetworkSyncField] public float y;
+        public float y;
         
         /// <summary>
         ///   <para>Z 坐标</para>
         /// </summary>
-        [NetworkSyncField] public float z;
+        public float z;
         
 #if UNITY_5_3_OR_NEWER
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -87,23 +87,23 @@ namespace Verve
     /// <summary>
     ///   <para>缩放组件</para>
     /// </summary>
-    [Serializable, NetworkSyncComponent(NetworkSyncDirection.SendAndReceive, 16)]
+    [Serializable]
     public struct ScaleComponent : IComponent
     {
         /// <summary>
         ///   <para>X 缩放</para>
         /// </summary>
-        [NetworkSyncField] public float x;
+        public float x;
         
         /// <summary>
         ///   <para>Y 缩放</para>
         /// </summary>
-        [NetworkSyncField] public float y;
+        public float y;
         
         /// <summary>
         ///   <para>Z 缩放</para>
         /// </summary>
-        [NetworkSyncField] public float z;
+        public float z;
 
 #if UNITY_5_3_OR_NEWER
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -161,27 +161,27 @@ namespace Verve
     /// <summary>
     ///   <para>旋转组件</para>
     /// </summary>
-    [Serializable, NetworkSyncComponent(NetworkSyncDirection.SendAndReceive, 16)]
+    [Serializable]
     public struct RotationComponent : IComponent
     {
         /// <summary>
         ///   <para>X 轴旋转</para>
         /// </summary>
-        [NetworkSyncField] public float x;
+        public float x;
         
         /// <summary>
         ///   <para>Y 轴旋转</para>
         /// </summary>
-        [NetworkSyncField] public float y;
+        public float y;
         /// <summary>
         ///   <para>Z 轴旋转</para>
         /// </summary>
-        [NetworkSyncField] public float z;
+        public float z;
         
         /// <summary>
         ///   <para>W 轴旋转</para>
         /// </summary>
-        [NetworkSyncField] public float w;
+        public float w;
 
 #if UNITY_5_3_OR_NEWER
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

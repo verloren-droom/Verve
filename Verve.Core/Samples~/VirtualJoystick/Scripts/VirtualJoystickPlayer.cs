@@ -1,6 +1,5 @@
 namespace Verve.Samples
 {
-    using Verve.MVC;
     using UnityEngine;
 
 
@@ -10,6 +9,7 @@ namespace Verve.Samples
     [AddComponentMenu("Verve/Samples/VirtualJoystickPlayer")]
     public class VirtualJoystickPlayer : MonoBehaviour, IController
     {
+        [SerializeField, Tooltip("虚拟摇杆预制体"), RequireComponentOnGameObject(typeof(VirtualJoystick))] private GameObject m_VirtualJoystickPrefab;
         [SerializeField, Tooltip("移动速度"), Min(0)] private float m_Speed = 10;
         
         public IActivity GetActivity() => VirtualJoystickActivity.Instance;
@@ -21,6 +21,11 @@ namespace Verve.Samples
         private void Awake()
         {
             m_Rigidbody = GetComponent<Rigidbody>();
+        }
+
+        private void Start()
+        {
+            VirtualJoystickActivity.Instance.OpenView<VirtualJoystick>(m_VirtualJoystickPrefab);
             m_JoystickModel = this.GetModel<VirtualJoystickModel>();
         }
 

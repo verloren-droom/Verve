@@ -16,7 +16,7 @@ namespace Verve
         /// <summary>
         ///   <para>事件分发器，使用整数作为事件键</para>
         /// </summary>
-        private static readonly EventDispatcher<int> s_EventDispatcher = new EventDispatcher<int>();
+        [ThreadStatic] private static readonly EventDispatcher<int> s_EventDispatcher = new EventDispatcher<int>();
         
         /// <summary>
         ///   <para>字符串转哈希缓存</para>

@@ -1,7 +1,5 @@
 namespace Verve.Samples
 {
-    using MVC;
-    using Verve.MVC;
     using UnityEngine;
     using UnityEngine.UI;
     using UnityEngine.EventSystems;
@@ -11,7 +9,7 @@ namespace Verve.Samples
     ///   <para>虚拟摇杆</para>
     /// </summary>
     [AddComponentMenu("Verve/Samples/VirtualJoystick")]
-    public class VirtualJoystick : ViewBase, IController
+    public sealed class VirtualJoystick : ViewBase, IController
     {
         [SerializeField, Tooltip("虚拟摇杆类型")] private VirtualJoystickType m_JoystickType = VirtualJoystickType.Fixed;
         [SerializeField, Tooltip("最远拖拽距离"), Min(0)] private float m_MaxDistance = 120;

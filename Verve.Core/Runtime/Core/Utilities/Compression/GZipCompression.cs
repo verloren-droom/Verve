@@ -7,7 +7,7 @@ namespace Verve
     /// <summary>
     ///   <para>GZip压缩</para>
     /// </summary>
-    public sealed class GZipCompression : InstanceBase<GZipCompression>, ICompression
+    internal sealed class GZipCompression : InstanceBase<GZipCompression>, ICompression
     {
         public byte[] Compress(byte[] data)
         {

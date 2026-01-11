@@ -46,7 +46,7 @@ namespace Verve
                     }
                 }
                 
-                return await SendWebRequest(webRequest, cts, timeout);
+                return await SendHttpRequest(webRequest, cts, timeout);
 #else
                 return await SendHttpRequest(HttpMethod.Get, url, null, headers, timeout);
 #endif
@@ -79,7 +79,7 @@ namespace Verve
                     }
                 }
                 
-                return await SendWebRequest(webRequest, cts, timeout);
+                return await SendHttpRequest(webRequest, cts, timeout);
 #else
                 return await SendHttpRequest(HttpMethod.Post, url, new StringContent(jsonData, (encoding ?? Encoding.UTF8), "application/json"), headers, timeout);
 #endif
@@ -116,7 +116,7 @@ namespace Verve
                     }
                 }
                 
-                return await SendWebRequest(webRequest, cts, timeout);
+                return await SendHttpRequest(webRequest, cts, timeout);
 #else
                 var content = new FormUrlEncodedContent(formData ?? new Dictionary<string, string>());
                 return await SendHttpRequest(HttpMethod.Post, url, content, headers, timeout);
@@ -146,7 +146,7 @@ namespace Verve
                     }
                 }
                 
-                return await SendWebRequest(webRequest, cts, timeout);
+                return await SendHttpRequest(webRequest, cts, timeout);
 #else
                 return await SendHttpRequest(HttpMethod.Put, url, new StringContent(content ?? "", encoding ?? Encoding.UTF8), headers, timeout);
 #endif
@@ -172,7 +172,7 @@ namespace Verve
                     }
                 }
                 
-                return await SendWebRequest(webRequest, cts, timeout);
+                return await SendHttpRequest(webRequest, cts, timeout);
 #else
                 return await SendHttpRequest(HttpMethod.Delete, url, null, headers, timeout);
 #endif
@@ -204,7 +204,7 @@ namespace Verve
                     }
 
 #if UNITY_5_3_OR_NEWER
-                    return await DownloadFileUnity(url, savePath, headers, timeout, progressCallback, cancellationToken);
+                    return await DownloadFileNet(url, savePath, headers, timeout, progressCallback, cancellationToken);
 #else
                     return await DownloadFileNet(url, savePath, headers, timeout, progressCallback, cancellationToken);
 #endif
@@ -220,7 +220,7 @@ namespace Verve
             /// <summary>
             ///   <para>Unity平台下载文件实现</para>
             /// </summary>
-            private static async Task<bool> DownloadFileUnity(
+            private static async Task<bool> DownloadFileNet(
                 string url,
                 string savePath,
                 Dictionary<string, string> headers, 
@@ -379,7 +379,7 @@ namespace Verve
                 }
                 
                 webRequest.downloadHandler = new DownloadHandlerBuffer();
-                await SendWebRequest(webRequest, cts, timeout);
+                await SendHttpRequest(webRequest, cts, timeout);
                 
                 return webRequest.downloadHandler?.data;
 #else
@@ -410,7 +410,7 @@ namespace Verve
             /// <summary>
             ///   <para>Unity平台发送HTTP请求的通用方法</para>
             /// </summary>
-            private static async Task<string> SendWebRequest(UnityWebRequest webRequest, CancellationTokenSource cts, float timeout = 5f)
+            private static async Task<string> SendHttpRequest(UnityWebRequest webRequest, CancellationTokenSource cts, float timeout = 5f)
             {
                 webRequest.timeout = (int)timeout;
                 

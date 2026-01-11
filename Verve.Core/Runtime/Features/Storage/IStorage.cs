@@ -19,12 +19,6 @@ namespace Verve.Storage
         /// </summary>
         delegate TData DeserializerDelegate<out TData>(byte[] data);
 
-        
-        /// <summary>
-        ///   <para>默认文件扩展名</para>
-        /// </summary>
-        public string DefaultFileExtension { get; set; }
-
         /// <summary>
         ///   <para>尝试读取数据</para>
         /// </summary>

@@ -22,10 +22,10 @@ namespace Verve
     {
         private static readonly Dictionary<string, World> s_Worlds = new(StringComparer.OrdinalIgnoreCase);
         private static readonly object s_WorldLock = new object();
-        private static World s_ActiveWorld;
+        [ThreadStatic] private static World s_ActiveWorld;
         
  #if UNITY_2018_3_OR_NEWER
-        private static PlayerLoopSystem s_OriginalPlayerLoop;
+        [ThreadStatic] private static PlayerLoopSystem s_OriginalPlayerLoop;
         private static bool s_IsPlayerLoopModified;
  #endif
         
@@ -385,6 +385,8 @@ namespace Verve
             bool insertAtStart = false,
             bool insertAfter = false)
         {
+            if (loop.subSystemList == null || loop.subSystemList.Length == 0) return false;
+
             for (int i = 0; i < loop.subSystemList.Length; i++)
             {
                 if (loop.subSystemList[i].type == subSystemType)
@@ -431,9 +433,8 @@ namespace Verve
 
             return false;
         }
-
 #elif UNITY_5_3_OR_NEWER
-        private static WorldRunner s_WorldRunner;
+        [ThreadStatic] private static WorldRunner s_WorldRunner;
         
         private static void InitializeUpdateSystem()
         {
@@ -471,7 +472,6 @@ namespace Verve
                 }
             }
         }
-        
 #else
         private static void InitializeUpdateSystem() 
         {
