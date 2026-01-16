@@ -1,14 +1,12 @@
 namespace Verve
 {
     using System;
-    using System.Linq;
+    using System.Threading;
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;
-    
 #if UNITY_5_3_OR_NEWER
     using UnityEngine;
 #endif
-    
 #if UNITY_2018_3_OR_NEWER
     using UnityEngine.LowLevel;
     using UnityEngine.PlayerLoop;
@@ -22,12 +20,12 @@ namespace Verve
     {
         private static readonly Dictionary<string, World> s_Worlds = new(StringComparer.OrdinalIgnoreCase);
         private static readonly object s_WorldLock = new object();
-        [ThreadStatic] private static World s_ActiveWorld;
-        
- #if UNITY_2018_3_OR_NEWER
-        [ThreadStatic] private static PlayerLoopSystem s_OriginalPlayerLoop;
+        private static volatile World s_ActiveWorld;
+        private static int s_UpdateSystemCleanupRequested;
+#if UNITY_2018_3_OR_NEWER
+        private static PlayerLoopSystem s_OriginalPlayerLoop;
         private static bool s_IsPlayerLoopModified;
- #endif
+#endif
         
         /// <summary>
         ///   <para>世界数量</para>
@@ -44,7 +42,16 @@ namespace Verve
         public static IReadOnlyCollection<World> Worlds
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get { lock (s_WorldLock) { return s_Worlds.Values.ToArray(); } }
+            get
+            {
+                lock (s_WorldLock)
+                {
+                    var values = s_Worlds.Values;
+                    var result = new World[values.Count];
+                    values.CopyTo(result, 0);
+                    return result;
+                }
+            }
         }
         
         /// <summary>
@@ -55,14 +62,44 @@ namespace Verve
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                lock (s_WorldLock) 
+                var active = s_ActiveWorld;
+                if (active != null && !active.IsDisposed)
                 {
-                    if (s_ActiveWorld?.IsDisposed == true)
-                    {
-                        s_ActiveWorld = s_Worlds.Values.FirstOrDefault(w => !w.IsDisposed);
-                    }
-                    return s_ActiveWorld; 
+                    return active;
                 }
+
+                return GetActiveWorldSlow();
+            }
+        }
+
+        /// <summary>
+        ///   <para>获取已激活世界</para>
+        /// </summary>
+        private static World GetActiveWorldSlow()
+        {
+            lock (s_WorldLock)
+            {
+                var active = s_ActiveWorld;
+                if (active != null && !active.IsDisposed)
+                    return active;
+
+                if (active != null && active.IsDisposed)
+                {
+                    s_ActiveWorld = null;
+                }
+
+                foreach (var world in s_Worlds.Values)
+                {
+                    if (world != null && !world.IsDisposed)
+                    {
+                        s_ActiveWorld = world;
+                        return world;
+                    }
+                }
+
+                s_ActiveWorld = null;
+                RequestUpdateSystemCleanup();
+                return null;
             }
         }
         
@@ -77,6 +114,7 @@ namespace Verve
             if (string.IsNullOrWhiteSpace(worldName))
                 throw new ArgumentException("World name cannot be null or empty");
 
+            bool shouldInitializeUpdateSystem = false;
             lock (s_WorldLock)
             {
                 if (s_Worlds.TryGetValue(worldName, out var existingWorld))
@@ -84,6 +122,7 @@ namespace Verve
                     if (!existingWorld.IsDisposed)
                     {
                         s_ActiveWorld = existingWorld;
+                        Interlocked.Exchange(ref s_UpdateSystemCleanupRequested, 0);
                         return;
                     }
                     s_Worlds.Remove(worldName);
@@ -95,8 +134,14 @@ namespace Verve
                 if (s_ActiveWorld == null)
                 {
                     s_ActiveWorld = world;
-                    InitializeUpdateSystem();
+                    shouldInitializeUpdateSystem = true;
                 }
+            }
+
+            if (shouldInitializeUpdateSystem)
+            {
+                Interlocked.Exchange(ref s_UpdateSystemCleanupRequested, 0);
+                InitializeUpdateSystem();
             }
         }
 
@@ -142,6 +187,7 @@ namespace Verve
                     return false;
 
                 s_ActiveWorld = world;
+                Interlocked.Exchange(ref s_UpdateSystemCleanupRequested, 0);
                 return true;
             }
         }
@@ -162,17 +208,23 @@ namespace Verve
                 
                 if (s_ActiveWorld == world && !force)
                 {
-                    var otherWorld = s_Worlds.Values.FirstOrDefault(w => w != world && !w.IsDisposed);
+                    World otherWorld = null;
+                    foreach (var w in s_Worlds.Values)
+                    {
+                        if (w == null || w == world || w.IsDisposed) continue;
+                        otherWorld = w;
+                        break;
+                    }
                     s_ActiveWorld = otherWorld;
                     if (otherWorld == null)
                     {
-                        CleanupUpdateSystem();
+                        RequestUpdateSystemCleanup();
                     }
                 }
                 else if (s_ActiveWorld == world)
                 {
                     s_ActiveWorld = null;
-                    CleanupUpdateSystem();
+                    RequestUpdateSystemCleanup();
                 }
 
                 s_Worlds.Remove(worldName);
@@ -190,7 +242,7 @@ namespace Verve
         {
             lock (s_WorldLock)
             {
-                CleanupUpdateSystem();
+                RequestUpdateSystemCleanup();
                 
                 foreach (var world in s_Worlds.Values)
                 {
@@ -206,6 +258,21 @@ namespace Verve
         #region 更新系统
  
 #if UNITY_2018_3_OR_NEWER
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void RequestUpdateSystemCleanup()
+        {
+            Interlocked.Exchange(ref s_UpdateSystemCleanupRequested, 1);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void TryCleanupUpdateSystemIfRequested()
+        {
+            if (Interlocked.Exchange(ref s_UpdateSystemCleanupRequested, 0) != 0)
+            {
+                CleanupUpdateSystem();
+            }
+        }
+
         /// <summary>
         ///   <para>初始化<see cref="PlayerLoop"/>更新系统</para>
         /// </summary>
@@ -280,11 +347,13 @@ namespace Verve
         /// </summary>
         private static void OnWorldEarlyUpdate()
         {
-            if (s_ActiveWorld?.IsDisposed == false && Application.isPlaying)
+            TryCleanupUpdateSystemIfRequested();
+            var world = s_ActiveWorld;
+            if (world?.IsDisposed == false && Application.isPlaying)
             {
                 try
                 {
-                    s_ActiveWorld.Tick(Time.deltaTime, TickGroup.Early);
+                    world.Tick(Time.deltaTime, TickGroup.Early);
                 }
                 catch (Exception ex)
                 {
@@ -298,11 +367,13 @@ namespace Verve
         /// </summary>
         private static void OnWorldPhysicsUpdate()
         {
-            if (s_ActiveWorld?.IsDisposed == false && Application.isPlaying)
+            TryCleanupUpdateSystemIfRequested();
+            var world = s_ActiveWorld;
+            if (world?.IsDisposed == false && Application.isPlaying)
             {
                 try
                 {
-                    s_ActiveWorld.Tick(Time.fixedDeltaTime, TickGroup.Physics);
+                    world.Tick(Time.fixedDeltaTime, TickGroup.Physics);
                 }
                 catch (Exception ex)
                 {
@@ -316,11 +387,13 @@ namespace Verve
         /// </summary>
         private static void OnWorldGameplayUpdate()
         {
-            if (s_ActiveWorld?.IsDisposed == false && Application.isPlaying)
+            TryCleanupUpdateSystemIfRequested();
+            var world = s_ActiveWorld;
+            if (world?.IsDisposed == false && Application.isPlaying)
             {
                 try
                 {
-                    s_ActiveWorld.Tick(Time.deltaTime, TickGroup.Gameplay);
+                    world.Tick(Time.deltaTime, TickGroup.Gameplay);
                 }
                 catch (Exception ex)
                 {
@@ -334,11 +407,13 @@ namespace Verve
         /// </summary>
         private static void OnWorldLateUpdate()
         {
-            if (s_ActiveWorld?.IsDisposed == false && Application.isPlaying)
+            TryCleanupUpdateSystemIfRequested();
+            var world = s_ActiveWorld;
+            if (world?.IsDisposed == false && Application.isPlaying)
             {
                 try
                 {
-                    s_ActiveWorld.Tick(Time.deltaTime, TickGroup.Late);
+                    world.Tick(Time.deltaTime, TickGroup.Late);
                 }
                 catch (Exception ex)
                 {
@@ -434,7 +509,13 @@ namespace Verve
             return false;
         }
 #elif UNITY_5_3_OR_NEWER
-        [ThreadStatic] private static WorldRunner s_WorldRunner;
+        private static WorldRunner s_WorldRunner;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void RequestUpdateSystemCleanup()
+        {
+            Interlocked.Exchange(ref s_UpdateSystemCleanupRequested, 1);
+        }
         
         private static void InitializeUpdateSystem()
         {
@@ -459,11 +540,18 @@ namespace Verve
         {
             private void Update()
             {
+                if (Interlocked.Exchange(ref s_UpdateSystemCleanupRequested, 0) != 0)
+                {
+                    CleanupUpdateSystem();
+                    return;
+                }
+
                 try
                 {
-                    if (s_ActiveWorld?.IsDisposed == false)
+                    var world = s_ActiveWorld;
+                    if (world?.IsDisposed == false)
                     {
-                        s_ActiveWorld?.Tick(Time.deltaTime);
+                        world.Tick(Time.deltaTime);
                     }
                 }
                 catch (Exception ex)
@@ -473,15 +561,17 @@ namespace Verve
             }
         }
 #else
-        private static void InitializeUpdateSystem() 
+        private static void InitializeUpdateSystem(float deltaTime = 0.02f) 
         {
             if (s_ActiveWorld?.IsDisposed == false)
             {
-                s_ActiveWorld?.Tick(Time.deltaTime);
+                s_ActiveWorld?.Tick(deltaTime);
             }
         }
 
         private static void CleanupUpdateSystem() { }
+
+        private static void RequestUpdateSystemCleanup() { }
 #endif
 
         #endregion

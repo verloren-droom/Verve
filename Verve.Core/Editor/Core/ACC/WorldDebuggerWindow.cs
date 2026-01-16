@@ -40,6 +40,11 @@ namespace Verve.Editor
         private bool m_ShowComponentDetails = true;
         private bool m_ShowCapabilityDetails = true;
         private double m_LastUpdateTime = 0;
+        private bool m_AutoRefresh = true;
+        private int m_RefreshIntervalIndex = 2;
+
+        private static readonly float[] s_RefreshIntervals = { 0.1f, 0.25f, 0.5f, 1f, 2f };
+        private static readonly string[] s_RefreshIntervalLabels = { "0.1s", "0.25s", "0.5s", "1s", "2s" };
 
         private static bool s_ReflectionInitialized = false;
         private static FieldInfo s_ActorsField;
@@ -194,9 +199,12 @@ namespace Verve.Editor
 
         private void OnEditorUpdate()
         {
+            if (!m_AutoRefresh) return;
+
             double currentTime = EditorApplication.timeSinceStartup;
+            var interval = s_RefreshIntervals[Mathf.Clamp(m_RefreshIntervalIndex, 0, s_RefreshIntervals.Length - 1)];
             
-            if (currentTime - m_LastUpdateTime > 0.5f)
+            if (currentTime - m_LastUpdateTime > interval)
             {
                 m_LastUpdateTime = currentTime;
                 
@@ -259,9 +267,43 @@ namespace Verve.Editor
             
             try
             {
+                if (GUILayout.Button("刷新", EditorStyles.toolbarButton, GUILayout.Width(50)))
+                {
+                    m_LastUpdateTime = 0;
+                    OnEditorUpdate();
+                    Repaint();
+                }
+
+                m_AutoRefresh = GUILayout.Toggle(m_AutoRefresh, "自动刷新", EditorStyles.toolbarButton, GUILayout.Width(70));
+                m_RefreshIntervalIndex = EditorGUILayout.Popup(m_RefreshIntervalIndex, s_RefreshIntervalLabels, EditorStyles.toolbarPopup, GUILayout.Width(60));
+
+                if (GUILayout.Button("清除选择", EditorStyles.toolbarButton, GUILayout.Width(70)))
+                {
+                    ClearSelection();
+                    Repaint();
+                }
+
                 if (m_SelectedWorld != null && !m_SelectedWorld.IsDisposed && IsWorldValid(m_SelectedWorld))
                 {
                     GUILayout.FlexibleSpace();
+
+                    if (!m_SelectedActor.IsNone)
+                    {
+                        GUILayout.Label($"Actor #{m_SelectedActor.id}", Styles.TagStyle, GUILayout.Width(90));
+                        if (GUILayout.Button("复制", EditorStyles.toolbarButton, GUILayout.Width(36)))
+                        {
+                            EditorGUIUtility.systemCopyBuffer = m_SelectedActor.id.ToString();
+                        }
+                    }
+                    else if (m_SelectedCapabilityType != null)
+                    {
+                        GUILayout.Label(TruncateText(m_SelectedCapabilityType.Name, 20), Styles.TagStyle, GUILayout.Width(110));
+                        if (GUILayout.Button("复制", EditorStyles.toolbarButton, GUILayout.Width(36)))
+                        {
+                            EditorGUIUtility.systemCopyBuffer = m_SelectedCapabilityType.FullName ?? m_SelectedCapabilityType.Name;
+                        }
+                    }
+
                     var stateColor = m_SelectedWorld.TimeScale > 0 ? new Color(0.2f, 0.8f, 0.2f) : new Color(1f, 0.8f, 0.2f);
                     var oldColor = GUI.color;
                     GUI.color = stateColor;
@@ -548,7 +590,7 @@ namespace Verve.Editor
                     return;
                 }
 
-                foreach (var kvp in filtered)
+                foreach (var kvp in filtered.OrderBy(kvp => kvp.Key.Name))
                 {
                     bool isSelected = m_SelectedCapabilityType == kvp.Key;
                     bool isHovered = m_HoveredCapabilityType == kvp.Key;
@@ -700,6 +742,9 @@ namespace Verve.Editor
                 }
                 else
                 {
+                    var uniqueCaps = new List<(Capability capability, string tickGroup, string tickOrder)>(caps.Count);
+                    var seenCaps = new HashSet<Capability>();
+
                     foreach (var ci in caps)
                     {
                         try
@@ -709,17 +754,36 @@ namespace Verve.Editor
                             var tickGroupField = ciType.GetField("tickGroup", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                             var tickOrderField = ciType.GetField("tickOrder", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                             var capObj = capField?.GetValue(ci) as Capability;
-                            var name = capObj?.GetType().Name ?? "<null>";
-                            var state = capObj.IsActive ? "活跃" : "未激活";
-                            EditorGUILayout.BeginVertical(Styles.CardStyle);
-                            EditorGUILayout.LabelField($"{name} ({state})", EditorStyles.boldLabel);
+                            if (capObj == null) continue;
+                            if (!seenCaps.Add(capObj)) continue;
+
                             var tg = tickGroupField?.GetValue(ci)?.ToString() ?? "N/A";
                             var to = tickOrderField?.GetValue(ci)?.ToString() ?? "N/A";
-                            EditorGUILayout.LabelField($"TickGroup: {tg}", Styles.PropertyStyle);
-                            EditorGUILayout.LabelField($"TickOrder: {to}", Styles.PropertyStyle);
-                            EditorGUILayout.EndVertical();
+                            uniqueCaps.Add((capObj, tg, to));
                         }
                         catch { }
+                    }
+
+                    foreach (var group in uniqueCaps.GroupBy(c => c.capability.GetType()).OrderBy(g => g.Key.Name))
+                    {
+                        var capType = group.Key;
+                        int total = group.Count();
+                        int active = group.Count(x => x.capability.IsActive);
+
+                        EditorGUILayout.BeginVertical(Styles.CardStyle);
+                        if (total == 1)
+                        {
+                            var item = group.First();
+                            var state = item.capability.IsActive ? "活跃" : "未激活";
+                            EditorGUILayout.LabelField($"{capType.Name} ({state})", EditorStyles.boldLabel);
+                            EditorGUILayout.LabelField($"TickGroup: {item.tickGroup}", Styles.PropertyStyle);
+                            EditorGUILayout.LabelField($"TickOrder: {item.tickOrder}", Styles.PropertyStyle);
+                        }
+                        else
+                        {
+                            EditorGUILayout.LabelField($"{capType.Name} (活跃 {active}/{total})", EditorStyles.boldLabel);
+                        }
+                        EditorGUILayout.EndVertical();
                     }
                 }
             }
@@ -1036,6 +1100,8 @@ namespace Verve.Editor
                         var type = cap?.GetType();
                         if (type == null) continue;
                         var entry = dict.TryGetValue(type, out var v) ? v : (0, 0);
+                        entry.Item1++;
+                        if (cap.IsActive) entry.Item2++;
                         dict[type] = entry;
                     }
                 }

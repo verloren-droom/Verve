@@ -233,6 +233,7 @@ namespace Verve
                     sheet.AddSubSheet(subSheetAsset.ToSheet());
             }
 
+            sheet.Prewarm();
             return sheet;
         }
 

@@ -1,6 +1,4 @@
-// ================================================
-// Actor-Component-Capability Architecture
-// ================================================
+// Copyright (c) 2025-2026 Benfach <hong125841@gmail.com>
 
 namespace Verve
 {
@@ -51,7 +49,7 @@ namespace Verve
         /// <summary>
         ///   <para>是否为空行动者</para>
         /// </summary>
-        public bool IsNone { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => id == NONE_ID;}
+        public bool IsNone { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => id == NONE_ID; }
 
         public Actor(long id) => this.id = id;
         public Actor(int index, int version)
@@ -162,7 +160,7 @@ namespace Verve
     /// </summary>
     internal static class ComponentTypeRegistry
     {
-        [ThreadStatic] private static int s_NextTypeId = 1;
+        private static int s_NextTypeId = 1;
         private static readonly Dictionary<Type, ComponentTypeId> s_TypeToId = new(128);
         private static readonly Dictionary<int, Type> s_IdToType = new(128);
         private static readonly object s_Lock = new();
@@ -181,12 +179,9 @@ namespace Verve
             if (!componentType.IsValueType)
                 throw new ArgumentException($"Component {componentType.Name} must be a struct");
 
-            if (s_TypeToId.TryGetValue(componentType, out var typeId))
-                return typeId;
-
             lock (s_Lock)
             {
-                if (s_TypeToId.TryGetValue(componentType, out typeId))
+                if (s_TypeToId.TryGetValue(componentType, out var typeId))
                     return typeId;
 
                 var id = Interlocked.Increment(ref s_NextTypeId) - 1;
@@ -277,7 +272,8 @@ namespace Verve
         
         private Actor m_OwnerActor;
         private World m_OwnerWorld;
-        private TagId[] m_Tags = Array.Empty<TagId>();
+        private TagId[] m_TagBuffer;
+        private int m_TagCount;
         private ComponentMask m_RequiredComponents;
         private ComponentMask m_BlockedComponents;
 
@@ -300,11 +296,27 @@ namespace Verve
         /// <summary>
         ///   <para>更新分组（决定执行阶段）</para>
         /// </summary>
-        public virtual TickGroup TickGroup { get; internal set; } = DEFAULT_TICK_GROUP;
+        public virtual TickGroup TickGroup
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] get;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] internal set;
+        } = DEFAULT_TICK_GROUP;
         /// <summary>
         ///   <para>组内执行顺序（数值越小越先执行）</para>
         /// </summary>
-        public virtual int TickOrder { get; internal set; }
+        public virtual int TickOrder
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] get;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] internal set;
+        }
+        /// <summary>
+        ///   <para>是否允许并行执行</para>
+        /// </summary>
+        public virtual bool AllowParallel
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] get;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] protected set;
+        } = false;
         /// <summary>
         ///   <para>是否已释放</para>
         /// </summary>
@@ -316,7 +328,13 @@ namespace Verve
         /// <summary>
         ///   <para>标签集合（用于能力间阻塞/解锁控制）</para>
         /// </summary>
-        public ReadOnlySpan<TagId> Tags => m_Tags;
+        public ReadOnlySpan<TagId> Tags
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => m_TagCount <= 0
+                ? ReadOnlySpan<TagId>.Empty
+                : new ReadOnlySpan<TagId>(m_TagBuffer, 0, m_TagCount);
+        }
         /// <summary>
         ///   <para>所需组件掩码（拥有这些组件方可激活）</para>
         /// </summary>
@@ -400,10 +418,8 @@ namespace Verve
         /// </summary>
         protected void AddTag(TagId tagId)
         {
-            var newTags = new TagId[m_Tags.Length + 1];
-            m_Tags.CopyTo(newTags, 0);
-            newTags[^1] = tagId;
-            m_Tags = newTags;
+            EnsureTagCapacity(m_TagCount + 1);
+            m_TagBuffer[m_TagCount++] = tagId;
         }
 
         /// <summary>
@@ -412,11 +428,9 @@ namespace Verve
         protected void AddTags(ReadOnlySpan<TagId> tags)
         {
             if (tags.Length == 0) return;
-            var newTags = new TagId[m_Tags.Length + tags.Length];
-            m_Tags.CopyTo(newTags, 0);
-            for (int i = 0; i < tags.Length; i++)
-                newTags[m_Tags.Length + i] = tags[i];
-            m_Tags = newTags;
+            EnsureTagCapacity(m_TagCount + tags.Length);
+            tags.CopyTo(new Span<TagId>(m_TagBuffer, m_TagCount, tags.Length));
+            m_TagCount += tags.Length;
         }
 
         /// <summary>
@@ -424,8 +438,8 @@ namespace Verve
         /// </summary>
         protected bool HasTag(TagId tagId)
         {
-            for (int i = 0; i < m_Tags.Length; i++)
-                if (m_Tags[i] == tagId) return true;
+            for (int i = 0; i < m_TagCount; i++)
+                if (m_TagBuffer[i] == tagId) return true;
             return false;
         }
         
@@ -443,10 +457,10 @@ namespace Verve
         /// </summary>
         protected void AddTags(params string[] tagNames)
         {
-            var tagIds = new TagId[tagNames.Length];
+            if (tagNames == null || tagNames.Length == 0) return;
+            EnsureTagCapacity(m_TagCount + tagNames.Length);
             for (int i = 0; i < tagNames.Length; i++)
-                tagIds[i] = TagRegistry.GetTagId(tagNames[i]);
-            AddTags(tagIds);
+                m_TagBuffer[m_TagCount++] = TagRegistry.GetTagId(tagNames[i]);
         }
     
         /// <summary>
@@ -477,7 +491,7 @@ namespace Verve
         /// </summary>
         protected void ClearTags()
         {
-            m_Tags = Array.Empty<TagId>();
+            m_TagCount = 0;
         }
 
         /// <summary>
@@ -551,7 +565,7 @@ namespace Verve
             IsDisposed = false;
             m_RequiredComponents.Clear();
             m_BlockedComponents.Clear();
-            m_Tags = Array.Empty<TagId>();
+            ClearTags();
             TickGroup = DEFAULT_TICK_GROUP;
             TickOrder = 0;
         }
@@ -569,7 +583,12 @@ namespace Verve
 
             m_RequiredComponents.Clear();
             m_BlockedComponents.Clear();
-            m_Tags = Array.Empty<TagId>();
+            ClearTags();
+            if (m_TagBuffer != null)
+            {
+                ArrayPool<TagId>.Shared.Return(m_TagBuffer, false);
+                m_TagBuffer = null;
+            }
             m_OwnerActor = default;
             m_OwnerWorld = null;
             Dispose(true);
@@ -593,9 +612,33 @@ namespace Verve
             OnSetup();
         }
 
-        ~Capability() => Dispose();
+        ~Capability()
+        {
+            try { Dispose(false); }
+            catch { }
+        }
 
         public override string ToString() => $"{GetType().Name} (Owner: {m_OwnerActor}, Active: {IsActive}, Group: {TickGroup}, Order: {TickOrder})";
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void EnsureTagCapacity(int requiredCount)
+        {
+            if (requiredCount <= 0) return;
+            var buffer = m_TagBuffer;
+            if (buffer != null && requiredCount <= buffer.Length) return;
+
+            int newCapacity = buffer == null || buffer.Length <= 0 ? 4 : buffer.Length * 2;
+            if (newCapacity < requiredCount) newCapacity = requiredCount;
+
+            var newBuffer = ArrayPool<TagId>.Shared.Rent(newCapacity);
+            if (m_TagCount > 0 && buffer != null)
+                Array.Copy(buffer, 0, newBuffer, 0, m_TagCount);
+
+            if (buffer != null)
+                ArrayPool<TagId>.Shared.Return(buffer, false);
+
+            m_TagBuffer = newBuffer;
+        }
     }
     
     /// <summary>
@@ -613,7 +656,7 @@ namespace Verve
     /// </summary>
     internal static class CapabilityTypeRegistry
     {
-        [ThreadStatic] private static int s_NextTypeId = 1;
+        private static int s_NextTypeId = 1;
         private static readonly Dictionary<Type, CapabilityTypeId> s_TypeToId = new(256);
         private static readonly Dictionary<int, Type> s_IdToType = new(256);
         private static readonly object s_Lock = new();
@@ -630,12 +673,9 @@ namespace Verve
             if (!typeof(Capability).IsAssignableFrom(capabilityType))
                 throw new ArgumentException($"Type {capabilityType.Name} must inherit from Capability");
 
-            if (s_TypeToId.TryGetValue(capabilityType, out var typeId))
-                return typeId;
-
             lock (s_Lock)
             {
-                if (s_TypeToId.TryGetValue(capabilityType, out typeId))
+                if (s_TypeToId.TryGetValue(capabilityType, out var typeId))
                     return typeId;
 
                 var id = Interlocked.Increment(ref s_NextTypeId) - 1;
@@ -673,7 +713,7 @@ namespace Verve
     /// </summary>
     internal static class TagRegistry
     {
-        [ThreadStatic] private static int s_NextTagId = 1;
+        private static int s_NextTagId = 1;
         private static readonly Dictionary<string, TagId> s_NameToId = new(32);
         private static readonly Dictionary<int, string> s_IdToName = new(32);
         private static readonly object s_Lock = new();
@@ -683,12 +723,9 @@ namespace Verve
             if (string.IsNullOrWhiteSpace(tagName))
                 throw new ArgumentException("Tag name cannot be null or empty");
 
-            if (s_NameToId.TryGetValue(tagName, out var tagId))
-                return tagId;
-
             lock (s_Lock)
             {
-                if (s_NameToId.TryGetValue(tagName, out tagId))
+                if (s_NameToId.TryGetValue(tagName, out var tagId))
                     return tagId;
 
                 var id = Interlocked.Increment(ref s_NextTagId) - 1;
@@ -1083,7 +1120,7 @@ namespace Verve
         private int[] m_Dense;
         private int m_Count;
         private int m_Capacity;
-        private readonly SpinLock m_Lock;
+        private SpinLock m_Lock;
 
         public ComponentTypeId TypeId => ComponentTypeRegistry<T>.id;
         int IComponentPool.TypeId => TypeId;
@@ -1109,6 +1146,23 @@ namespace Verve
 
                 int actorIndex = actor.Index;
                 EnsureSparseCapacity(actorIndex + 1);
+
+                int existingDenseIndex = m_Sparse[actorIndex];
+                if (existingDenseIndex >= 0 && existingDenseIndex < m_Count && m_Dense[existingDenseIndex] == actorIndex)
+                {
+                    ref var existing = ref m_Entries[existingDenseIndex];
+                    if (existing.isActive && existing.actorVersion == actor.Version)
+                        return ref existing.value;
+
+                    existing.value = default;
+                    existing.actorVersion = actor.Version;
+                    existing.isActive = true;
+                    return ref existing.value;
+                }
+                else if (existingDenseIndex >= 0)
+                {
+                    m_Sparse[actorIndex] = -1;
+                }
 
                 if (m_Count >= m_Capacity)
                     Resize(m_Capacity * 2);
@@ -1546,7 +1600,7 @@ namespace Verve
         /// <summary>
         ///   <para>默认配置（1024容量，启用并发，增长因子 2）</para>
         /// </summary>
-        public static ActorManagerOptions Default => new(
+        internal static ActorManagerOptions Default => new(
             initialCapacity: 1024,
             enableMultiThreading: true,
             growthFactor: 2.0f);
@@ -1564,7 +1618,7 @@ namespace Verve
         private float m_GrowthFactor;
         private ActorData[] m_Actors;
 
-        private readonly SpinLock m_PoolLock;
+        private SpinLock m_PoolLock;
         private readonly ReaderWriterLockSlim m_ActorLock;
         private readonly Dictionary<int, IComponentPool> m_ComponentPools;
         private readonly bool m_EnableMultiThreading;
@@ -1615,7 +1669,7 @@ namespace Verve
         
         ~ActorManager() => Dispose();
 
-        public Actor CreateActor()
+        internal Actor CreateActor()
         {
             m_ActorLock?.EnterWriteLock();
             try
@@ -1630,9 +1684,13 @@ namespace Verve
                 int index = m_FreeList[--m_FreeCount];
                 ref var actorData = ref m_Actors[index];
 
-                actorData.version = actorData.version == 0 ? 1 : actorData.version + 1;
+                bool isFirstTime = actorData.version == 0;
+                actorData.version = isFirstTime ? 1 : actorData.version + 1;
                 actorData.isAlive = true;
-                actorData.componentMask = new ComponentMask(64);
+                if (isFirstTime)
+                    actorData.componentMask = new ComponentMask(64);
+                else
+                    actorData.componentMask.Clear();
 
                 var actor = new Actor(index, actorData.version);
                 AliveActorCount++;
@@ -1645,7 +1703,7 @@ namespace Verve
             }
         }
 
-        public Actor[] CreateActors(int count)
+        internal Actor[] CreateActors(int count)
         {
             if (count <= 0) return Array.Empty<Actor>();
 
@@ -1660,16 +1718,21 @@ namespace Verve
                         Math.Max((int)(m_Capacity * m_GrowthFactor), m_Capacity + count),
                         ActorManagerOptions.MAX_CAPACITY);
                     Resize(newCapacity);
+                    if (m_FreeCount < count) ThrowCapacityExceeded();
                 }
 
-                for (int i = 0; i < count && m_FreeCount > 0; i++)
+                for (int i = 0; i < count; i++)
                 {
                     int index = m_FreeList[--m_FreeCount];
                     ref var actorData = ref m_Actors[index];
 
-                    actorData.version = actorData.version == 0 ? 1 : actorData.version + 1;
+                    bool isFirstTime = actorData.version == 0;
+                    actorData.version = isFirstTime ? 1 : actorData.version + 1;
                     actorData.isAlive = true;
-                    actorData.componentMask = new ComponentMask(64);
+                    if (isFirstTime)
+                        actorData.componentMask = new ComponentMask(64);
+                    else
+                        actorData.componentMask.Clear();
 
                     actors[i] = new Actor(index, actorData.version);
                     AliveActorCount++;
@@ -1683,7 +1746,7 @@ namespace Verve
             return actors;
         }
 
-        public void DestroyActor(Actor actor)
+        internal void DestroyActor(Actor actor)
         {
             m_ActorLock?.EnterWriteLock();
             try
@@ -1695,15 +1758,7 @@ namespace Verve
                 foreach (var typeId in actorData.componentMask)
                     RemoveComponentByTypeIdUnsafe(actor, typeId);
 
-                if (actorData.capabilities != null)
-                {
-                    for (int i = 0; i < actorData.capabilities.Count; i++)
-                    {
-                        var instance = actorData.capabilities[i];
-                        instance.capability?.Dispose();
-                    }
-                    actorData.capabilities.Clear();
-                }
+                actorData.capabilities?.Clear();
 
                 actorData.Reset();
                 m_FreeList[m_FreeCount++] = actor.Index;
@@ -1715,7 +1770,7 @@ namespace Verve
             }
         }
 
-        public bool HasActor(Actor actor)
+        internal bool HasActor(Actor actor)
         {
             m_ActorLock?.EnterReadLock();
             try
@@ -1729,7 +1784,7 @@ namespace Verve
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsActorAlive(Actor actor)
+        internal bool IsActorAlive(Actor actor)
         {
             m_ActorLock?.EnterReadLock();
             try { return IsActorAliveUnsafe(actor); }
@@ -1737,13 +1792,12 @@ namespace Verve
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasComponent<T>(Actor actor) where T : struct, IComponent
-        {
-            return HasComponent(actor, ComponentTypeRegistry<T>.id);
-        }
+        internal bool HasComponent<T>(Actor actor)
+            where T : struct, IComponent
+            => HasComponent(actor, ComponentTypeRegistry<T>.id);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasComponent(Actor actor, int componentTypeId)
+        internal bool HasComponent(Actor actor, int componentTypeId)
         {
             m_ActorLock?.EnterReadLock();
             try
@@ -1870,7 +1924,7 @@ namespace Verve
             }
         }
 
-        public ref T AddComponent<T>(Actor actor) where T : struct, IComponent
+        internal ref T AddComponent<T>(Actor actor) where T : struct, IComponent
         {
             var typeId = ComponentTypeRegistry<T>.id;
 
@@ -1884,8 +1938,14 @@ namespace Verve
                 m_ActorLock?.EnterWriteLock();
                 try
                 {
-                    ref var component = ref pool.Add(actor);
                     ref var actorData = ref m_Actors[actor.Index];
+                    if (pool.Has(actor))
+                    {
+                        actorData.componentMask.Add(typeId);
+                        return ref pool.Get(actor);
+                    }
+
+                    ref var component = ref pool.Add(actor);
                     actorData.componentMask.Add(typeId);
 
                     return ref component;
@@ -1902,7 +1962,7 @@ namespace Verve
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T GetComponent<T>(Actor actor) where T : struct, IComponent
+        internal ref T GetComponent<T>(Actor actor) where T : struct, IComponent
         {
             m_ActorLock?.EnterReadLock();
             try
@@ -1921,7 +1981,7 @@ namespace Verve
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetComponent<T>(Actor actor, out T component) where T : struct, IComponent
+        internal bool TryGetComponent<T>(Actor actor, out T component) where T : struct, IComponent
         {
             m_ActorLock?.EnterReadLock();
             try
@@ -1939,7 +1999,7 @@ namespace Verve
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool RemoveComponent<T>(Actor actor) where T : struct, IComponent
+        internal bool RemoveComponent<T>(Actor actor) where T : struct, IComponent
         {
             m_ActorLock?.EnterWriteLock();
             try
@@ -1953,7 +2013,7 @@ namespace Verve
             }
         }
 
-        public void SetComponent<T>(Actor actor, in T component) where T : struct, IComponent
+        internal void SetComponent<T>(Actor actor, in T component) where T : struct, IComponent
         {
             var typeId = ComponentTypeRegistry<T>.id;
 
@@ -1991,7 +2051,7 @@ namespace Verve
             }
         }
 
-        public IReadOnlyList<Actor> QueryActorsWithComponent<T>() where T : struct, IComponent
+        internal IReadOnlyList<Actor> QueryActorsWithComponent<T>() where T : struct, IComponent
         {
             var result = new List<Actor>();
 
@@ -2019,34 +2079,74 @@ namespace Verve
             return result;
         }
 
-        public IReadOnlyList<Actor> QueryActorsWithComponents(params Type[] componentTypes)
+        internal IReadOnlyList<Actor> QueryActorsWithComponents(params Type[] componentTypes)
         {
             if (componentTypes == null || componentTypes.Length == 0)
                 return new List<Actor>();
 
-            var requiredMask = new ComponentMask(componentTypes.Length * 2);
-            foreach (var type in componentTypes)
-            {
-                if (type == null) continue;
-                if (!typeof(IComponent).IsAssignableFrom(type))
-                    throw new ArgumentException($"Type {type.Name} must implement IComponent");
-                if (!type.IsValueType)
-                    throw new ArgumentException($"Component {type.Name} must be a struct");
-
-                requiredMask.Add(ComponentTypeRegistry.GetTypeId(type));
-            }
-
             var result = new List<Actor>();
 
             m_ActorLock?.EnterReadLock();
+            int[] ids = null;
             try
             {
+                ids = ArrayPool<int>.Shared.Rent(componentTypes.Length);
+                int idCount = 0;
+                for (int k = 0; k < componentTypes.Length; k++)
+                {
+                    var type = componentTypes[k];
+                    if (type == null) continue;
+                    if (!typeof(IComponent).IsAssignableFrom(type))
+                        throw new ArgumentException($"Type {type.Name} must implement IComponent");
+                    if (!type.IsValueType)
+                        throw new ArgumentException($"Component {type.Name} must be a struct");
+                    ids[idCount++] = ComponentTypeRegistry.GetTypeId(type);
+                }
                 for (int i = 0; i < m_Capacity; i++)
                 {
                     ref var actorData = ref m_Actors[i];
                     if (!actorData.isAlive) continue;
 
-                    if (actorData.componentMask.ContainsAll(requiredMask))
+                    bool allMatch = true;
+                    for (int j = 0; j < idCount; j++)
+                    {
+                        if (!actorData.componentMask.Get(ids[j]))
+                        {
+                            allMatch = false;
+                            break;
+                        }
+                    }
+                    if (allMatch)
+                    {
+                        result.Add(new Actor(i, actorData.version));
+                    }
+                }
+            }
+            finally
+            {
+                if (ids != null) ArrayPool<int>.Shared.Return(ids, true);
+                m_ActorLock?.ExitReadLock();
+            }
+
+            return result;
+        }
+
+        internal void QueryActorsWithComponentNonAlloc<T>(List<Actor> result) where T : struct, IComponent
+        {
+            if (result == null) return;
+            result.Clear();
+
+            m_ActorLock?.EnterReadLock();
+            try
+            {
+                var typeId = ComponentTypeRegistry<T>.id;
+
+                for (int i = 0; i < m_Capacity; i++)
+                {
+                    ref var actorData = ref m_Actors[i];
+                    if (!actorData.isAlive) continue;
+
+                    if (actorData.componentMask.Get(typeId))
                     {
                         result.Add(new Actor(i, actorData.version));
                     }
@@ -2056,8 +2156,55 @@ namespace Verve
             {
                 m_ActorLock?.ExitReadLock();
             }
+        }
 
-            return result;
+        internal void QueryActorsWithComponentsNonAlloc(Type[] componentTypes, List<Actor> result)
+        {
+            if (result == null) return;
+            result.Clear();
+            if (componentTypes == null || componentTypes.Length == 0) return;
+
+            m_ActorLock?.EnterReadLock();
+            int[] ids = null;
+            try
+            {
+                ids = ArrayPool<int>.Shared.Rent(componentTypes.Length);
+                int idCount = 0;
+                for (int k = 0; k < componentTypes.Length; k++)
+                {
+                    var type = componentTypes[k];
+                    if (type == null) continue;
+                    if (!typeof(IComponent).IsAssignableFrom(type))
+                        throw new ArgumentException($"Type {type.Name} must implement IComponent");
+                    if (!type.IsValueType)
+                        throw new ArgumentException($"Component {type.Name} must be a struct");
+                    ids[idCount++] = ComponentTypeRegistry.GetTypeId(type);
+                }
+                for (int i = 0; i < m_Capacity; i++)
+                {
+                    ref var actorData = ref m_Actors[i];
+                    if (!actorData.isAlive) continue;
+
+                    bool allMatch = true;
+                    for (int j = 0; j < idCount; j++)
+                    {
+                        if (!actorData.componentMask.Get(ids[j]))
+                        {
+                            allMatch = false;
+                            break;
+                        }
+                    }
+                    if (allMatch)
+                    {
+                        result.Add(new Actor(i, actorData.version));
+                    }
+                }
+            }
+            finally
+            {
+                if (ids != null) ArrayPool<int>.Shared.Return(ids, true);
+                m_ActorLock?.ExitReadLock();
+            }
         }
 
         public void Clear()
@@ -2207,9 +2354,6 @@ namespace Verve
 
             Array.Resize(ref m_Actors, newCapacity);
             Array.Resize(ref m_FreeList, newCapacity);
-
-            for (int i = 0; i < oldCapacity; i++)
-                m_Actors[i].componentMask = m_Actors[i].componentMask.Clone();
 
             for (int i = oldCapacity; i < newCapacity; i++)
                 m_FreeList[m_FreeCount++] = i;
@@ -2394,7 +2538,7 @@ namespace Verve
                     }
                     else
                     {
-                        if (shouldDeactivate(capability))
+                        if (!capability.IsActive || shouldDeactivate(capability))
                         {
                             DeactivateCapability(capability, indices);
                         }
@@ -2524,8 +2668,7 @@ namespace Verve
         {
             for (int j = 0; j < activeList.Count; j++)
             {
-                var capability = activeList[j];
-                TickCapability(capability, deltaTime);
+                TickCapability(activeList[j], deltaTime);
             }
         }
         
@@ -2569,11 +2712,38 @@ namespace Verve
                 }
                 else
                 {
-                    Parallel.For(start, end, i =>
+                    int seqStart = start;
+                    while (seqStart < end)
                     {
-                        var c = activeList[i];
-                        TickCapability(c, deltaTime);
-                    });
+                        while (seqStart < end)
+                        {
+                            var c = activeList[seqStart];
+                            if (c != null && !c.IsDisposed && c.AllowParallel)
+                                break;
+                            TickCapability(c, deltaTime);
+                            seqStart++;
+                        }
+
+                        if (seqStart >= end)
+                            break;
+
+                        int parStart = seqStart;
+                        int parEnd = parStart + 1;
+                        while (parEnd < end)
+                        {
+                            var c = activeList[parEnd];
+                            if (c == null || c.IsDisposed || !c.AllowParallel)
+                                break;
+                            parEnd++;
+                        }
+
+                        Parallel.For(parStart, parEnd, i =>
+                        {
+                            TickCapability(activeList[i], deltaTime);
+                        });
+
+                        seqStart = parEnd;
+                    }
                 }
                 
                 index = end;
@@ -2582,7 +2752,7 @@ namespace Verve
         
         private void TickCapability(Capability capability, float deltaTime)
         {
-            if (capability == null || capability.IsDisposed) return;
+            if (capability == null || capability.IsDisposed || !capability.IsActive) return;
             
             try
             {
@@ -2591,16 +2761,15 @@ namespace Verve
             catch (Exception ex)
             {
                 HandleCapabilityException(capability, ex);
+                m_DirtyCapabilities.Add(capability);
             }
         }
         
         private void HandleCapabilityException(Capability capability, Exception ex)
         {
             capability.IsActive = false;
-#if DEBUG
-            // Game.LogError($"Capability {capability.GetType().Name} error: {ex}");
-            throw new Exception($"Capability {capability.GetType().Name} error: {ex}");
-#endif
+            m_DirtyCapabilities.Add(capability);
+            Game.LogError($"Capability {capability.GetType().Name} error: {ex}");
         }
     }
 
@@ -2629,10 +2798,9 @@ namespace Verve
     [Serializable]
     public sealed class CapabilitySheet
     {
-        private static readonly Dictionary<Type, MethodInfo> s_AddComponentMethods = new(64);
-        private static readonly Dictionary<Type, MethodInfo> s_SetComponentMethods = new(64);
-        private static readonly Dictionary<Type, MethodInfo> s_AddCapabilityMethods = new(64);
-        private static readonly Dictionary<Type, MethodInfo> s_RemoveCapabilityMethods = new(64);
+        private static readonly Dictionary<Type, Action<World, Actor, NetworkSyncDirection>> s_AddComponentActions = new(64);
+        private static readonly Dictionary<Type, Func<World, Actor, Capability>> s_AddCapabilityFuncs = new(64);
+        private static readonly Dictionary<Type, Func<World, Actor, bool>> s_RemoveCapabilityFuncs = new(64);
         private static readonly object s_MethodCacheLock = new();
 
         private readonly List<Type> m_CapabilityTypes = new(16);
@@ -2644,6 +2812,26 @@ namespace Verve
         public IReadOnlyList<Type> ComponentTypes => m_ComponentTypes;
         public IReadOnlyList<NetworkSyncDirection> ComponentDirections => m_ComponentDirections;
         public IReadOnlyList<CapabilitySheet> SubSheets => m_SubSheets;
+
+        public void Prewarm()
+        {
+            for (int i = 0; i < m_SubSheets.Count; i++)
+            {
+                m_SubSheets[i]?.Prewarm();
+            }
+
+            for (int i = 0; i < m_ComponentTypes.Count; i++)
+            {
+                GetAddComponentAction(m_ComponentTypes[i]);
+            }
+
+            for (int i = 0; i < m_CapabilityTypes.Count; i++)
+            {
+                var type = m_CapabilityTypes[i];
+                GetAddCapabilityFunc(type);
+                GetRemoveCapabilityFunc(type);
+            }
+        }
         
         public CapabilitySheet AddCapability<T>()
             where T : Capability
@@ -2657,6 +2845,10 @@ namespace Verve
             if (capabilityType == null) throw new ArgumentNullException(nameof(capabilityType));
             if (!typeof(Capability).IsAssignableFrom(capabilityType))
                 throw new ArgumentException($"Type {capabilityType.Name} must inherit from Capability");
+            if (capabilityType.IsAbstract)
+                throw new ArgumentException($"Type {capabilityType.Name} cannot be abstract");
+            if (capabilityType.GetConstructor(Type.EmptyTypes) == null)
+                throw new ArgumentException($"Type {capabilityType.Name} must have a public parameterless constructor");
             
             m_CapabilityTypes.Add(capabilityType);
             return this;
@@ -2707,14 +2899,19 @@ namespace Verve
                 var direction = i < m_ComponentDirections.Count
                     ? m_ComponentDirections[i]
                     : NetworkSyncDirection.None;
-                AddComponentGeneric(componentType, actor, world, direction);
+                var addComponent = GetAddComponentAction(componentType);
+                addComponent?.Invoke(world, actor, direction);
             }
             
             if (mode == CapabilitySheetApplyMode.All)
             {
-                foreach (var capabilityType in m_CapabilityTypes)
+                for (int i = 0; i < m_CapabilityTypes.Count; i++)
                 {
-                    AddCapabilityToActor(capabilityType, actor, world, instance);
+                    var capabilityType = m_CapabilityTypes[i];
+                    var addCapability = GetAddCapabilityFunc(capabilityType);
+                    var capability = addCapability?.Invoke(world, actor);
+                    if (capability != null)
+                        instance.AddCapability(capability);
                 }
             }
             
@@ -2726,119 +2923,100 @@ namespace Verve
             instance?.RemoveFromActor();
         }
         
-        private static void AddComponentGeneric(Type componentType, Actor actor, World world, NetworkSyncDirection direction)
+        internal static Func<World, Actor, bool> GetRemoveCapabilityFunc(Type capabilityType)
         {
-            var method = GetAddComponentMethod(componentType);
-            if (method != null)
+            if (capabilityType == null) return null;
+            Func<World, Actor, bool> func;
+            lock (s_MethodCacheLock)
             {
+                if (s_RemoveCapabilityFuncs.TryGetValue(capabilityType, out func))
+                    return func;
+
                 try
                 {
-                    method.Invoke(world, new object[] { actor, direction });
-                    return;
+                    var invokerType = typeof(CapabilitySheetCapabilityInvoker<>).MakeGenericType(capabilityType);
+                    var method = invokerType.GetMethod("Remove", BindingFlags.Public | BindingFlags.Static);
+                    if (method == null)
+                        return null;
+
+                    func = (Func<World, Actor, bool>)Delegate.CreateDelegate(typeof(Func<World, Actor, bool>), method);
+                    s_RemoveCapabilityFuncs[capabilityType] = func;
+                    return func;
                 }
                 catch
                 {
+                    return null;
                 }
             }
-
-            method = GetSetComponentMethod(componentType);
-            if (method != null)
-            {
-                var defaultValue = Activator.CreateInstance(componentType);
-                method.Invoke(world, new object[] { actor, defaultValue });
-            }
-        }
-        
-        private static void AddCapabilityToActor(Type capabilityType, Actor actor, World world, SheetInstance instance)
-        {
-            var method = GetAddCapabilityMethod(capabilityType);
-
-            if (method?.Invoke(world, new object[] { actor }) is Capability capability)
-                instance.AddCapability(capability);
         }
 
-        private static MethodInfo GetAddComponentMethod(Type componentType)
+        private static Action<World, Actor, NetworkSyncDirection> GetAddComponentAction(Type componentType)
         {
             if (componentType == null) return null;
-            if (s_AddComponentMethods.TryGetValue(componentType, out var method))
-                return method;
-
+            Action<World, Actor, NetworkSyncDirection> action;
             lock (s_MethodCacheLock)
             {
-                if (s_AddComponentMethods.TryGetValue(componentType, out method))
-                    return method;
+                if (s_AddComponentActions.TryGetValue(componentType, out action))
+                    return action;
 
-                var generic = typeof(World).GetMethod(nameof(World.AddComponent));
-                if (generic == null)
+                try
+                {
+                    var invokerType = typeof(CapabilitySheetComponentInvoker<>).MakeGenericType(componentType);
+                    var method = invokerType.GetMethod("Add", BindingFlags.Public | BindingFlags.Static);
+                    if (method == null)
+                        return null;
+
+                    action = (Action<World, Actor, NetworkSyncDirection>)Delegate.CreateDelegate(typeof(Action<World, Actor, NetworkSyncDirection>), method);
+                    s_AddComponentActions[componentType] = action;
+                    return action;
+                }
+                catch
+                {
                     return null;
-
-                method = generic.MakeGenericMethod(componentType);
-                s_AddComponentMethods[componentType] = method;
-                return method;
+                }
             }
         }
 
-        private static MethodInfo GetSetComponentMethod(Type componentType)
-        {
-            if (componentType == null) return null;
-            if (s_SetComponentMethods.TryGetValue(componentType, out var method))
-                return method;
-
-            lock (s_MethodCacheLock)
-            {
-                if (s_SetComponentMethods.TryGetValue(componentType, out method))
-                    return method;
-
-                var generic = typeof(World).GetMethod(nameof(World.SetComponent));
-                if (generic == null)
-                    return null;
-
-                method = generic.MakeGenericMethod(componentType);
-                s_SetComponentMethods[componentType] = method;
-                return method;
-            }
-        }
-
-        private static MethodInfo GetAddCapabilityMethod(Type capabilityType)
+        private static Func<World, Actor, Capability> GetAddCapabilityFunc(Type capabilityType)
         {
             if (capabilityType == null) return null;
-            if (s_AddCapabilityMethods.TryGetValue(capabilityType, out var method))
-                return method;
-
+            Func<World, Actor, Capability> func;
             lock (s_MethodCacheLock)
             {
-                if (s_AddCapabilityMethods.TryGetValue(capabilityType, out method))
-                    return method;
+                if (s_AddCapabilityFuncs.TryGetValue(capabilityType, out func))
+                    return func;
 
-                var generic = typeof(World).GetMethod(nameof(World.AddCapability));
-                if (generic == null)
+                try
+                {
+                    var invokerType = typeof(CapabilitySheetCapabilityInvoker<>).MakeGenericType(capabilityType);
+                    var method = invokerType.GetMethod("Add", BindingFlags.Public | BindingFlags.Static);
+                    if (method == null)
+                        return null;
+
+                    func = (Func<World, Actor, Capability>)Delegate.CreateDelegate(typeof(Func<World, Actor, Capability>), method);
+                    s_AddCapabilityFuncs[capabilityType] = func;
+                    return func;
+                }
+                catch
+                {
                     return null;
-
-                method = generic.MakeGenericMethod(capabilityType);
-                s_AddCapabilityMethods[capabilityType] = method;
-                return method;
+                }
             }
         }
 
-        internal static MethodInfo GetRemoveCapabilityMethod(Type capabilityType)
+        private static class CapabilitySheetComponentInvoker<T> where T : struct, IComponent
         {
-            if (capabilityType == null) return null;
-            if (s_RemoveCapabilityMethods.TryGetValue(capabilityType, out var method))
-                return method;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static void Add(World world, Actor actor, NetworkSyncDirection direction) => world.AddComponent<T>(actor, direction);
+        }
 
-            lock (s_MethodCacheLock)
-            {
-                if (s_RemoveCapabilityMethods.TryGetValue(capabilityType, out method))
-                    return method;
+        private static class CapabilitySheetCapabilityInvoker<T> where T : Capability, new()
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static Capability Add(World world, Actor actor) => world.AddCapability<T>(actor);
 
-                var generic = typeof(World).GetMethod(nameof(World.RemoveCapability));
-                if (generic == null)
-                    return null;
-
-                method = generic.MakeGenericMethod(capabilityType);
-                s_RemoveCapabilityMethods[capabilityType] = method;
-                return method;
-            }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static bool Remove(World world, Actor actor) => world.RemoveCapability<T>(actor);
         }
     }
     
@@ -2859,8 +3037,6 @@ namespace Verve
             m_Actor = actor;
             m_World = world ?? throw new ArgumentNullException(nameof(world));
         }
-        
-        ~SheetInstance() => Dispose();
 
         internal void AddSubInstance(SheetInstance subInstance)
         {
@@ -2886,18 +3062,12 @@ namespace Verve
             
             foreach (var capability in m_Capabilities)
             {
-                var capabilityType = capability.GetType();
-                RemoveCapabilityGeneric(capabilityType, m_Actor, m_World);
+                var removeCapability = CapabilitySheet.GetRemoveCapabilityFunc(capability.GetType());
+                removeCapability?.Invoke(m_World, m_Actor);
             }
             
             m_Capabilities.Clear();
             m_SubInstances.Clear();
-        }
-        
-        private static void RemoveCapabilityGeneric(Type capabilityType, Actor actor, World world)
-        {
-            var method = CapabilitySheet.GetRemoveCapabilityMethod(capabilityType);
-            method?.Invoke(world, new object[] { actor });
         }
         
         public void Dispose()
@@ -2917,7 +3087,7 @@ namespace Verve
     {
         private readonly World m_World;
         private readonly Dictionary<Actor, List<SheetInstance>> m_ActorSheets = new(128);
-        private readonly SpinLock m_Lock;
+        private SpinLock m_Lock;
         
         internal SheetManager(World world)
         {
@@ -3004,8 +3174,8 @@ namespace Verve
             try
             {
                 m_Lock.Enter(ref lockTaken);
-                return m_ActorSheets.TryGetValue(actor, out var instances) 
-                    ? instances.AsReadOnly() 
+                return m_ActorSheets.TryGetValue(actor, out var instances)
+                    ? new List<SheetInstance>(instances)
                     : (IReadOnlyList<SheetInstance>)Array.Empty<SheetInstance>();
             }
             finally
@@ -3046,14 +3216,31 @@ namespace Verve
     [Serializable]
     public sealed class CapabilityManager : IDisposable
     {
+        private enum DeferredCommandKind : byte
+        {
+            Add = 1,
+            Remove = 2,
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct DeferredCommand
+        {
+            public DeferredCommandKind kind;
+            public Actor actor;
+            public Capability capability;
+        }
+
         private readonly World m_World;
         private readonly ActionQueue m_ActionQueue;
         private readonly SheetManager m_SheetManager;
         private readonly Dictionary<Type, Queue<Capability>> m_CapabilityPools = new(32);
-        private readonly HashSet<Actor> m_DirtyActors = new(256);
-        private readonly SpinLock m_Lock;
+        private readonly HashSet<Actor> m_DirtyActors = new(64);
+        private SpinLock m_Lock;
         private readonly Func<Capability, bool> m_ShouldActivate;
         private readonly Func<Capability, bool> m_ShouldDeactivate;
+        private DeferredCommand[] m_DeferredCommands;
+        private int m_DeferredCommandCount;
+        private int m_IsUpdating;
         private bool m_IsDisposed;
         
         /// <summary>
@@ -3075,19 +3262,24 @@ namespace Verve
             m_ShouldDeactivate = CheckCapabilityDeactivation;
         }
         
-        ~CapabilityManager() => Dispose();
-
         /// <summary>
         ///   <para>为行动者添加能力</para>
         /// </summary>
         /// <typeparam name="T">能力类型</typeparam>
         /// <param name="actor">行动者</param>
-        public T AddCapability<T>(Actor actor) where T : Capability, new()
+        internal T AddCapability<T>(Actor actor)
+            where T : Capability, new()
         {
             if (m_IsDisposed) throw new ObjectDisposedException(nameof(CapabilityManager));
 
             var capability = GetOrCreateCapability<T>();
             capability.Setup(actor, m_World);
+
+            if (Volatile.Read(ref m_IsUpdating) != 0)
+            {
+                EnqueueDeferred(DeferredCommandKind.Add, actor, capability);
+                return capability;
+            }
 
             var instance = new CapabilityInstance
             {
@@ -3109,7 +3301,8 @@ namespace Verve
         /// </summary>
         /// <typeparam name="T">能力类型</typeparam>
         /// <param name="actor">行动者</param>
-        public bool RemoveCapability<T>(Actor actor) where T : Capability
+        internal bool RemoveCapability<T>(Actor actor)
+            where T : Capability
         {
             if (m_IsDisposed) return false;
 
@@ -3121,11 +3314,18 @@ namespace Verve
                 var instance = capabilities[i];
                 if (instance.capability is T)
                 {
+                    if (Volatile.Read(ref m_IsUpdating) != 0)
+                    {
+                        EnqueueDeferred(DeferredCommandKind.Remove, actor, instance.capability);
+                        return true;
+                    }
+
                     m_ActionQueue.RemoveCapability(instance.capability);
 
                     if (instance.capability.IsActive)
                     {
-                        instance.capability.OnDeactivated();
+                        try { instance.capability.OnDeactivated(); }
+                        catch { }
                         instance.capability.IsActive = false;
                     }
 
@@ -3139,10 +3339,48 @@ namespace Verve
             return false;
         }
 
+        internal void RemoveAllCapabilities(Actor actor)
+        {
+            if (m_IsDisposed) return;
+
+            var capabilities = m_World.Actors.GetCapabilities(actor);
+            if (capabilities == null || capabilities.Count == 0) return;
+
+            if (Volatile.Read(ref m_IsUpdating) != 0)
+            {
+                for (int i = 0; i < capabilities.Count; i++)
+                {
+                    var capability = capabilities[i].capability;
+                    if (capability == null) continue;
+                    EnqueueDeferred(DeferredCommandKind.Remove, actor, capability);
+                }
+                return;
+            }
+
+            for (int i = capabilities.Count - 1; i >= 0; i--)
+            {
+                var capability = capabilities[i].capability;
+                if (capability == null) continue;
+
+                m_ActionQueue.RemoveCapability(capability);
+                if (capability.IsActive)
+                {
+                    try { capability.OnDeactivated(); }
+                    catch { }
+                    capability.IsActive = false;
+                }
+
+                m_World.Actors.RemoveCapabilityInstance(actor, capability);
+                ReturnToPool(capability);
+            }
+
+            MarkActorDirty(actor);
+        }
+
         /// <summary>
         ///   <para>阻塞行动者上指定标签（由发起者记录）</para>
         /// </summary>
-        public void BlockTag(Actor actor, TagId tagId, object instigator)
+        internal void BlockTag(Actor actor, TagId tagId, object instigator)
         {
             m_World.Actors.BlockTag(actor, tagId, instigator);
             MarkActorDirty(actor);
@@ -3151,7 +3389,7 @@ namespace Verve
         /// <summary>
         ///   <para>解除行动者上指定标签的阻塞</para>
         /// </summary>
-        public void UnblockTag(Actor actor, TagId tagId, object instigator)
+        internal void UnblockTag(Actor actor, TagId tagId, object instigator)
         {
             m_World.Actors.UnblockTag(actor, tagId, instigator);
             MarkActorDirty(actor);
@@ -3160,7 +3398,7 @@ namespace Verve
         /// <summary>
         ///   <para>查询行动者上的标签是否被阻塞</para>
         /// </summary>
-        public bool IsTagBlocked(Actor actor, TagId tagId)
+        internal bool IsTagBlocked(Actor actor, TagId tagId)
         {
             return m_World.Actors.IsTagBlocked(actor, tagId);
         }
@@ -3168,29 +3406,49 @@ namespace Verve
         /// <summary>
         ///   <para>更新能力系统</para>
         /// </summary>
-        public void Update(float deltaTime)
+        internal void Update(float deltaTime)
         {
             if (m_IsDisposed) return;
 
             ProcessDirtyActors();
 
-            m_ActionQueue.Update(deltaTime, m_ShouldActivate, m_ShouldDeactivate, m_World.Actors.EnableMultiThreading);
+            Volatile.Write(ref m_IsUpdating, 1);
+            try
+            {
+                m_ActionQueue.Update(deltaTime, m_ShouldActivate, m_ShouldDeactivate, m_World.Actors.EnableMultiThreading);
+            }
+            finally
+            {
+                Volatile.Write(ref m_IsUpdating, 0);
+            }
+
+            ExecuteDeferredCommands();
         }
         
         /// <summary>
         ///   <para>更新指定分组的能力系统</para>
         /// </summary>
-        public void Update(float deltaTime, TickGroup tickGroup)
+        internal void Update(float deltaTime, TickGroup tickGroup)
         {
             if (m_IsDisposed) return;
 
             ProcessDirtyActors();
 
-            m_ActionQueue.Update(deltaTime, 
-                m_ShouldActivate,
-                m_ShouldDeactivate,
-                (int)tickGroup,
-                m_World.Actors.EnableMultiThreading);
+            Volatile.Write(ref m_IsUpdating, 1);
+            try
+            {
+                m_ActionQueue.Update(deltaTime,
+                    m_ShouldActivate,
+                    m_ShouldDeactivate,
+                    (int)tickGroup,
+                    m_World.Actors.EnableMultiThreading);
+            }
+            finally
+            {
+                Volatile.Write(ref m_IsUpdating, 0);
+            }
+
+            ExecuteDeferredCommands();
         }
 
         /// <summary>
@@ -3205,6 +3463,9 @@ namespace Verve
                 m_ActionQueue.Clear();
                 m_SheetManager.Clear();
                 m_DirtyActors.Clear();
+                m_DeferredCommandCount = 0;
+                if (m_DeferredCommands != null)
+                    Array.Clear(m_DeferredCommands, 0, m_DeferredCommands.Length);
             }
             finally
             {
@@ -3234,6 +3495,12 @@ namespace Verve
 
                 m_CapabilityPools.Clear();
                 m_DirtyActors.Clear();
+                if (m_DeferredCommands != null)
+                {
+                    ArrayPool<DeferredCommand>.Shared.Return(m_DeferredCommands, false);
+                    m_DeferredCommands = null;
+                    m_DeferredCommandCount = 0;
+                }
 
                 m_IsDisposed = true;
             }
@@ -3254,8 +3521,16 @@ namespace Verve
             {
                 m_Lock.Enter(ref lockTaken);
                 
-                if (m_CapabilityPools.TryGetValue(type, out var pool) && pool.Count > 0)
-                    return (T)pool.Dequeue();
+                if (m_CapabilityPools.TryGetValue(type, out var pool))
+                {
+                    while (pool.Count > 0)
+                    {
+                        var capability = pool.Dequeue();
+                        if (capability is T typed && !typed.IsDisposed)
+                            return typed;
+                        capability?.Dispose();
+                    }
+                }
             }
             finally
             {
@@ -3267,6 +3542,9 @@ namespace Verve
 
         private void ReturnToPool(Capability capability)
         {
+            if (capability == null) return;
+            if (capability.IsDisposed) return;
+
             var type = capability.GetType();
 
             bool lockTaken = false;
@@ -3291,7 +3569,7 @@ namespace Verve
             }
         }
 
-        public void MarkActorDirty(Actor actor)
+        internal void MarkActorDirty(Actor actor)
         {
             bool lockTaken = false;
             try
@@ -3307,16 +3585,15 @@ namespace Verve
 
         private void ProcessDirtyActors()
         {
-            if (m_DirtyActors.Count == 0) return;
-
-            Actor[] actorsToProcess;
-            int actorCount;
+            Actor[] actorsToProcess = null;
+            int actorCount = 0;
             bool lockTaken = false;
             try
             {
                 m_Lock.Enter(ref lockTaken);
 
                 actorCount = m_DirtyActors.Count;
+                if (actorCount <= 0) return;
                 actorsToProcess = actorCount == 0
                     ? Array.Empty<Actor>()
                     : ArrayPool<Actor>.Shared.Rent(actorCount);
@@ -3349,9 +3626,9 @@ namespace Verve
                 }
             }
 
-            if (actorCount > 0 && actorsToProcess.Length > 0)
+            if (actorCount > 0 && actorsToProcess != null && actorsToProcess.Length > 0)
             {
-                ArrayPool<Actor>.Shared.Return(actorsToProcess, false);
+                ArrayPool<Actor>.Shared.Return(actorsToProcess, true);
             }
         }
 
@@ -3377,6 +3654,105 @@ namespace Verve
             }
 
             return capability.ShouldDeactivate();
+        }
+
+        private void EnqueueDeferred(DeferredCommandKind kind, Actor actor, Capability capability)
+        {
+            bool lockTaken = false;
+            try
+            {
+                m_Lock.Enter(ref lockTaken);
+                if (m_DeferredCommands == null)
+                    m_DeferredCommands = ArrayPool<DeferredCommand>.Shared.Rent(32);
+                else if (m_DeferredCommandCount >= m_DeferredCommands.Length)
+                    GrowDeferredBufferUnsafe();
+
+                m_DeferredCommands[m_DeferredCommandCount++] = new DeferredCommand
+                {
+                    kind = kind,
+                    actor = actor,
+                    capability = capability
+                };
+            }
+            finally
+            {
+                if (lockTaken) m_Lock.Exit();
+            }
+        }
+
+        private void GrowDeferredBufferUnsafe()
+        {
+            var old = m_DeferredCommands;
+            var next = ArrayPool<DeferredCommand>.Shared.Rent(old.Length * 2);
+            Array.Copy(old, 0, next, 0, m_DeferredCommandCount);
+            ArrayPool<DeferredCommand>.Shared.Return(old, false);
+            m_DeferredCommands = next;
+        }
+
+        private void ExecuteDeferredCommands()
+        {
+            DeferredCommand[] buffer;
+            int count;
+
+            bool lockTaken = false;
+            try
+            {
+                m_Lock.Enter(ref lockTaken);
+                count = m_DeferredCommandCount;
+                if (count <= 0) return;
+                buffer = ArrayPool<DeferredCommand>.Shared.Rent(count);
+                Array.Copy(m_DeferredCommands, 0, buffer, 0, count);
+                Array.Clear(m_DeferredCommands, 0, count);
+                m_DeferredCommandCount = 0;
+            }
+            finally
+            {
+                if (lockTaken) m_Lock.Exit();
+            }
+
+            try
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    ref var cmd = ref buffer[i];
+                    switch (cmd.kind)
+                    {
+                        case DeferredCommandKind.Add:
+                        {
+                            var capability = cmd.capability;
+                            var instance = new CapabilityInstance
+                            {
+                                capability = capability,
+                                tickGroup = (int)capability.TickGroup,
+                                tickOrder = capability.TickOrder
+                            };
+                            m_World.Actors.AddCapabilityInstance(cmd.actor, instance);
+                            m_ActionQueue.AddCapability(capability, (int)capability.TickGroup, capability.TickOrder);
+                            MarkActorDirty(cmd.actor);
+                            break;
+                        }
+                        case DeferredCommandKind.Remove:
+                        {
+                            var capability = cmd.capability;
+                            m_ActionQueue.RemoveCapability(capability);
+                            if (capability.IsActive)
+                            {
+                                try { capability.OnDeactivated(); }
+                                catch { }
+                                capability.IsActive = false;
+                            }
+                            m_World.Actors.RemoveCapabilityInstance(cmd.actor, capability);
+                            ReturnToPool(capability);
+                            MarkActorDirty(cmd.actor);
+                            break;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                ArrayPool<DeferredCommand>.Shared.Return(buffer, false);
+            }
         }
     }
     
@@ -3531,6 +3907,8 @@ namespace Verve
 
         public int Length { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => m_HasError ? 0 : m_Length; }
 
+        public int Capacity { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => m_Buffer.Length; }
+
         public bool HasError { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => m_HasError; }
 
         public ReadOnlySpan<byte> WrittenSpan
@@ -3609,6 +3987,18 @@ namespace Verve
                 return;
             }
             BinaryPrimitives.WriteInt32LittleEndian(m_Buffer.Slice(position, 4), value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetLength(int length)
+        {
+            if (m_HasError) return;
+            if (length < 0 || length > m_Buffer.Length)
+            {
+                m_HasError = true;
+                return;
+            }
+            m_Length = length;
         }
     }
 
@@ -3855,7 +4245,7 @@ namespace Verve
         where T : struct, IComponent
     {
         private readonly int m_NetworkTypeId;
-        private readonly NetworkSyncDirection m_Direction;
+        private NetworkSyncDirection m_Direction;
         private Actor[] m_ReplicatedActors;
         private int m_ReplicatedCount;
         private Actor[] m_DirtyActors;
@@ -3870,8 +4260,15 @@ namespace Verve
         public int NetworkTypeId { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => m_NetworkTypeId; }
         public NetworkSyncDirection Direction { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => m_Direction; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void EnsureDirection(NetworkSyncDirection direction)
+            => m_Direction |= direction;
+
         public void RegisterActor(in Actor actor)
         {
+            if (actor.IsNone)
+                return;
+
             m_ReplicatedActors ??= new Actor[16];
 
             long id = actor.id;
@@ -3892,24 +4289,44 @@ namespace Verve
 
         public void UnregisterActor(in Actor actor)
         {
-            if (m_ReplicatedActors == null || m_ReplicatedCount == 0)
+            long id = actor.id;
+            if (m_ReplicatedActors != null && m_ReplicatedCount != 0)
+            {
+                for (int i = 0; i < m_ReplicatedCount; i++)
+                {
+                    if (m_ReplicatedActors[i].id != id)
+                        continue;
+
+                    int last = --m_ReplicatedCount;
+                    if (i != last)
+                        m_ReplicatedActors[i] = m_ReplicatedActors[last];
+                    break;
+                }
+            }
+
+            if (m_DirtyActors == null || m_DirtyCount == 0)
                 return;
 
-            long id = actor.id;
-            for (int i = 0; i < m_ReplicatedCount; i++)
+            for (int i = 0; i < m_DirtyCount; i++)
             {
-                if (m_ReplicatedActors[i].id != id)
+                if (m_DirtyActors[i].id != id)
                     continue;
 
-                int last = --m_ReplicatedCount;
+                int last = --m_DirtyCount;
                 if (i != last)
-                    m_ReplicatedActors[i] = m_ReplicatedActors[last];
+                    m_DirtyActors[i] = m_DirtyActors[last];
                 break;
             }
         }
 
         public void MarkDirty(in Actor actor)
         {
+            if (actor.IsNone)
+                return;
+
+            if (!IsActorReplicated(actor.id))
+                return;
+
             m_DirtyActors ??= new Actor[64];
 
             long id = actor.id;
@@ -3932,59 +4349,80 @@ namespace Verve
         {
             if (m_DirtyCount == 0) return false;
 
-            int entryCount = 0;
+            int compact = 0;
             for (int i = 0; i < m_DirtyCount; i++)
             {
                 var actor = m_DirtyActors[i];
                 if (!world.IsActorAlive(actor)) continue;
                 if (!IsActorReplicated(actor.id)) continue;
-                entryCount++;
+                if (!world.HasComponent<T>(actor)) continue;
+                m_DirtyActors[compact++] = actor;
             }
+            m_DirtyCount = compact;
 
-            if (entryCount == 0)
-            {
-                m_DirtyCount = 0;
+            if (m_DirtyCount == 0)
                 return false;
-            }
+
+            int segmentStart = writer.Length;
+
+            var firstActor = m_DirtyActors[0];
+            ref var firstComponent = ref world.GetComponent<T>(firstActor);
+            int firstSize = serializer.GetSize(in firstComponent);
+            if (firstSize < 0) firstSize = 0;
+
+            int minNeeded = 4 + 4 + 8 + 4 + firstSize;
+            if (segmentStart + minNeeded > writer.Capacity)
+                return false;
 
             writer.WriteInt32(m_NetworkTypeId);
-            writer.WriteInt32(entryCount);
+            int entryCountPosition = writer.Length;
+            writer.WriteInt32(0);
 
             int written = 0;
             for (int i = 0; i < m_DirtyCount; i++)
             {
                 var actor = m_DirtyActors[i];
-                if (!world.IsActorAlive(actor))
-                    continue;
-
-                if (!IsActorReplicated(actor.id))
-                    continue;
 
                 long networkId = manager.GetOrCreateNetworkEntityId(actor);
-                writer.WriteInt64(networkId);
                 ref var component = ref world.GetComponent<T>(actor);
                 int size = serializer.GetSize(in component);
+                if (size < 0) size = 0;
+
+                int needed = 8 + 4 + size;
+                if (writer.Length + needed > writer.Capacity)
+                    break;
+
+                writer.WriteInt64(networkId);
                 writer.WriteInt32(size);
 
                 if (size > 0)
                 {
                     var span = writer.GetSpan(size);
-                    if (span.Length == size)
-                    {
-                        serializer.Write(span, in component);
-                    }
+                    if (span.Length != size || writer.HasError)
+                        break;
+                    serializer.Write(span, in component);
                 }
-
-                written++;
 
                 if (writer.HasError)
                     break;
-                if (written >= entryCount)
-                    break;
+
+                written++;
             }
 
-            m_DirtyCount = 0;
-            return !writer.HasError && entryCount > 0;
+            if (writer.HasError || written <= 0)
+            {
+                writer.SetLength(segmentStart);
+                return false;
+            }
+
+            writer.WriteInt32At(entryCountPosition, written);
+
+            int remaining = m_DirtyCount - written;
+            if (remaining > 0)
+                Array.Copy(m_DirtyActors, written, m_DirtyActors, 0, remaining);
+            m_DirtyCount = remaining;
+
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -4068,7 +4506,8 @@ namespace Verve
         private INetworkComponentSerializer m_ComponentSerializer;
         private INetworkPacketHeaderFormatter m_HeaderFormatter;
         private int m_Sequence;
-        private long m_NextLocalNetworkId = -1;
+        private readonly int m_LocalNetworkNamespace;
+        private uint m_NextLocalNetworkIndex = 1;
         private float m_SendTimer;
         private float m_ReceiveTimer;
         private bool m_IsDisposed;
@@ -4083,6 +4522,9 @@ namespace Verve
             m_ComponentHandlers = new Dictionary<int, IComponentSyncHandler>(16);
             m_ComponentSerializer = BinaryNetworkComponentSerializer.Instance;
             m_HeaderFormatter = DefaultNetworkPacketHeaderFormatter.Instance;
+            m_LocalNetworkNamespace = Guid.NewGuid().GetHashCode();
+            if (m_LocalNetworkNamespace == 0)
+                m_LocalNetworkNamespace = 1;
         }
 
         internal Actor ResolveActorFromNetworkId(long networkId)
@@ -4092,8 +4534,12 @@ namespace Verve
 
             lock (m_SyncLock)
             {
-                if (m_RemoteActors.TryGetValue(networkId, out var mapped) && m_World.IsActorAlive(mapped))
-                    return mapped;
+                if (m_RemoteActors.TryGetValue(networkId, out var mapped))
+                {
+                    if (m_World.IsActorAlive(mapped))
+                        return mapped;
+                    m_ActorToNetworkIds.Remove(mapped.id);
+                }
 
                 var actor = m_World.CreateActor();
                 m_RemoteActors[networkId] = actor;
@@ -4112,7 +4558,7 @@ namespace Verve
                 if (m_ActorToNetworkIds.TryGetValue(actorId, out var existing))
                     return existing;
 
-                long networkId = m_NextLocalNetworkId--;
+                long networkId = ((long)(uint)m_LocalNetworkNamespace << 32) | m_NextLocalNetworkIndex++;
                 m_ActorToNetworkIds[actorId] = networkId;
                 m_RemoteActors[networkId] = actor;
                 return networkId;
@@ -4136,8 +4582,6 @@ namespace Verve
                 }
             }
         }
-        
-        ~NetworkSyncManager() => Dispose();
 
         public void Dispose()
         {
@@ -4174,6 +4618,10 @@ namespace Verve
                 {
                     handler = new ComponentSyncHandler<T>(direction);
                     m_ComponentHandlers[networkTypeId] = handler;
+                }
+                else if (handler is ComponentSyncHandler<T> typed)
+                {
+                    typed.EnsureDirection(direction);
                 }
 
                 handler.RegisterActor(actor);
@@ -4435,6 +4883,13 @@ namespace Verve
     public sealed class World : IDisposable
     {
         private float m_TimeScale = 1f;
+        private SpinLock m_DispatchLock;
+        private Action<World>[] m_DispatchWriteBuffer;
+        private int m_DispatchWriteCount;
+        private Action<World>[] m_DispatchExecuteBuffer;
+        /// <summary>
+        ///   <para>网络同步管理器</para>
+        /// </summary>
         private readonly NetworkSyncManager m_NetworkSync;
         
         /// <summary>
@@ -4483,9 +4938,16 @@ namespace Verve
             m_NetworkSync = networkSyncOptions.HasValue
                 ? new NetworkSyncManager(this, networkSyncOptions.Value)
                 : null;
+            m_DispatchLock = new SpinLock(false);
+            m_DispatchWriteBuffer = new Action<World>[16];
+            m_DispatchExecuteBuffer = new Action<World>[16];
         }
 
-        ~World() => Dispose();
+        ~World()
+        {
+            try { Dispose(false); }
+            catch { }
+        }
 
         /// <summary>
         ///   <para>创建一个行动者</para>
@@ -4508,6 +4970,8 @@ namespace Verve
         public void DestroyActor(Actor actor)
         {
             m_NetworkSync?.OnActorDestroyed(actor);
+            Sheets.RemoveAllSheets(actor);
+            Capabilities.RemoveAllCapabilities(actor);
             Actors.DestroyActor(actor);
         }
         
@@ -4719,6 +5183,25 @@ namespace Verve
             => Actors.QueryActorsWithComponents(componentTypes);
 
         /// <summary>
+        ///   <para>查询拥有指定组件的全部行动者</para>
+        /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="result">结果列表</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void QueryActorsWithComponentNonAlloc<T>(List<Actor> result)
+            where T : struct, IComponent
+            => Actors.QueryActorsWithComponentNonAlloc<T>(result);
+        
+        /// <summary>
+        ///   <para>查询同时拥有指定多组件的全部行动者</para>
+        /// </summary>
+        /// <param name="result">结果列表</param>
+        /// <param name="componentTypes">组件类型列表</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void QueryActorsWithComponentsNonAlloc(List<Actor> result, params Type[] componentTypes)
+            => Actors.QueryActorsWithComponentsNonAlloc(componentTypes, result);
+
+        /// <summary>
         ///   <para>设置网络传输实现</para>
         /// </summary>
         /// <param name="transport">网络同步传输接口</param>
@@ -4760,6 +5243,93 @@ namespace Verve
         public void MarkComponentDirty<T>(Actor actor)
             where T : struct, IComponent
             => m_NetworkSync?.MarkComponentDirty<T>(actor);
+
+        /// <summary>
+        ///   <para>向世界线程派发一个任务（可从任意线程调用，在下一次 Tick 时执行）</para>
+        /// </summary>
+        /// <param name="action">任务逻辑</param>
+        public bool Enqueue(Action<World> action)
+        {
+            if (action == null || IsDisposed) return false;
+
+            bool lockTaken = false;
+            try
+            {
+                m_DispatchLock.Enter(ref lockTaken);
+                if (IsDisposed) return false;
+
+                if (m_DispatchWriteCount >= m_DispatchWriteBuffer.Length)
+                    Array.Resize(ref m_DispatchWriteBuffer, m_DispatchWriteBuffer.Length * 2);
+
+                m_DispatchWriteBuffer[m_DispatchWriteCount++] = action;
+                return true;
+            }
+            finally
+            {
+                if (lockTaken) m_DispatchLock.Exit();
+            }
+        }
+
+        /// <summary>
+        ///   <para>当前等待执行的派发任务数量</para>
+        /// </summary>
+        public int PendingActionCount
+        {
+            get
+            {
+                if (IsDisposed) return 0;
+                bool lockTaken = false;
+                try
+                {
+                    m_DispatchLock.Enter(ref lockTaken);
+                    return m_DispatchWriteCount;
+                }
+                finally
+                {
+                    if (lockTaken) m_DispatchLock.Exit();
+                }
+            }
+        }
+
+        private void ExecutePendingActions()
+        {
+            if (IsDisposed) return;
+
+            Action<World>[] executeBuffer;
+            int executeCount;
+
+            bool lockTaken = false;
+            try
+            {
+                m_DispatchLock.Enter(ref lockTaken);
+                executeCount = m_DispatchWriteCount;
+                if (executeCount <= 0) return;
+
+                executeBuffer = m_DispatchWriteBuffer;
+                m_DispatchWriteBuffer = m_DispatchExecuteBuffer;
+                m_DispatchExecuteBuffer = executeBuffer;
+                m_DispatchWriteCount = 0;
+            }
+            finally
+            {
+                if (lockTaken) m_DispatchLock.Exit();
+            }
+
+            for (int i = 0; i < executeCount; i++)
+            {
+                var action = executeBuffer[i];
+                executeBuffer[i] = null;
+                if (action == null) continue;
+                try
+                {
+                    action(this);
+                }
+                catch (Exception ex)
+                {
+                    Game.LogError($"World dispatch action error: {ex}");
+                }
+            }
+        }
         
         /// <summary>
         ///   <para>执行世界逻辑帧（按<see cref="TickGroup"/>分组驱动所有能力）</para>
@@ -4770,6 +5340,7 @@ namespace Verve
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(World));
             float scaledDelta = deltaTime * m_TimeScale;
+            ExecutePendingActions();
             m_NetworkSync?.BeforeTick(scaledDelta, TickGroup.Gameplay);
             Capabilities?.Update(scaledDelta);
             m_NetworkSync?.AfterTick(scaledDelta, TickGroup.Gameplay);
@@ -4784,6 +5355,7 @@ namespace Verve
         {
             if (IsDisposed) throw new ObjectDisposedException(nameof(World));
             float scaledDelta = deltaTime * m_TimeScale;
+            ExecutePendingActions();
             m_NetworkSync?.BeforeTick(scaledDelta, tickGroup);
             Capabilities?.Update(scaledDelta, tickGroup);
             m_NetworkSync?.AfterTick(scaledDelta, tickGroup);
@@ -4805,23 +5377,41 @@ namespace Verve
         /// </summary>
         public void Dispose()
         {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void Dispose(bool disposing)
+        {
             if (IsDisposed) return;
 
             try
             {
-                m_NetworkSync?.Dispose();
-                Capabilities?.Dispose();
-                Actors?.Dispose();
+                if (disposing)
+                {
+                    m_NetworkSync?.Dispose();
+                    Capabilities?.Dispose();
+                    Actors?.Dispose();
+                }
             }
             finally
             {
+                bool lockTaken = false;
+                try
+                {
+                    m_DispatchLock.Enter(ref lockTaken);
+                    if (m_DispatchWriteBuffer != null)
+                        Array.Clear(m_DispatchWriteBuffer, 0, m_DispatchWriteCount);
+                    m_DispatchWriteCount = 0;
+                }
+                finally
+                {
+                    if (lockTaken) m_DispatchLock.Exit();
+                }
+
                 IsDisposed = true;
             }
-
-            GC.SuppressFinalize(this);
         }
-        
-        public override string ToString() => $"{nameof(World)}: {Name}";
     }
     
     #endregion
