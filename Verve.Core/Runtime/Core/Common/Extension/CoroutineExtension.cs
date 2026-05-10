@@ -35,6 +35,136 @@ namespace Verve
             }
         }
 
+#if UNITY_2023_1_OR_NEWER
+        public static Awaitable AsAwaitable(this Task self, Action onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
+        {
+            if (self == null) return default;
+
+            var source = new AwaitableCompletionSource();
+            var completed = 0;
+
+            void TryComplete(Action action)
+            {
+                if (Interlocked.Exchange(ref completed, 1) != 0) return;
+                action();
+            }
+
+            if (token.CanBeCanceled)
+            {
+                token.Register(() =>
+                {
+                    TryComplete(() =>
+                    {
+                        source.SetCanceled();
+                        if (onError != null) InvokeOnContext(onError, new OperationCanceledException(token));
+                    });
+                });
+            }
+
+            self.ContinueWith(t =>
+            {
+                if (t.IsCanceled || token.IsCancellationRequested)
+                {
+                    TryComplete(() =>
+                    {
+                        source.SetCanceled();
+                        if (onError != null) InvokeOnContext(onError, new OperationCanceledException(token));
+                    });
+                    return;
+                }
+
+                if (t.IsFaulted)
+                {
+                    var exception = t.Exception?.Flatten().InnerException ?? t.Exception;
+                    TryComplete(() =>
+                    {
+                        source.SetException(exception);
+                        if (onError != null) InvokeOnContext(onError, exception);
+                        else InvokeOnContext(() => Debug.LogException(exception));
+                    });
+                    return;
+                }
+
+                TryComplete(() =>
+                {
+                    source.SetResult();
+                    if (onComplete != null) InvokeOnContext(onComplete);
+                });
+            }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+
+            return source.Awaitable;
+        }
+
+        public static Awaitable<T> AsAwaitable<T>(this Task<T> self, Action<T> onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
+        {
+            if (self == null) return default;
+
+            var source = new AwaitableCompletionSource<T>();
+            var completed = 0;
+
+            void TryComplete(Action action)
+            {
+                if (Interlocked.Exchange(ref completed, 1) != 0) return;
+                action();
+            }
+
+            if (token.CanBeCanceled)
+            {
+                token.Register(() =>
+                {
+                    TryComplete(() =>
+                    {
+                        source.SetCanceled();
+                        if (onError != null) InvokeOnContext(onError, new OperationCanceledException(token));
+                    });
+                });
+            }
+
+            self.ContinueWith(t =>
+            {
+                if (t.IsCanceled || token.IsCancellationRequested)
+                {
+                    TryComplete(() =>
+                    {
+                        source.SetCanceled();
+                        if (onError != null) InvokeOnContext(onError, new OperationCanceledException(token));
+                    });
+                    return;
+                }
+
+                if (t.IsFaulted)
+                {
+                    var exception = t.Exception?.Flatten().InnerException ?? t.Exception;
+                    TryComplete(() =>
+                    {
+                        source.SetException(exception);
+                        if (onError != null) InvokeOnContext(onError, exception);
+                        else InvokeOnContext(() => Debug.LogException(exception));
+                    });
+                    return;
+                }
+
+                TryComplete(() =>
+                {
+                    source.SetResult(t.Result);
+                    if (onComplete != null) InvokeOnContext(onComplete, t.Result);
+                });
+            }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+
+            return source.Awaitable;
+        }
+
+        public static Awaitable AsAwaitable(this ValueTask self, Action onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
+        {
+            return self.AsTask().AsAwaitable(onComplete, onError, token);
+        }
+
+        public static Awaitable<T> AsAwaitable<T>(this ValueTask<T> self, Action<T> onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
+        {
+            return self.AsTask().AsAwaitable(onComplete, onError, token);
+        }
+#endif
+
         /// <summary>
         ///   <para>将异步转为Unity协程</para>
         /// </summary>

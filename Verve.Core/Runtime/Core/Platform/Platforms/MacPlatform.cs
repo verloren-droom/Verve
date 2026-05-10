@@ -4,7 +4,6 @@ namespace Verve
 {
     using System;
     using UnityEngine;
-    using System.Text;
     using System.Runtime.InteropServices;
     
     
@@ -41,11 +40,6 @@ namespace Verve
                 return;
             }
             
-            IntPtr titlePtr = IntPtr.Zero;
-            IntPtr messagePtr = IntPtr.Zero;
-            IntPtr okTextPtr = IntPtr.Zero;
-            IntPtr cancelTextPtr = IntPtr.Zero;
-            
             string safeTitle = string.IsNullOrEmpty(title) ? "Dialog" : title;
             string safeMessage = string.IsNullOrEmpty(message) ? "" : message;
             string safeOkText = string.IsNullOrEmpty(okText) ? "OK" : okText;
@@ -53,22 +47,22 @@ namespace Verve
             
             try
             {
-                titlePtr = StringToUtf8Ptr(safeTitle);
-                messagePtr = StringToUtf8Ptr(safeMessage);
-                okTextPtr = StringToUtf8Ptr(safeOkText);
-                cancelTextPtr = StringToUtf8Ptr(safeCancelText);
-                
-                if (titlePtr == IntPtr.Zero || messagePtr == IntPtr.Zero || okTextPtr == IntPtr.Zero)
+                using var titleUtf8 = new Utf8String(safeTitle);
+                using var messageUtf8 = new Utf8String(safeMessage);
+                using var okUtf8 = new Utf8String(safeOkText);
+                using var cancelUtf8 = new Utf8String(safeCancelText);
+
+                if (titleUtf8.Ptr == IntPtr.Zero || messageUtf8.Ptr == IntPtr.Zero || okUtf8.Ptr == IntPtr.Zero)
                 {
                     onResult?.Invoke(false);
                     return;
                 }
                 
                 int dialogResult = _ShowDialog(
-                    titlePtr,
-                    messagePtr,
-                    okTextPtr,
-                    cancelTextPtr
+                    titleUtf8.Ptr,
+                    messageUtf8.Ptr,
+                    okUtf8.Ptr,
+                    cancelUtf8.Ptr
                 );
                 
                 onResult?.Invoke(dialogResult == 0);
@@ -76,66 +70,6 @@ namespace Verve
             catch
             {
                 onResult?.Invoke(false);
-            }
-            finally
-            {
-                FreeUtf8Ptr(titlePtr);
-                FreeUtf8Ptr(messagePtr);
-                FreeUtf8Ptr(okTextPtr);
-                FreeUtf8Ptr(cancelTextPtr);
-            }
-        }
-        
-        /// <summary>
-        ///   <para>将字符串转换为UTF8编码的非托管内存指针</para>
-        /// </summary>
-        /// <param name="str">字符串</param>
-        /// <returns>
-        ///   <para>UTF8编码的字符串指针</para>
-        /// </returns>
-        private static IntPtr StringToUtf8Ptr(string str)
-        {
-            if (string.IsNullOrEmpty(str))
-                return IntPtr.Zero;
-                
-            try
-            {
-                byte[] bytes = Encoding.UTF8.GetBytes(str);
-                IntPtr ptr = Marshal.AllocHGlobal(bytes.Length + 1);
-                Marshal.Copy(bytes, 0, ptr, bytes.Length);
-                Marshal.WriteByte(ptr, bytes.Length, 0); // 添加null终止符
-                
-                string roundTrip = Marshal.PtrToStringUTF8(ptr);
-                if (roundTrip != str)
-                {
-                    Debug.LogWarning($"[MacPlatform] String round-trip mismatch: '{str}' -> '{roundTrip}'");
-                }
-                
-                return ptr;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[MacPlatform] Failed to convert string '{str}' to pointer: {ex}");
-                return IntPtr.Zero;
-            }
-        }
-        
-        /// <summary>
-        ///   <para>释放UTF8字符串指针</para>
-        /// </summary>
-        /// <param name="ptr">UTF8字符串指针</param>
-        private static void FreeUtf8Ptr(IntPtr ptr)
-        {
-            if (ptr != IntPtr.Zero)
-            {
-                try
-                {
-                    Marshal.FreeHGlobal(ptr);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"[MacPlatform] Error freeing memory at {ptr}: {ex}");
-                }
             }
         }
     }

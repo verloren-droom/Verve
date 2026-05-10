@@ -3,12 +3,8 @@
 namespace Verve.Editor
 {
     using System;
-    using Verve;
-    using System.Linq;
     using UnityEditor;
     using UnityEngine;
-    using System.Reflection;
-    using System.Collections.Generic;
     using UnityEditor.SceneManagement;
     using Object = UnityEngine.Object;
     
@@ -68,8 +64,7 @@ namespace Verve.Editor
                 ? new Color(0.6f, 0.6f, 0.6f, 1.333f)
                 : new Color(0.12f, 0.12f, 0.12f, 1.333f));
         }
-        
-        
+
         /// <summary>
         ///   <para>绘制带开关的头部</para>
         /// </summary>
@@ -214,26 +209,6 @@ namespace Verve.Editor
             }
         }
         
-        /// <summary>
-        ///   <para>获取游戏功能菜单路径</para>
-        /// </summary>
-        /// <param name="type">类型</param>
-        /// <returns>
-        ///   <para>游戏功能菜单路径</para>
-        /// </returns>
-        public static string GetGameFeatureMenuPath(Type type)
-        {
-            var attr = type.GetCustomAttribute<GameFeatureAttribute>();
-            if (attr == null)
-                return null;
-            if (string.IsNullOrEmpty(attr.MenuPath))
-                return ObjectNames.NicifyVariableName(type.Name);
-            var path = attr.MenuPath.Trim();
-            if (path.EndsWith("/"))
-                return path + ObjectNames.NicifyVariableName(type.Name);
-            return path;
-        }
-        
         private static GUIStyle m_MiniLabelButton;
 
         /// <summary>
@@ -268,123 +243,6 @@ namespace Verve.Editor
             }
         }
 
-        /// <summary>
-        ///   <para>获取指定模块中的所有子模块类型</para>
-        /// </summary>
-        /// <param name="module">模块</param>
-        /// <returns>
-        ///   <para>子模块类型</para>
-        /// </returns>
-        public static Type[] GetSubmoduleTypes(GameFeatureModule module)
-        {
-            var allSubmoduleTypes = TypeCache.GetTypesDerivedFrom<IGameFeatureSubmodule>()
-                .Where(t => !t.IsAbstract 
-                            && !t.IsInterface 
-                            && t.IsClass
-                            && t.GetCustomAttribute<GameFeatureSubmoduleAttribute>() != null);
-            
-            return allSubmoduleTypes
-                .Where(t =>
-                {
-                    var attr = t.GetCustomAttribute<GameFeatureSubmoduleAttribute>();
-
-                    if (attr.BelongsToModule != null && module != null)
-                    {
-                        return attr.BelongsToModule == module.GetType();
-                    }
-            
-                    if (!string.IsNullOrEmpty(attr.MenuPath) && module != null)
-                    {
-                        string moduleName = module.name;
-                        if (moduleName.Contains("/"))
-                        {
-                            moduleName = moduleName.Substring(moduleName.LastIndexOf('/') + 1);
-                        }
-                
-                        string submoduleMenuPath = attr.MenuPath;
-                        if (submoduleMenuPath.Contains("/"))
-                        {
-                            submoduleMenuPath = submoduleMenuPath.Substring(submoduleMenuPath.LastIndexOf('/') + 1);
-                        }
-                
-                        return moduleName.Equals(submoduleMenuPath, StringComparison.OrdinalIgnoreCase);
-                    }
-
-                    return false;
-                }).ToArray();
-        }
-        
-        /// <summary>
-        ///   <para>获取所有可添加的模块类型（包括普通模块和子模块组合）</para>
-        /// </summary>
-        public static Dictionary<string, List<Type>> GetAvailableModuleTypes(GameFeatureModuleProfile profile = null)
-        {
-            var result = new Dictionary<string, List<Type>>();
-
-            var moduleTypes = TypeCache.GetTypesDerivedFrom<GameFeatureModule>()
-                .Where(t => !t.IsAbstract && t.IsClass);
-
-            foreach (var type in moduleTypes)
-            {
-                var menuPath = GetGameFeatureMenuPath(type);
-                if (string.IsNullOrEmpty(menuPath)) continue;
-
-                if (!result.ContainsKey(menuPath))
-                {
-                    result[menuPath] = new List<Type>();
-                }
-                
-                result[menuPath].Add(type);
-            }
-
-            var allSubmoduleTypes = TypeCache.GetTypesDerivedFrom<IGameFeatureSubmodule>()
-                .Where(t => !t.IsAbstract && t.IsClass && 
-                           t.GetCustomAttribute<GameFeatureSubmoduleAttribute>() != null &&
-                           t.GetCustomAttribute<GameFeatureSubmoduleAttribute>().BelongsToModule == null);
-
-            var submoduleGroups = allSubmoduleTypes
-                .GroupBy(t => t.GetCustomAttribute<GameFeatureSubmoduleAttribute>().MenuPath)
-                .ToDictionary(g => g.Key, g => g.ToList());
-
-            foreach (var group in submoduleGroups)
-            {
-                string menuPath = group.Key;
-                
-                if (profile != null)
-                {
-                    bool alreadyExists = profile.Modules.Any(m => 
-                    {
-                        if (m == null) return false;
-            
-                        var moduleMenuPath = GetGameFeatureMenuPath(m.GetType());
-                        if (!string.IsNullOrEmpty(moduleMenuPath) && moduleMenuPath == menuPath)
-                            return true;
-            
-                        if (m.Submodules != null && m.Submodules.Count > 0)
-                        {
-                            var firstSubmodule = m.Submodules.First();
-                            var submoduleAttr = firstSubmodule.GetType().GetCustomAttribute<GameFeatureSubmoduleAttribute>();
-                            if (submoduleAttr != null && submoduleAttr.MenuPath == menuPath)
-                                return true;
-                        }
-            
-                        return false;
-                    });
-                    
-                    if (alreadyExists) continue;
-                }
-                
-                if (!result.ContainsKey(menuPath))
-                {
-                    result[menuPath] = new List<Type>();
-                }
-                
-                result[menuPath].AddRange(group.Value);
-            }
-
-            return result;
-        }
-        
         /// <summary>
         ///   <para>获取父级对象</para>
         /// </summary>
@@ -425,27 +283,7 @@ namespace Verve.Editor
                 EditorUtility.DisplayDialog("Error", $"{templateFileName} Template file not found", "OK");
             }
         }
-        
-        /// <summary>
-        ///   <para>创建纯色纹理</para>
-        /// </summary>
-        /// <param name="width">宽</param>
-        /// <param name="height">高</param>
-        /// <param name="col">背景色</param>
-        /// <returns>
-        ///   <para>纯色纹理</para>
-        /// /returns>
-        public static Texture2D MakeTex(int width, int height, Color col)
-        {
-            Color[] pix = new Color[width * height];
-            for (int i = 0; i < pix.Length; i++)
-                pix[i] = col;
-            Texture2D result = new Texture2D(width, height);
-            result.SetPixels(pix);
-            result.Apply();
-            return result;
-        }
-        
+
         /// <summary>
         ///   <para>查找类型的MonoScript</para>
         /// </summary>

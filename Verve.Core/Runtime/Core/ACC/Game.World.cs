@@ -1,18 +1,14 @@
 namespace Verve
 {
     using System;
-    using System.Threading;
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;
+    using System.Threading;
 #if UNITY_5_3_OR_NEWER
     using UnityEngine;
 #endif
-#if UNITY_2018_3_OR_NEWER
-    using UnityEngine.LowLevel;
-    using UnityEngine.PlayerLoop;
-#endif
-    
-    
+
+
     /// <summary>
     ///   <para>游戏入口：世界部分</para>
     /// </summary>
@@ -21,12 +17,7 @@ namespace Verve
         private static readonly Dictionary<string, World> s_Worlds = new(StringComparer.OrdinalIgnoreCase);
         private static readonly object s_WorldLock = new object();
         private static volatile World s_ActiveWorld;
-        private static int s_UpdateSystemCleanupRequested;
-#if UNITY_2018_3_OR_NEWER
-        private static PlayerLoopSystem s_OriginalPlayerLoop;
-        private static bool s_IsPlayerLoopModified;
-#endif
-        
+
         /// <summary>
         ///   <para>世界数量</para>
         /// </summary>
@@ -35,7 +26,7 @@ namespace Verve
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get { lock (s_WorldLock) { return s_Worlds.Count; } }
         }
-        
+
         /// <summary>
         ///   <para>所有世界集合</para>
         /// </summary>
@@ -47,13 +38,14 @@ namespace Verve
                 lock (s_WorldLock)
                 {
                     var values = s_Worlds.Values;
+                    if (values.Count == 0) return Array.Empty<World>();
                     var result = new World[values.Count];
                     values.CopyTo(result, 0);
                     return result;
                 }
             }
         }
-        
+
         /// <summary>
         ///   <para>当前活跃世界</para>
         /// </summary>
@@ -77,6 +69,8 @@ namespace Verve
         /// </summary>
         private static World GetActiveWorldSlow()
         {
+            World selected = null;
+            bool activeWorldChanged = false;
             lock (s_WorldLock)
             {
                 var active = s_ActiveWorld;
@@ -86,6 +80,7 @@ namespace Verve
                 if (active != null && active.IsDisposed)
                 {
                     s_ActiveWorld = null;
+                    activeWorldChanged = true;
                 }
 
                 foreach (var world in s_Worlds.Values)
@@ -93,55 +88,73 @@ namespace Verve
                     if (world != null && !world.IsDisposed)
                     {
                         s_ActiveWorld = world;
-                        return world;
+                        selected = world;
+                        activeWorldChanged = true;
+                        break;
                     }
                 }
 
-                s_ActiveWorld = null;
-                RequestUpdateSystemCleanup();
-                return null;
+                if (selected == null)
+                {
+                    s_ActiveWorld = null;
+                }
             }
+
+            if (activeWorldChanged && IsOnMainThread())
+            {
+                RefreshGameLoopForWorlds();
+            }
+            return selected;
         }
-        
+
         /// <summary>
         ///   <para>创建世界</para>
+        ///   <para>该入口会同步内部 GameLoop，必须在主线程调用</para>
         /// </summary>
         /// <param name="worldName">世界名称</param>
         /// <param name="actorManagerOptions">行为者管理选项</param>
         /// <param name="netOptions">网络同步选项</param>
         public static void CreateWorld(string worldName, ActorManagerOptions? actorManagerOptions = null, NetworkSyncOptions? netOptions = null)
         {
+            ThrowIfNotOnMainThread("Game.CreateWorld");
+
             if (string.IsNullOrWhiteSpace(worldName))
                 throw new ArgumentException("World name cannot be null or empty");
 
-            bool shouldInitializeUpdateSystem = false;
+            bool activateWorld = false;
             lock (s_WorldLock)
             {
+                bool createNew = true;
                 if (s_Worlds.TryGetValue(worldName, out var existingWorld))
                 {
                     if (!existingWorld.IsDisposed)
                     {
                         s_ActiveWorld = existingWorld;
-                        Interlocked.Exchange(ref s_UpdateSystemCleanupRequested, 0);
-                        return;
+                        activateWorld = true;
+                        createNew = false;
                     }
-                    s_Worlds.Remove(worldName);
+                    else
+                    {
+                        s_Worlds.Remove(worldName);
+                    }
                 }
-                
-                var world = new World(worldName, actorManagerOptions, netOptions);
-                s_Worlds[worldName] = world;
 
-                if (s_ActiveWorld == null)
+                if (createNew)
                 {
-                    s_ActiveWorld = world;
-                    shouldInitializeUpdateSystem = true;
+                    var world = new World(worldName, actorManagerOptions, netOptions);
+                    s_Worlds[worldName] = world;
+
+                    if (s_ActiveWorld == null)
+                    {
+                        s_ActiveWorld = world;
+                        activateWorld = true;
+                    }
                 }
             }
 
-            if (shouldInitializeUpdateSystem)
+            if (activateWorld)
             {
-                Interlocked.Exchange(ref s_UpdateSystemCleanupRequested, 0);
-                InitializeUpdateSystem();
+                RefreshGameLoopForWorlds();
             }
         }
 
@@ -158,7 +171,7 @@ namespace Verve
                 return s_Worlds.TryGetValue(worldName, out var world) && !world.IsDisposed;
             }
         }
-        
+
         /// <summary>
         ///   <para>获取世界</para>
         /// </summary>
@@ -179,19 +192,27 @@ namespace Verve
         /// <param name="worldName">世界名称</param>
         public static bool GotoWorld(string worldName)
         {
+            ThrowIfNotOnMainThread("Game.GotoWorld");
+
             if (string.IsNullOrWhiteSpace(worldName)) return false;
 
+            bool success = false;
             lock (s_WorldLock)
             {
                 if (!s_Worlds.TryGetValue(worldName, out var world) || world.IsDisposed)
                     return false;
 
                 s_ActiveWorld = world;
-                Interlocked.Exchange(ref s_UpdateSystemCleanupRequested, 0);
-                return true;
+                success = true;
             }
+
+            if (success)
+            {
+                RefreshGameLoopForWorlds();
+            }
+            return true;
         }
-        
+
         /// <summary>
         ///   <para>销毁世界</para>
         /// </summary>
@@ -199,13 +220,17 @@ namespace Verve
         /// <param name="force">是否强制销毁</param>
         public static void DestroyWorld(string worldName, bool force = false)
         {
+            ThrowIfNotOnMainThread("Game.DestroyWorld");
+
             if (string.IsNullOrWhiteSpace(worldName)) return;
 
+            bool activeChanged = false;
+            World worldToDispose = null;
             lock (s_WorldLock)
             {
                 if (!s_Worlds.TryGetValue(worldName, out var world) || world.IsDisposed)
                     return;
-                
+
                 if (s_ActiveWorld == world && !force)
                 {
                     World otherWorld = null;
@@ -216,22 +241,31 @@ namespace Verve
                         break;
                     }
                     s_ActiveWorld = otherWorld;
-                    if (otherWorld == null)
-                    {
-                        RequestUpdateSystemCleanup();
-                    }
+                    activeChanged = true;
                 }
                 else if (s_ActiveWorld == world)
                 {
                     s_ActiveWorld = null;
-                    RequestUpdateSystemCleanup();
+                    activeChanged = true;
                 }
 
                 s_Worlds.Remove(worldName);
-                world.Dispose();
+                worldToDispose = world;
+            }
+
+            try
+            {
+                worldToDispose?.Dispose();
+            }
+            finally
+            {
+                if (activeChanged)
+                {
+                    RefreshGameLoopForWorlds();
+                }
             }
         }
-        
+
         /// <summary>
         ///   <para>销毁所有世界</para>
         /// </summary>
@@ -240,348 +274,101 @@ namespace Verve
 #endif
         public static void DestroyAllWorlds()
         {
+            ThrowIfNotOnMainThread("Game.DestroyAllWorlds");
+
+            List<World> worldsToDispose = null;
+            bool clearedActive = false;
             lock (s_WorldLock)
             {
-                RequestUpdateSystemCleanup();
-                
-                foreach (var world in s_Worlds.Values)
-                {
-                    if (world.IsDisposed) continue;
-                    world.Dispose();
-                }
-                
+                worldsToDispose = new List<World>(s_Worlds.Values);
                 s_Worlds.Clear();
+                clearedActive = s_ActiveWorld != null;
                 s_ActiveWorld = null;
             }
-        }
 
-        #region 更新系统
- 
-#if UNITY_2018_3_OR_NEWER
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void RequestUpdateSystemCleanup()
-        {
-            Interlocked.Exchange(ref s_UpdateSystemCleanupRequested, 1);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void TryCleanupUpdateSystemIfRequested()
-        {
-            if (Interlocked.Exchange(ref s_UpdateSystemCleanupRequested, 0) != 0)
+            List<Exception> errors = null;
+            try
             {
-                CleanupUpdateSystem();
+                for (int i = 0; i < worldsToDispose.Count; i++)
+                {
+                    var world = worldsToDispose[i];
+                    if (world == null || world.IsDisposed) continue;
+
+                    try
+                    {
+                        world.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        errors ??= new List<Exception>();
+                        errors.Add(ex);
+                    }
+                }
+            }
+            finally
+            {
+                if (clearedActive) RefreshGameLoopForWorlds();
+            }
+
+            if (errors == null || errors.Count == 0) return;
+            if (errors.Count == 1) throw errors[0];
+            throw new AggregateException(errors);
+        }
+
+        /// <summary>
+        ///   <para>判断当前是否存在正在使用内部 GameLoop 的活跃世界</para>
+        /// </summary>
+        private static bool HasActiveWorldUsingGameLoop()
+        {
+            var world = s_ActiveWorld;
+            return world != null && !world.IsDisposed;
+        }
+
+        /// <summary>
+        ///   <para>根据活跃世界状态同步内部 GameLoop</para>
+        /// </summary>
+        private static void RefreshGameLoopForWorlds()
+        {
+            if (HasActiveWorldUsingGameLoop())
+            {
+                TryEnsureGameLoop();
+                return;
+            }
+
+            if (!HasActiveModuleHandles())
+            {
+                MarkGameLoopForCleanup();
             }
         }
 
         /// <summary>
-        ///   <para>初始化<see cref="PlayerLoop"/>更新系统</para>
+        ///   <para>驱动当前活跃世界执行指定 Tick 分组</para>
         /// </summary>
-        private static void InitializeUpdateSystem()
+        private static void TickActiveWorld(float deltaTime, TickGroup tickGroup)
         {
-            if (s_IsPlayerLoopModified) return;
+            var world = s_ActiveWorld;
+            if (world == null || world.IsDisposed)
+            {
+                world = GetActiveWorldSlow();
+                if (world == null || world.IsDisposed) return;
+            }
 
             try
             {
-                s_OriginalPlayerLoop = PlayerLoop.GetCurrentPlayerLoop();
-
-                var earlyUpdateSystem = new PlayerLoopSystem
-                {
-                    type = typeof(Game),
-                    updateDelegate = OnWorldEarlyUpdate
-                };
-
-                var physicsUpdateSystem = new PlayerLoopSystem
-                {
-                    type = typeof(Game),
-                    updateDelegate = OnWorldPhysicsUpdate
-                };
-
-                var gameplayUpdateSystem = new PlayerLoopSystem
-                {
-                    type = typeof(Game),
-                    updateDelegate = OnWorldGameplayUpdate
-                };
-
-                var lateUpdateSystem = new PlayerLoopSystem
-                {
-                    type = typeof(Game),
-                    updateDelegate = OnWorldLateUpdate
-                };
-
-                var newPlayerLoop = InsertWorldSystems(s_OriginalPlayerLoop, 
-                    earlyUpdateSystem,
-                    physicsUpdateSystem,
-                    gameplayUpdateSystem,
-                    lateUpdateSystem);
-
-                PlayerLoop.SetPlayerLoop(newPlayerLoop);
-                s_IsPlayerLoopModified = true;
+                world.Tick(deltaTime, tickGroup);
             }
             catch (Exception ex)
             {
-                LogError($"Failed to initialize PlayerLoop: {ex.Message}");
+                LogError($"World {tickGroup} update error ({world.Name}): {ex}");
             }
         }
 
-        /// <summary>
-        ///   <para>清理<see cref="PlayerLoop"/>更新系统</para>
-        /// </summary>
-        private static void CleanupUpdateSystem()
-        {
-            if (!s_IsPlayerLoopModified) return;
-
-            try
-            {
-                PlayerLoop.SetPlayerLoop(s_OriginalPlayerLoop);
-                s_IsPlayerLoopModified = false;
-                s_OriginalPlayerLoop = default;
-            }
-            catch (Exception ex)
-            {
-                LogError($"Failed to cleanup PlayerLoop: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        ///   <para>早期更新处理函数（对应<see cref="TickGroup.Early"/>）</para>
-        /// </summary>
-        private static void OnWorldEarlyUpdate()
-        {
-            TryCleanupUpdateSystemIfRequested();
-            var world = s_ActiveWorld;
-            if (world?.IsDisposed == false && Application.isPlaying)
-            {
-                try
-                {
-                    world.Tick(Time.deltaTime, TickGroup.Early);
-                }
-                catch (Exception ex)
-                {
-                    LogError($"World early update error: {ex}");
-                }
-            }
-        }
-
-        /// <summary>
-        ///   <para>物理更新处理函数（对应<see cref="TickGroup.Physics"/>）</para>
-        /// </summary>
-        private static void OnWorldPhysicsUpdate()
-        {
-            TryCleanupUpdateSystemIfRequested();
-            var world = s_ActiveWorld;
-            if (world?.IsDisposed == false && Application.isPlaying)
-            {
-                try
-                {
-                    world.Tick(Time.fixedDeltaTime, TickGroup.Physics);
-                }
-                catch (Exception ex)
-                {
-                    LogError($"World physics update error: {ex}");
-                }
-            }
-        }
-
-        /// <summary>
-        ///   <para>游戏逻辑更新处理函数（对应<see cref="TickGroup.Gameplay"/>）</para>
-        /// </summary>
-        private static void OnWorldGameplayUpdate()
-        {
-            TryCleanupUpdateSystemIfRequested();
-            var world = s_ActiveWorld;
-            if (world?.IsDisposed == false && Application.isPlaying)
-            {
-                try
-                {
-                    world.Tick(Time.deltaTime, TickGroup.Gameplay);
-                }
-                catch (Exception ex)
-                {
-                    LogError($"World gameplay update error: {ex}");
-                }
-            }
-        }
-
-        /// <summary>
-        ///   <para>后期更新处理函数（对应<see cref="TickGroup.Late"/>）</para>
-        /// </summary>
-        private static void OnWorldLateUpdate()
-        {
-            TryCleanupUpdateSystemIfRequested();
-            var world = s_ActiveWorld;
-            if (world?.IsDisposed == false && Application.isPlaying)
-            {
-                try
-                {
-                    world.Tick(Time.deltaTime, TickGroup.Late);
-                }
-                catch (Exception ex)
-                {
-                    LogError($"World late update error: {ex}");
-                }
-            }
-        }
-
-        /// <summary>
-        ///   <para>将世界更新系统插入到<see cref="PlayerLoop"/>中</para>
-        /// </summary>
-        private static PlayerLoopSystem InsertWorldSystems(
-            PlayerLoopSystem loop,
-            PlayerLoopSystem earlyUpdateSystem,
-            PlayerLoopSystem physicsUpdateSystem,
-            PlayerLoopSystem gameplayUpdateSystem,
-            PlayerLoopSystem lateUpdateSystem)
-        {
-            var newLoop = loop;
-
-            InsertSystemIntoSubSystem(ref newLoop, typeof(EarlyUpdate),
-                null, earlyUpdateSystem, insertAtStart: true);
-
-            InsertSystemIntoSubSystem(ref newLoop, typeof(FixedUpdate),
-                typeof(FixedUpdate.PhysicsFixedUpdate), physicsUpdateSystem, insertAfter: true);
-
-            InsertSystemIntoSubSystem(ref newLoop, typeof(Update),
-                typeof(Update.ScriptRunBehaviourUpdate), gameplayUpdateSystem, insertAfter: false);
-
-            InsertSystemIntoSubSystem(ref newLoop, typeof(PreLateUpdate),
-                typeof(PreLateUpdate.ScriptRunBehaviourLateUpdate), lateUpdateSystem, insertAfter: true);
-
-            return newLoop;
-        }
-
-        /// <summary>
-        ///   <para>将系统插入到指定的子系统中</para>
-        /// </summary>
-        private static bool InsertSystemIntoSubSystem(
-            ref PlayerLoopSystem loop,
-            Type subSystemType,
-            Type referenceSystemType,
-            PlayerLoopSystem systemToInsert,
-            bool insertAtStart = false,
-            bool insertAfter = false)
-        {
-            if (loop.subSystemList == null || loop.subSystemList.Length == 0) return false;
-
-            for (int i = 0; i < loop.subSystemList.Length; i++)
-            {
-                if (loop.subSystemList[i].type == subSystemType)
-                {
-                    var subSystem = loop.subSystemList[i];
-                    var newSubSystemList = new List<PlayerLoopSystem>(subSystem.subSystemList ?? Array.Empty<PlayerLoopSystem>());
-
-                    int insertIndex = 0;
-                    
-                    if (insertAtStart)
-                    {
-                        insertIndex = 0;
-                    }
-                    else if (referenceSystemType != null)
-                    {
-                        bool foundReference = false;
-                        for (int j = 0; j < newSubSystemList.Count; j++)
-                        {
-                            if (newSubSystemList[j].type == referenceSystemType)
-                            {
-                                foundReference = true;
-                                insertIndex = j;
-                                if (insertAfter) insertIndex = j + 1;
-                                break;
-                            }
-                        }
-                        
-                        if (!foundReference)
-                        {
-                            insertIndex = newSubSystemList.Count;
-                        }
-                    }
-                    else
-                    {
-                        insertIndex = newSubSystemList.Count;
-                    }
-
-                    newSubSystemList.Insert(insertIndex, systemToInsert);
-                    subSystem.subSystemList = newSubSystemList.ToArray();
-                    loop.subSystemList[i] = subSystem;
-                    return true;
-                }
-            }
-
-            return false;
-        }
-#elif UNITY_5_3_OR_NEWER
-        private static WorldRunner s_WorldRunner;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void RequestUpdateSystemCleanup()
-        {
-            Interlocked.Exchange(ref s_UpdateSystemCleanupRequested, 1);
-        }
-        
-        private static void InitializeUpdateSystem()
-        {
-            if (s_WorldRunner != null) return;
-
-            var runnerObj = new GameObject("[WorldRunner]");
-            UnityEngine.Object.DontDestroyOnLoad(runnerObj);
-            s_WorldRunner = runnerObj.AddComponent<WorldRunner>();
-        }
-
-        private static void CleanupUpdateSystem()
-        {
-            if (s_WorldRunner != null)
-            {
-                UnityEngine.Object.Destroy(s_WorldRunner.gameObject);
-                s_WorldRunner = null;
-            }
-        }
-
-        [DefaultExecutionOrder(-1000), DisallowMultipleComponent, AddComponentMenu("Verve/" + nameof(WorldRunner))]
-        private sealed class WorldRunner : ComponentInstanceBase<WorldRunner>
-        {
-            private void Update()
-            {
-                if (Interlocked.Exchange(ref s_UpdateSystemCleanupRequested, 0) != 0)
-                {
-                    CleanupUpdateSystem();
-                    return;
-                }
-
-                try
-                {
-                    var world = s_ActiveWorld;
-                    if (world?.IsDisposed == false)
-                    {
-                        world.Tick(Time.deltaTime);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LogError($"World update error: {ex}");
-                }
-            }
-        }
-#else
-        private static void InitializeUpdateSystem(float deltaTime = 0.02f) 
-        {
-            if (s_ActiveWorld?.IsDisposed == false)
-            {
-                s_ActiveWorld?.Tick(deltaTime);
-            }
-        }
-
-        private static void CleanupUpdateSystem() { }
-
-        private static void RequestUpdateSystemCleanup() { }
-#endif
-
-        #endregion
-        
 #if UNITY_EDITOR
         /// <summary>
         ///   <para>编辑器退出时清理</para>
         /// </summary>
         [UnityEditor.InitializeOnLoadMethod]
-        private static void OnEditorQuit()
+        private static void OnEditorQuitClearWorlds()
         {
             UnityEditor.EditorApplication.quitting -= DestroyAllWorlds;
             UnityEditor.EditorApplication.quitting += DestroyAllWorlds;

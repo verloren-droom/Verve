@@ -1,19 +1,17 @@
 {
     "name": "Verve.Tests",
-    "rootNamespace": "Verve",
+    "rootNamespace": "",
     "references": [
         "Verve.Core"
     ],
     "includePlatforms": [],
-    "excludePlatforms": [
-        "Editor"
-    ],
+    "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
         "nunit.framework.dll"
     ],
-    "autoReferenced": true,
+    "autoReferenced": false,
     "defineConstraints": [
         "UNITY_INCLUDE_TESTS"
     ],

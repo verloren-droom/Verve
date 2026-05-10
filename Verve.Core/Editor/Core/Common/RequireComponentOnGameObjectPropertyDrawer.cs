@@ -8,7 +8,7 @@ namespace Verve.Editor
     
 
     [CustomPropertyDrawer(typeof(RequireComponentOnGameObjectAttribute))]
-    public class RequireComponentOnGameObjectPropertyDrawer : PropertyDrawer
+    sealed class RequireComponentOnGameObjectPropertyDrawer : PropertyDrawer
     {
         private const float WarningPadding = 2f;
         

@@ -9,7 +9,7 @@ namespace Verve.Editor
 
     
     [CustomPropertyDrawer(typeof(ReadOnlyAttribute))]
-    public sealed class ReadOnlyPropertyDrawer : PropertyDrawer
+    sealed class ReadOnlyPropertyDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {

@@ -11,7 +11,7 @@ namespace Verve.Editor
     ///   <para>简单单选下拉框弹窗</para>
     ///   <para>注意：此窗口不会阻塞线程，使用回调函数处理结果</para>
     /// </summary>
-    public class SingleSelectionDialog : EditorWindow
+    sealed class SingleSelectionDialog : EditorWindow
     {
         private string m_Description;
         private string m_SelectedText;

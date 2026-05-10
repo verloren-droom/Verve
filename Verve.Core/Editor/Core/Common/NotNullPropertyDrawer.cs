@@ -6,7 +6,7 @@ namespace Verve.Editor
     using UnityEditor;
     
     [CustomPropertyDrawer(typeof(NotNullAttribute))]
-    public sealed class NotNullPropertyDrawer : PropertyDrawer
+    sealed class NotNullPropertyDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {

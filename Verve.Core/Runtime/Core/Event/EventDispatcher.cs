@@ -11,7 +11,8 @@ namespace Verve
     /// </summary>
     /// <typeparam name="TKey">事件索引类型</typeparam>
     [Serializable]
-    public class EventDispatcher<TKey> where TKey : IEquatable<TKey>
+    public class EventDispatcher<TKey> : IDisposable
+        where TKey : IEquatable<TKey>
     {
         /// <summary>
         ///   <para>所有事件处理函数</para>
@@ -22,17 +23,18 @@ namespace Verve
         ///   <para>事件分发异步锁</para>
         /// </summary>
         private readonly ReaderWriterLockSlim m_Lock;
+        private int m_Disposed;
         
         /// <summary>
         ///   <para>所有事件处理函数</para>
         /// </summary>
         public IReadOnlyDictionary<TKey, List<Delegate>> Handlers => m_EventHandlers;
         
-#if UNITY_EDITOR || DEBUG
+#if DEBUG
         /// <summary>
         ///   <para>事件记录回调</para>
         /// </summary>
-        public event Action<EventRecord> OnEventRecorded;
+        internal event Action<EventRecord> OnEventRecorded;
 #endif
 
         /// <summary>
@@ -48,8 +50,11 @@ namespace Verve
         /// <summary>
         ///   <para>事件分发器析构函数</para>
         /// </summary>
-        ~EventDispatcher()
+        ~EventDispatcher() => Dispose();
+
+        public void Dispose()
         {
+            if (Interlocked.Exchange(ref m_Disposed, 1) != 0) return;
             m_Lock.EnterWriteLock();
             try
             {
@@ -59,6 +64,8 @@ namespace Verve
             {
                 m_Lock.ExitWriteLock();
             }
+            m_Lock.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -116,7 +123,7 @@ namespace Verve
                 if (!handlers.Contains(handler))
                 {
                     handlers.Add(handler);
-#if UNITY_EDITOR || DEBUG
+#if DEBUG
                     OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.On, handler));
 #endif
                 }
@@ -168,7 +175,7 @@ namespace Verve
                 {
                     handlers.Clear();
                     m_EventHandlers.Remove(eventKey);
-#if UNITY_EDITOR || DEBUG
+#if DEBUG
                     OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Off));
 #endif
                 }
@@ -194,7 +201,7 @@ namespace Verve
             {
                 if (m_EventHandlers.TryGetValue(eventKey, out var handlers) && handlers.Remove(handler) && handlers.Count == 0 && m_EventHandlers.Remove(eventKey))
                 {
-#if UNITY_EDITOR || DEBUG
+#if DEBUG
                     OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Off, handler));
 #endif
                 }
@@ -233,7 +240,13 @@ namespace Verve
         /// </summary>
         /// <param name="eventKey">事件键</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Emit(TKey eventKey)
+        public void Emit(TKey eventKey
+#if DEBUG
+            , [CallerMemberName] string emitMember = null
+            , [CallerFilePath] string emitFile = null
+            , [CallerLineNumber] int emitLine = 0
+#endif
+            )
         {
             if (eventKey == null) return;
 
@@ -256,10 +269,20 @@ namespace Verve
             {
                 if (handlersArray[i] != null && handlersArray[i] is Action handler)
                 {
-                    handler.Invoke();
-#if UNITY_EDITOR || DEBUG
-                    OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler));
+                    try
+                    {
+                        handler.Invoke();
+                    }
+                    catch (Exception ex)
+                    {
+                        Game.LogError($"Event handler error: {ex}");
+                    }
+                    finally
+                    {
+#if DEBUG
+                        OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, new EventEmitInfo(emitMember, emitFile, emitLine)));
 #endif
+                    }
                 }
             }
         }
@@ -270,7 +293,13 @@ namespace Verve
         /// <param name="eventKey">事件键</param>
         /// <param name="arg">参数1</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Emit<T>(TKey eventKey, T arg)
+        public void Emit<T>(TKey eventKey, T arg
+#if DEBUG
+            , [CallerMemberName] string emitMember = null
+            , [CallerFilePath] string emitFile = null
+            , [CallerLineNumber] int emitLine = 0
+#endif
+            )
         {
             if (eventKey == null) return;
 
@@ -293,10 +322,20 @@ namespace Verve
             {
                 if (handlersArray[i] != null && handlersArray[i] is Action<T> handler)
                 {
-                    handler.Invoke(arg);
-#if UNITY_EDITOR || DEBUG
-                    OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg));
+                    try
+                    {
+                        handler.Invoke(arg);
+                    }
+                    catch (Exception ex)
+                    {
+                        Game.LogError($"Event handler error: {ex}");
+                    }
+                    finally
+                    {
+#if DEBUG
+                        OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg, new EventEmitInfo(emitMember, emitFile, emitLine)));
 #endif
+                    }
                 }
             }
         }
@@ -308,7 +347,13 @@ namespace Verve
         /// <param name="arg1">参数1</param>
         /// <param name="arg2">参数2</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Emit<T1, T2>(TKey eventKey, T1 arg1, T2 arg2)
+        public void Emit<T1, T2>(TKey eventKey, T1 arg1, T2 arg2
+#if DEBUG
+            , [CallerMemberName] string emitMember = null
+            , [CallerFilePath] string emitFile = null
+            , [CallerLineNumber] int emitLine = 0
+#endif
+            )
         {
             if (eventKey == null) return;
 
@@ -331,10 +376,20 @@ namespace Verve
             {
                 if (handlersArray[i] != null && handlersArray[i] is Action<T1, T2> handler)
                 {
-                    handler.Invoke(arg1, arg2);
-#if UNITY_EDITOR || DEBUG
-                    OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2));
+                    try
+                    {
+                        handler.Invoke(arg1, arg2);
+                    }
+                    catch (Exception ex)
+                    {
+                        Game.LogError($"Event handler error: {ex}");
+                    }
+                    finally
+                    {
+#if DEBUG
+                        OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2, new EventEmitInfo(emitMember, emitFile, emitLine)));
 #endif
+                    }
                 }
             }
         }
@@ -347,7 +402,13 @@ namespace Verve
         /// <param name="arg2">参数2</param>
         /// <param name="arg3">参数3</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Emit<T1, T2, T3>(TKey eventKey, T1 arg1, T2 arg2, T3 arg3)
+        public void Emit<T1, T2, T3>(TKey eventKey, T1 arg1, T2 arg2, T3 arg3
+#if DEBUG
+            , [CallerMemberName] string emitMember = null
+            , [CallerFilePath] string emitFile = null
+            , [CallerLineNumber] int emitLine = 0
+#endif
+            )
         {
             if (eventKey == null) return;
 
@@ -370,10 +431,20 @@ namespace Verve
             {
                 if (handlersArray[i] != null && handlersArray[i] is Action<T1, T2, T3> handler)
                 {
-                    handler.Invoke(arg1, arg2, arg3);
-#if UNITY_EDITOR || DEBUG
-                    OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2, arg3));
+                    try
+                    {
+                        handler.Invoke(arg1, arg2, arg3);
+                    }
+                    catch (Exception ex)
+                    {
+                        Game.LogError($"Event handler error: {ex}");
+                    }
+                    finally
+                    {
+#if DEBUG
+                        OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2, arg3, new EventEmitInfo(emitMember, emitFile, emitLine)));
 #endif
+                    }
                 }
             }
         }
@@ -387,7 +458,13 @@ namespace Verve
         /// <param name="arg3">参数3</param>
         /// <param name="arg4">参数4</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Emit<T1, T2, T3, T4>(TKey eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
+        public void Emit<T1, T2, T3, T4>(TKey eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4
+#if DEBUG
+            , [CallerMemberName] string emitMember = null
+            , [CallerFilePath] string emitFile = null
+            , [CallerLineNumber] int emitLine = 0
+#endif
+            )
         {
             if (eventKey == null) return;
 
@@ -410,10 +487,20 @@ namespace Verve
             {
                 if (handlersArray[i] != null && handlersArray[i] is Action<T1, T2, T3, T4> handler)
                 {
-                    handler.Invoke(arg1, arg2, arg3, arg4);
-#if UNITY_EDITOR || DEBUG
-                    OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2, arg3, arg4));
+                    try
+                    {
+                        handler.Invoke(arg1, arg2, arg3, arg4);
+                    }
+                    catch (Exception ex)
+                    {
+                        Game.LogError($"Event handler error: {ex}");
+                    }
+                    finally
+                    {
+#if DEBUG
+                        OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2, arg3, arg4, new EventEmitInfo(emitMember, emitFile, emitLine)));
 #endif
+                    }
                 }
             }
         }
@@ -428,7 +515,13 @@ namespace Verve
         /// <param name="arg4">参数4</param>
         /// <param name="arg5">参数5</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Emit<T1, T2, T3, T4, T5>(TKey eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
+        public void Emit<T1, T2, T3, T4, T5>(TKey eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5
+#if DEBUG
+            , [CallerMemberName] string emitMember = null
+            , [CallerFilePath] string emitFile = null
+            , [CallerLineNumber] int emitLine = 0
+#endif
+            )
         {
             if (eventKey == null) return;
 
@@ -451,10 +544,20 @@ namespace Verve
             {
                 if (handlersArray[i] != null && handlersArray[i] is Action<T1, T2, T3, T4, T5> handler)
                 {
-                    handler.Invoke(arg1, arg2, arg3, arg4, arg5);
-#if UNITY_EDITOR || DEBUG
-                    OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2, arg3, arg4, arg5));
+                    try
+                    {
+                        handler.Invoke(arg1, arg2, arg3, arg4, arg5);
+                    }
+                    catch (Exception ex)
+                    {
+                        Game.LogError($"Event handler error: {ex}");
+                    }
+                    finally
+                    {
+#if DEBUG
+                        OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2, arg3, arg4, arg5, new EventEmitInfo(emitMember, emitFile, emitLine)));
 #endif
+                    }
                 }
             }
         }
@@ -470,7 +573,13 @@ namespace Verve
         /// <param name="arg5">参数5</param>
         /// <param name="arg6">参数6</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Emit<T1, T2, T3, T4, T5, T6>(TKey eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6)
+        public void Emit<T1, T2, T3, T4, T5, T6>(TKey eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6
+#if DEBUG
+            , [CallerMemberName] string emitMember = null
+            , [CallerFilePath] string emitFile = null
+            , [CallerLineNumber] int emitLine = 0
+#endif
+            )
         {
             if (eventKey == null) return;
 
@@ -493,16 +602,25 @@ namespace Verve
             {
                 if (handlersArray[i] != null && handlersArray[i] is Action<T1, T2, T3, T4, T5, T6> handler)
                 {
-                    handler.Invoke(arg1, arg2, arg3, arg4, arg5, arg6);
-#if UNITY_EDITOR || DEBUG
-                    OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2, arg3, arg4, arg5, arg6));
+                    try
+                    {
+                        handler.Invoke(arg1, arg2, arg3, arg4, arg5, arg6);
+                    }
+                    catch (Exception ex)
+                    {
+                        Game.LogError($"Event handler error: {ex}");
+                    }
+                    finally
+                    {
+#if DEBUG
+                        OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2, arg3, arg4, arg5, arg6, new EventEmitInfo(emitMember, emitFile, emitLine)));
 #endif
+                    }
                 }
             }
         }
         
         #endregion
-        
         
         /// <summary>
         ///   <para>事件处理者</para>
@@ -530,35 +648,74 @@ namespace Verve
                 m_Disposed = true;
             }
         }
+        
+#if DEBUG
+        private readonly struct EventEmitInfo
+        {
+            public readonly string member;
+            public readonly string file;
+            public readonly int line;
 
+            public EventEmitInfo(string member, string file, int line)
+            {
+                this.member = member;
+                this.file = file;
+                this.line = line;
+            }
+        }
 
-#if UNITY_EDITOR || DEBUG
         /// <summary>
         ///   <para>事件记录信息</para>
         /// </summary>
-        public readonly struct EventRecord
+        internal readonly struct EventRecord
         {
-            public readonly TKey EventKey;
-            public readonly DateTime Timestamp;
-            public readonly object[] Arguments;
-            public readonly Delegate Handler;
-            public readonly EventRecordStatus RecordStatus;
-            
+            public readonly TKey eventKey;
+            public readonly DateTime timestamp;
+            public readonly object[] arguments;
+            public readonly Delegate handler;
+            public readonly EventRecordStatus recordStatus;
+            public readonly string emitSource;
+            public readonly string emitFile;
+            public readonly int emitLine;
             
             public EventRecord(TKey eventKey, EventRecordStatus recordStatus, Delegate handler = null, params object[] args)
             {
-                EventKey = eventKey;
-                RecordStatus = recordStatus;
-                Handler = handler;
-                Timestamp = DateTime.Now;
-                Arguments = args ?? Array.Empty<object>();
+                this.eventKey = eventKey;
+                this.recordStatus = recordStatus;
+                this.handler = handler;
+                timestamp = DateTime.Now;
+                emitSource = null;
+                emitFile = null;
+                emitLine = 0;
+                if (recordStatus == EventRecordStatus.Emit && args != null && args.Length > 0 && args[^1] is EventEmitInfo emitInfo)
+                {
+                    emitSource = emitInfo.member;
+                    emitLine = emitInfo.line;
+                    if (!string.IsNullOrEmpty(emitInfo.file))
+                    {
+                        emitFile = emitInfo.file;
+                    }
+                    if (args.Length > 1)
+                    {
+                        var trimmed = new object[args.Length - 1];
+                        Array.Copy(args, 0, trimmed, 0, trimmed.Length);
+                        arguments = trimmed;
+                    }
+                    else
+                    {
+                        arguments = Array.Empty<object>();
+                    }
+                }
+                else
+                {
+                    arguments = args ?? Array.Empty<object>();
+                }
             }
         }
 #endif
     }
     
-    
-#if UNITY_EDITOR || DEBUG
+#if DEBUG
     /// <summary>
     ///   <para>事件记录状态</para>
     /// </summary>

@@ -238,30 +238,7 @@ namespace Verve
     #endregion
     
     #region 能力系统
-    
-    /// <summary>
-    ///   <para>能力更新分组（用于控制能力执行阶段与顺序）</para>
-    /// </summary>
-    public enum TickGroup
-    {
-        /// <summary>
-        ///   <para>早期更新</para>
-        /// </summary>
-        Early,
-        /// <summary>
-        ///   <para>物理更新</para>
-        /// </summary>
-        Physics,
-        /// <summary>
-        ///   <para>游戏逻辑更新</para>
-        /// </summary>
-        Gameplay,
-        /// <summary>
-        ///   <para>延迟更新</para>
-        /// </summary>
-        Late
-    }
-    
+
     /// <summary>
     ///   <para>能力基类（只执行逻辑，不存储数据）</para>
     /// </summary>
@@ -1463,6 +1440,20 @@ namespace Verve
         }
     }
 
+    internal readonly struct TagBlockInfo
+    {
+        public readonly TagId tagId;
+        public readonly object instigator;
+        public readonly int blockCount;
+
+        public TagBlockInfo(TagId tagId, object instigator, int blockCount)
+        {
+            this.tagId = tagId;
+            this.instigator = instigator;
+            this.blockCount = blockCount;
+        }
+    }
+
     /// <summary>
     ///   <para>标签阻塞掩码（记录哪些标签被哪些能力阻塞）</para>
     /// </summary>
@@ -1494,6 +1485,27 @@ namespace Verve
             }
             
             return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void GetTagBlocks(List<TagBlockInfo> output)
+        {
+            if (output == null) return;
+            output.Clear();
+            if (m_TagBlocks == null || m_TagBlocks.Count == 0) return;
+
+            foreach (var pair in m_TagBlocks)
+            {
+                var blocks = pair.Value;
+                if (blocks == null || blocks.Count == 0) continue;
+                var tagId = new TagId(pair.Key);
+                for (int i = 0; i < blocks.Count; i++)
+                {
+                    var entry = blocks[i];
+                    if (entry.blockCount <= 0) continue;
+                    output.Add(new TagBlockInfo(tagId, entry.instigator, entry.blockCount));
+                }
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1789,6 +1801,26 @@ namespace Verve
             m_ActorLock?.EnterReadLock();
             try { return IsActorAliveUnsafe(actor); }
             finally { m_ActorLock?.ExitReadLock(); }
+        }
+        
+        internal void GetAliveActors(List<Actor> output)
+        {
+            if (output == null) return;
+            output.Clear();
+            m_ActorLock?.EnterReadLock();
+            try
+            {
+                for (int i = 0; i < m_Capacity; i++)
+                {
+                    ref var actorData = ref m_Actors[i];
+                    if (!actorData.isAlive) continue;
+                    output.Add(new Actor(i, actorData.version));
+                }
+            }
+            finally
+            {
+                m_ActorLock?.ExitReadLock();
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3872,7 +3904,11 @@ namespace Verve
             float sendInterval = 0.05f,
             float receiveInterval = 0.05f,
             TickGroup sendTickGroup = TickGroup.Late,
+#if UNITY_2018_3_OR_NEWER || !UNITY_5_1_OR_NEWER
             TickGroup receiveTickGroup = TickGroup.Early,
+#else
+            TickGroup receiveTickGroup = TickGroup.Gameplay,
+#endif
             int maxPacketSize = DEFAULT_PACKET_SIZE,
             byte packetMagic = 0xAC,
             byte packetVersion = 1
@@ -5330,22 +5366,7 @@ namespace Verve
                 }
             }
         }
-        
-        /// <summary>
-        ///   <para>执行世界逻辑帧（按<see cref="TickGroup"/>分组驱动所有能力）</para>
-        /// </summary>
-        /// <param name="deltaTime">帧间隔</param>
-        [Obsolete("Please use Tick(float deltaTime, TickGroup tickGroup) instead.")]
-        internal void Tick(float deltaTime)
-        {
-            if (IsDisposed) throw new ObjectDisposedException(nameof(World));
-            float scaledDelta = deltaTime * m_TimeScale;
-            ExecutePendingActions();
-            m_NetworkSync?.BeforeTick(scaledDelta, TickGroup.Gameplay);
-            Capabilities?.Update(scaledDelta);
-            m_NetworkSync?.AfterTick(scaledDelta, TickGroup.Gameplay);
-        }
-        
+
         /// <summary>
         ///   <para>执行指定<see cref="TickGroup"/>分组世界逻辑帧</para>
         /// </summary>

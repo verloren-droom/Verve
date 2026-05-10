@@ -2,13 +2,7 @@
     "name": "Verve.Editor",
     "rootNamespace": "Verve.Editor",
     "references": [
-        "HybridCLR.Editor",
-        "Verve.Core",
-        "Verve.Debug",
-        "Verve.Input",
-        "Verve.Loader",
-        "Verve.AI",
-        "Verve.ScriptRuntime"
+        "Verve.Core"
     ],
     "includePlatforms": [
         "Editor"

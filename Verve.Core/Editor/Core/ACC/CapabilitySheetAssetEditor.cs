@@ -15,7 +15,7 @@ namespace Verve.Editor
     ///   <para>能力表单资产自定义编辑器</para>
     /// </summary>
     [CustomEditor(typeof(CapabilitySheetAsset))]
-    internal sealed class CapabilitySheetAssetEditor : Editor
+    sealed class CapabilitySheetAssetEditor : Editor
     {
         private CapabilitySheetAsset m_Target;
         private ReorderableList m_CapabilityList;

@@ -13,7 +13,7 @@ namespace Verve.Editor
     ///   <para>标签选择器属性绘制器</para>
     /// </summary>
     [CustomPropertyDrawer(typeof(TagSelectorAttribute))]
-    public class TagSelectorPropertyDrawer : PropertyDrawer
+    sealed class TagSelectorPropertyDrawer : PropertyDrawer
     {
         private static bool s_MultiSelectExpanded;
     

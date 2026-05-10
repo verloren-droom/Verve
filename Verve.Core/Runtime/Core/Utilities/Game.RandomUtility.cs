@@ -14,7 +14,7 @@ namespace Verve
         /// </summary>
         public static class RandomUtility
         {
-            [ThreadStatic] private static readonly Random s_Random = new Random(Guid.NewGuid().GetHashCode() ^ Environment.TickCount);
+            [ThreadStatic] private static Random s_Random = new Random(Guid.NewGuid().GetHashCode() ^ Environment.TickCount);
             
             /// <summary>
             ///   <para>获取一个0-1的随机浮点数</para>
