@@ -5,21 +5,20 @@ namespace Verve
     using System;
     using UnityEngine;
     using System.Runtime.CompilerServices;
-
     
     /// <summary>
-    ///   <para>游戏对象对象池</para>
+    ///   <para><see cref="GameObject"/> 对象池。</para>
     /// </summary>
     [Serializable]
     public sealed class GameObjectPool : ObjectPool<GameObject>
     {
         /// <summary>
-        ///   <para>游戏对象对象池构造函数</para>
+        ///   <para>创建 <see cref="UnityEngine.GameObject"/> 对象池。</para>
         /// </summary>
-        /// <param name="prefab">预制体</param>
-        /// <param name="parent">父级</param>
-        /// <param name="preSize">预创建数量</param>
-        /// <param name="capacity">最大容量</param>
+        /// <param name="prefab">预制体。</param>
+        /// <param name="parent">父级。</param>
+        /// <param name="preSize">预创建数量。</param>
+        /// <param name="capacity">闲置对象容量上限。</param>
         public GameObjectPool(
             GameObject prefab, 
             Transform parent = null,
@@ -38,11 +37,11 @@ namespace Verve
                 capacity: capacity) { }
 
         /// <summary>
-        ///   <para>获取游戏对象</para>
+        ///   <para>获取游戏对象。</para>
         /// </summary>
-        /// <param name="position">位置</param>
-        /// <param name="rotation">旋转</param>
-        /// <param name="predicate">筛选器</param>
+        /// <param name="position">位置。</param>
+        /// <param name="rotation">旋转。</param>
+        /// <param name="predicate">筛选器。</param>
         /// <returns>
         ///   <para>游戏对象实例</para>
         /// </returns>
@@ -50,25 +49,26 @@ namespace Verve
         public GameObject Get(Vector3 position, Quaternion rotation, Predicate<GameObject> predicate = null)
         {
             var obj = Get(predicate);
-            obj?.transform.SetPositionAndRotation(position, rotation);
+            obj.transform.SetPositionAndRotation(position, rotation);
             return obj;
         }
 
         /// <summary>
-        ///   <para>尝试获取游戏对象</para>
+        ///   <para>尝试获取游戏对象。</para>
         /// </summary>
-        /// <param name="obj">游戏对象实例</param>
-        /// <param name="position">位置</param>
-        /// <param name="rotation">旋转</param>
-        /// <param name="predicate">筛选器</param>
+        /// <param name="obj">游戏对象实例。</param>
+        /// <param name="position">位置。</param>
+        /// <param name="rotation">旋转。</param>
+        /// <param name="predicate">筛选器。</param>
         /// <returns>
         ///   <para>是否成功</para>
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGet(out GameObject obj, Vector3 position, Quaternion rotation, Predicate<GameObject> predicate = null)
         {
-            obj = Get(position, rotation, predicate);
-            return obj != null;
+            if (!TryGet(out obj, predicate)) return false;
+            obj.transform.SetPositionAndRotation(position, rotation);
+            return true;
         }
     }
 }

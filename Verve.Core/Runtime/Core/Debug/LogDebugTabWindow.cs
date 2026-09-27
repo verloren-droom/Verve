@@ -1,4 +1,4 @@
-#if DEBUG && UNITY_5_3_OR_NEWER
+#if (DEBUG || DEVELOPMENT_BUILD) && UNITY_5_3_OR_NEWER
 
 namespace Verve
 {
@@ -6,52 +6,112 @@ namespace Verve
     using UnityEngine;
     using System.Collections.Generic;
     using UnityEngine.Scripting;
-    
-    
+
     /// <summary>
-    ///   <para>日志调试窗口</para>
+    ///   <para>日志调试窗口。</para>
     /// </summary>
     [Preserve, DebugItem("Log", -1)]
     sealed class LogDebugTabWindow : DebugTabWindow
     {
         /// <summary>
-        ///   <para>日志快照</para>
+        ///   <para>日志快照。</para>
         /// </summary>
         private readonly List<Game.LogRecord> m_Records = new(2000);
         /// <summary>
-        ///   <para>记录每条日志的堆栈展开状态</para>
+        ///   <para>记录每条日志的堆栈展开状态。</para>
         /// </summary>
         private readonly Dictionary<long, bool> m_StackFoldouts = new();
 
+        /// <summary>
+        ///   <para>滚动位置。</para>
+        /// </summary>
         private Vector2 m_ScrollPosition;
+        /// <summary>
+        ///   <para>搜索。</para>
+        /// </summary>
         private string m_Search = "";
+        /// <summary>
+        ///   <para>自动滚动。</para>
+        /// </summary>
         private bool m_AutoScroll = true;
 
+        /// <summary>
+        ///   <para>显示日志。</para>
+        /// </summary>
         private bool m_ShowLog = true;
+        /// <summary>
+        ///   <para>显示警告。</para>
+        /// </summary>
         private bool m_ShowWarning = true;
+        /// <summary>
+        ///   <para>显示错误。</para>
+        /// </summary>
         private bool m_ShowError = true;
+        /// <summary>
+        ///   <para>显示异常。</para>
+        /// </summary>
         private bool m_ShowException = true;
+        /// <summary>
+        ///   <para>显示断言。</para>
+        /// </summary>
         private bool m_ShowAssert = true;
 
+        /// <summary>
+        ///   <para>日志数量。</para>
+        /// </summary>
         private int m_LogCount;
+        /// <summary>
+        ///   <para>警告数量。</para>
+        /// </summary>
         private int m_WarningCount;
+        /// <summary>
+        ///   <para>错误数量。</para>
+        /// </summary>
         private int m_ErrorCount;
+        /// <summary>
+        ///   <para>异常数量。</para>
+        /// </summary>
         private int m_ExceptionCount;
+        /// <summary>
+        ///   <para>断言数量。</para>
+        /// </summary>
         private int m_AssertCount;
 
+        /// <summary>
+        ///   <para>行样式。</para>
+        /// </summary>
         private GUIStyle m_LineStyle;
+        /// <summary>
+        ///   <para>标记样式。</para>
+        /// </summary>
         private GUIStyle m_TagStyle;
+        /// <summary>
+        ///   <para>样式就绪。</para>
+        /// </summary>
         private bool m_StylesReady;
+        /// <summary>
+        ///   <para>样式字体大小。</para>
+        /// </summary>
         private int m_StyleFontSize = -1;
+        /// <summary>
+        ///   <para>样式字体颜色。</para>
+        /// </summary>
         private Color m_StyleFontColor;
 
+        /// <summary>
+        ///   <para>创建日志调试标签页窗口。</para>
+        /// </summary>
+        /// <param name="settings">设置。</param>
         [Preserve]
         public LogDebugTabWindow(DebugTabWindowSettings settings) : base(settings) { }
 
+        /// <inheritdoc />
         public override void OnShow() { }
 
+        /// <inheritdoc />
         public override void OnHide() { }
 
+        /// <inheritdoc />
         public override void Draw()
         {
             EnsureStyles();
@@ -60,6 +120,9 @@ namespace Verve
             DrawRecordsList();
         }
 
+        /// <summary>
+        ///   <para>初始化尚未创建的样式。</para>
+        /// </summary>
         private void EnsureStyles()
         {
             if (!m_StylesReady)
@@ -71,6 +134,9 @@ namespace Verve
             ApplyStyleSettings();
         }
 
+        /// <summary>
+        ///   <para>应用样式设置。</para>
+        /// </summary>
         private void ApplyStyleSettings()
         {
             var fontSize = Settings?.FontSize ?? 12;
@@ -86,6 +152,9 @@ namespace Verve
             m_TagStyle.focused.textColor = fontColor;
         }
 
+        /// <summary>
+        ///   <para>绘制工具栏。</para>
+        /// </summary>
         private void DrawToolbar()
         {
             GUILayout.BeginVertical(GUI.skin.box);
@@ -118,7 +187,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>更新日志快照</para>
+        ///   <para>更新日志快照。</para>
         /// </summary>
         private void UpdateRecords()
         {
@@ -161,7 +230,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>绘制日志快照列表</para>
+        ///   <para>绘制日志快照列表。</para>
         /// </summary>
         private void DrawRecordsList()
         {
@@ -174,6 +243,10 @@ namespace Verve
             if (m_AutoScroll) m_ScrollPosition.y = float.MaxValue;
         }
 
+        /// <summary>
+        ///   <para>匹配类型。</para>
+        /// </summary>
+        /// <param name="type">类型。</param>
         private bool PassType(LogType type)
         {
             return type switch
@@ -187,6 +260,10 @@ namespace Verve
             };
         }
 
+        /// <summary>
+        ///   <para>匹配搜索。</para>
+        /// </summary>
+        /// <param name="record">记录。</param>
         private bool PassSearch(Game.LogRecord record)
         {
             if (string.IsNullOrEmpty(m_Search)) return true;
@@ -196,6 +273,10 @@ namespace Verve
             return false;
         }
 
+        /// <summary>
+        ///   <para>绘制记录卡片。</para>
+        /// </summary>
+        /// <param name="record">记录。</param>
         private void DrawRecordCard(Game.LogRecord record)
         {
             GUILayout.BeginVertical(GUI.skin.box);
@@ -247,6 +328,10 @@ namespace Verve
             GUILayout.EndVertical();
         }
 
+        /// <summary>
+        ///   <para>格式化调用位置。</para>
+        /// </summary>
+        /// <param name="record">记录。</param>
         private static string FormatCaller(Game.LogRecord record)
         {
             var member = record.callerMember;

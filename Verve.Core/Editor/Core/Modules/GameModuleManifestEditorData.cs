@@ -5,62 +5,84 @@ namespace Verve.Editor
     using System;
     using UnityEditor;
     using UnityEngine;
-
-
+    
     /// <summary>
-    ///   <para>模块清单导入器的编辑条目数据</para>
+    ///   <para>模块清单导入器的编辑条目数据。</para>
     /// </summary>
     [Serializable]
     internal sealed class GameModuleManifestEditorData : ScriptableObject
     {
+        /// <summary>
+        ///   <para>安装顺序属性名称。</para>
+        /// </summary>
         internal const string InstallOrderPropertyName = nameof(m_InstallOrder);
+        /// <summary>
+        ///   <para>模块条目属性名称。</para>
+        /// </summary>
         internal const string ModuleEntriesPropertyName = nameof(m_ModuleEntries);
 
         /// <summary>
-        ///   <para>单个模块的编辑条目</para>
+        ///   <para>单个模块的编辑条目。</para>
         /// </summary>
         [Serializable]
         internal sealed class ModuleEntry
         {
+            /// <summary>
+            ///   <para>类型属性名称。</para>
+            /// </summary>
             internal const string TypePropertyName = nameof(type);
+            /// <summary>
+            ///   <para>字段属性名称。</para>
+            /// </summary>
             internal const string FieldsPropertyName = nameof(fields);
+            /// <summary>
+            ///   <para>模块属性名称。</para>
+            /// </summary>
             internal const string ModulePropertyName = nameof(module);
+            /// <summary>
+            ///   <para>错误属性名称。</para>
+            /// </summary>
             internal const string ErrorPropertyName = nameof(error);
-            internal const string UsesFallbackModuleInstancePropertyName = nameof(usesFallbackModuleInstance);
 
             /// <summary>
-            ///   <para>模块类型名</para>
+            ///   <para>模块类型名。</para>
             /// </summary>
             public string type;
             /// <summary>
-            ///   <para>原始字段条目</para>
+            ///   <para>原始字段条目。</para>
             /// </summary>
             public string fields = GameModuleManifestAsset.EmptyFields;
             /// <summary>
-            ///   <para>Inspector 当前编辑的模块实例</para>
+            ///   <para>Inspector 当前编辑的模块实例。</para>
             /// </summary>
             [SerializeReference] public GameModule module;
             /// <summary>
-            ///   <para>恢复或校验错误信息</para>
+            ///   <para>恢复或校验错误信息。</para>
             /// </summary>
             [HideInInspector] public string error;
-            /// <summary>
-            ///   <para>当前模块实例是否为字段数据无法恢复时创建的兜底实例</para>
-            /// </summary>
-            [HideInInspector] public bool usesFallbackModuleInstance;
+
         }
 
+        /// <summary>
+        ///   <para>安装顺序。</para>
+        /// </summary>
         [SerializeField] private GameModuleInstallOrder m_InstallOrder = GameModuleInstallOrder.Dependency;
+        /// <summary>
+        ///   <para>包含待处理变更。</para>
+        /// </summary>
         [SerializeField, HideInInspector] private bool m_HasPendingChanges;
+        /// <summary>
+        ///   <para>模块条目。</para>
+        /// </summary>
         [SerializeField] private ModuleEntry[] m_ModuleEntries = Array.Empty<ModuleEntry>();
 
         /// <summary>
-        ///   <para>当前编辑中的模块条目列表</para>
+        ///   <para>当前编辑中的模块条目列表。</para>
         /// </summary>
         public ModuleEntry[] ModuleEntries => m_ModuleEntries ?? Array.Empty<ModuleEntry>();
 
         /// <summary>
-        ///   <para>当前编辑条目是否存在尚未写回清单文件的修改</para>
+        ///   <para>当前编辑条目是否存在尚未写回清单文件的修改。</para>
         /// </summary>
         public bool HasPendingChanges
         {
@@ -69,8 +91,10 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>加载清单结构和编辑条目</para>
+        ///   <para>加载清单结构和编辑条目。</para>
         /// </summary>
+        /// <param name="manifestData">清单数据。</param>
+        /// <param name="moduleEntries">模块条目。</param>
         public void LoadModuleEntries(GameModuleManifestAsset.GameModuleManifestData manifestData, ModuleEntry[] moduleEntries)
         {
             manifestData = GameModuleManifestAsset.NormalizeManifestData(manifestData);
@@ -80,16 +104,15 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>把当前编辑条目构建为可写回 JSON 的清单数据</para>
+        ///   <para>把当前编辑条目构建为可写回 JSON 的清单数据。</para>
         /// </summary>
-        public GameModuleManifestAsset.GameModuleManifestData CreateManifestData()
-        {
-            return CreateManifestData(ModuleEntries, m_InstallOrder);
-        }
+        public GameModuleManifestAsset.GameModuleManifestData CreateManifestData() => CreateManifestData(ModuleEntries, m_InstallOrder);
 
         /// <summary>
-        ///   <para>把给定编辑条目列表构建为清单数据</para>
+        ///   <para>把给定编辑条目列表构建为清单数据。</para>
         /// </summary>
+        /// <param name="moduleEntries">模块条目。</param>
+        /// <param name="installOrder">安装顺序。</param>
         internal static GameModuleManifestAsset.GameModuleManifestData CreateManifestData(
             ModuleEntry[] moduleEntries,
             GameModuleInstallOrder installOrder = GameModuleInstallOrder.Dependency)
@@ -111,13 +134,14 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>把单个编辑条目转换为清单条目</para>
+        ///   <para>把单个编辑条目转换为清单条目。</para>
         /// </summary>
+        /// <param name="moduleEntry">模块条目。</param>
         internal static GameModuleManifestAsset.GameModuleEntry CreateManifestEntry(ModuleEntry moduleEntry)
         {
             moduleEntry = NormalizeModuleEntry(moduleEntry);
 
-            if (moduleEntry.module != null && !moduleEntry.usesFallbackModuleInstance)
+            if (moduleEntry.module != null)
             {
                 return GameModuleManifestImporter.CreateManifestEntry(moduleEntry.module);
             }
@@ -130,8 +154,9 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>从清单条目创建编辑条目</para>
+        ///   <para>从清单条目创建编辑条目。</para>
         /// </summary>
+        /// <param name="entry">条目。</param>
         internal static ModuleEntry CreateEntryFromManifestEntry(GameModuleManifestAsset.GameModuleEntry entry)
         {
             var moduleEntry = new ModuleEntry
@@ -166,24 +191,16 @@ namespace Verve.Editor
             catch (Exception ex)
             {
                 moduleEntry.error = ex.Message;
-                try
-                {
-                    moduleEntry.module = GameModuleManifestAsset.CreateModuleInstance(moduleType, GameModuleManifestAsset.EmptyFields);
-                    moduleEntry.usesFallbackModuleInstance = true;
-                }
-                catch (Exception fallbackEx)
-                {
-                    moduleEntry.error =
-                        $"{moduleEntry.error} Fallback module instance could not be created: {fallbackEx.Message}";
-                }
+                moduleEntry.module = null;
             }
 
             return moduleEntry;
         }
 
         /// <summary>
-        ///   <para>从模块实例创建编辑条目</para>
+        ///   <para>从模块实例创建编辑条目。</para>
         /// </summary>
+        /// <param name="module">模块。</param>
         internal static ModuleEntry CreateEntryFromModule(GameModule module)
         {
             if (module == null) throw new ArgumentNullException(nameof(module));
@@ -198,8 +215,10 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>从模块类型和字段 JSON 创建编辑条目</para>
+        ///   <para>从模块类型和字段 JSON 创建编辑条目。</para>
         /// </summary>
+        /// <param name="moduleType">模块类型。</param>
+        /// <param name="fields">序列化字段 JSON。</param>
         internal static ModuleEntry CreateEntryFromType(Type moduleType, string fields)
         {
             if (moduleType == null) throw new ArgumentNullException(nameof(moduleType));
@@ -211,8 +230,9 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>从清单数据创建编辑条目</para>
+        ///   <para>从清单数据创建编辑条目。</para>
         /// </summary>
+        /// <param name="manifestData">清单数据。</param>
         internal static ModuleEntry[] CreateModuleEntriesFromManifestData(
             GameModuleManifestAsset.GameModuleManifestData manifestData)
         {
@@ -228,8 +248,9 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>从序列化属性读取模块条目</para>
+        ///   <para>从序列化属性读取模块条目。</para>
         /// </summary>
+        /// <param name="property">属性。</param>
         internal static ModuleEntry ReadModuleEntry(SerializedProperty property)
         {
             return new ModuleEntry
@@ -238,14 +259,15 @@ namespace Verve.Editor
                 fields = GameModuleManifestAsset.NormalizeFields(
                     property?.FindPropertyRelative(ModuleEntry.FieldsPropertyName)?.stringValue),
                 module = FindModuleProperty(property)?.managedReferenceValue as GameModule,
-                error = property?.FindPropertyRelative(ModuleEntry.ErrorPropertyName)?.stringValue,
-                usesFallbackModuleInstance = property?.FindPropertyRelative(ModuleEntry.UsesFallbackModuleInstancePropertyName)?.boolValue ?? false
+                error = property?.FindPropertyRelative(ModuleEntry.ErrorPropertyName)?.stringValue
             };
         }
 
         /// <summary>
-        ///   <para>写入模块条目到序列化属性</para>
+        ///   <para>写入模块条目到序列化属性。</para>
         /// </summary>
+        /// <param name="property">属性。</param>
+        /// <param name="moduleEntry">模块条目。</param>
         internal static void WriteModuleEntry(SerializedProperty property, ModuleEntry moduleEntry)
         {
             if (property == null) throw new ArgumentNullException(nameof(property));
@@ -255,26 +277,24 @@ namespace Verve.Editor
                 GameModuleManifestAsset.NormalizeFields(moduleEntry?.fields);
             property.FindPropertyRelative(ModuleEntry.ModulePropertyName).managedReferenceValue = moduleEntry?.module;
             property.FindPropertyRelative(ModuleEntry.ErrorPropertyName).stringValue = moduleEntry?.error ?? string.Empty;
-            property.FindPropertyRelative(ModuleEntry.UsesFallbackModuleInstancePropertyName).boolValue =
-                moduleEntry?.usesFallbackModuleInstance ?? false;
         }
 
         /// <summary>
-        ///   <para>读取模块条目中的声明类型名</para>
+        ///   <para>读取模块条目中的声明类型名。</para>
         /// </summary>
-        internal static string ReadModuleType(SerializedProperty property)
-        {
-            return property?.FindPropertyRelative(ModuleEntry.TypePropertyName)?.stringValue ?? string.Empty;
-        }
+        /// <param name="property">属性。</param>
+        internal static string ReadModuleType(SerializedProperty property) => property?.FindPropertyRelative(ModuleEntry.TypePropertyName)?.stringValue ?? string.Empty;
 
         /// <summary>
-        ///   <para>获取模块条目中的模块引用属性</para>
+        ///   <para>获取模块条目中的模块引用属性。</para>
         /// </summary>
-        internal static SerializedProperty FindModuleProperty(SerializedProperty property)
-        {
-            return property?.FindPropertyRelative(ModuleEntry.ModulePropertyName);
-        }
+        /// <param name="property">属性。</param>
+        internal static SerializedProperty FindModuleProperty(SerializedProperty property) => property?.FindPropertyRelative(ModuleEntry.ModulePropertyName);
 
+        /// <summary>
+        ///   <para>规范化模块条目。</para>
+        /// </summary>
+        /// <param name="moduleEntries">模块条目。</param>
         private static ModuleEntry[] NormalizeModuleEntries(ModuleEntry[] moduleEntries)
         {
             if (moduleEntries == null || moduleEntries.Length == 0)
@@ -291,6 +311,10 @@ namespace Verve.Editor
             return normalizedEntries;
         }
 
+        /// <summary>
+        ///   <para>规范化模块条目。</para>
+        /// </summary>
+        /// <param name="moduleEntry">模块条目。</param>
         private static ModuleEntry NormalizeModuleEntry(ModuleEntry moduleEntry)
         {
             if (moduleEntry == null)
@@ -303,8 +327,7 @@ namespace Verve.Editor
                 type = string.IsNullOrWhiteSpace(moduleEntry.type) ? string.Empty : moduleEntry.type.Trim(),
                 fields = GameModuleManifestAsset.NormalizeFields(moduleEntry.fields),
                 module = moduleEntry.module,
-                error = moduleEntry.error,
-                usesFallbackModuleInstance = moduleEntry.usesFallbackModuleInstance
+                error = moduleEntry.error
             };
         }
     }

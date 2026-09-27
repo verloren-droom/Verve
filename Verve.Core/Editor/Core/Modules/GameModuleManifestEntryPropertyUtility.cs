@@ -6,15 +6,16 @@ namespace Verve.Editor
     using UnityEditor;
     using System.Collections.Generic;
 
-
     /// <summary>
-    ///   <para>模块清单条目属性工具</para>
+    ///   <para>模块清单条目属性工具。</para>
     /// </summary>
     internal static class GameModuleManifestEntryPropertyUtility
     {
         /// <summary>
-        ///   <para>从模块条目属性中解析当前模块类型</para>
+        ///   <para>从模块条目属性中解析当前模块类型。</para>
         /// </summary>
+        /// <param name="entryProperty">条目属性。</param>
+        /// <param name="moduleType">模块类型。</param>
         public static bool TryGetModuleType(SerializedProperty entryProperty, out Type moduleType)
         {
             moduleType = null;
@@ -36,8 +37,10 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>判断模块条目列表是否已包含某个精确模块类型</para>
+        ///   <para>判断模块条目列表是否已包含某个精确模块类型。</para>
         /// </summary>
+        /// <param name="entryArrayProperty">条目数组属性。</param>
+        /// <param name="moduleType">模块类型。</param>
         public static bool ContainsModuleType(SerializedProperty entryArrayProperty, Type moduleType)
         {
             if (entryArrayProperty == null || moduleType == null)
@@ -62,16 +65,19 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>判断模块条目列表是否已包含可用于当前依赖的模块类型</para>
+        ///   <para>判断模块条目列表是否已包含可用于当前依赖的模块类型。</para>
         /// </summary>
-        public static bool ContainsModuleForDependency(SerializedProperty entryArrayProperty, Type dependencyType)
-        {
-            return ContainsModuleForDependency(entryArrayProperty, dependencyType, -1, -1);
-        }
+        /// <param name="entryArrayProperty">条目数组属性。</param>
+        /// <param name="dependencyType">依赖类型。</param>
+        public static bool ContainsModuleForDependency(SerializedProperty entryArrayProperty, Type dependencyType) => ContainsModuleForDependency(entryArrayProperty, dependencyType, -1, -1);
 
         /// <summary>
-        ///   <para>查找移除指定模块后会失去依赖满足项的模块类型</para>
+        ///   <para>查找移除指定模块后会失去依赖满足项的模块类型。</para>
         /// </summary>
+        /// <param name="entryArrayProperty">条目数组属性。</param>
+        /// <param name="removedIndex">已移除索引。</param>
+        /// <param name="dependentModuleTypes">依赖者模块类型。</param>
+        /// <param name="error">错误。</param>
         public static bool TryFindBrokenDependents(
             SerializedProperty entryArrayProperty,
             int removedIndex,
@@ -104,7 +110,7 @@ namespace Verve.Editor
                     continue;
                 }
 
-                if (!TryGetDependencies(entryProperty, dependentType, out var dependencies, out error))
+                if (!TryGetDependencies(dependentType, out var dependencies, out error))
                 {
                     return false;
                 }
@@ -133,6 +139,13 @@ namespace Verve.Editor
             return true;
         }
 
+        /// <summary>
+        ///   <para>判断清单是否包含所需依赖模块。</para>
+        /// </summary>
+        /// <param name="entryArrayProperty">条目数组属性。</param>
+        /// <param name="dependencyType">依赖类型。</param>
+        /// <param name="excludedIndexA">第一个排除索引。</param>
+        /// <param name="excludedIndexB">第二个排除索引。</param>
         private static bool ContainsModuleForDependency(
             SerializedProperty entryArrayProperty,
             Type dependencyType,
@@ -165,8 +178,13 @@ namespace Verve.Editor
             return false;
         }
 
+        /// <summary>
+        ///   <para>尝试获取依赖。</para>
+        /// </summary>
+        /// <param name="moduleType">模块类型。</param>
+        /// <param name="dependencies">依赖。</param>
+        /// <param name="error">错误。</param>
         private static bool TryGetDependencies(
-            SerializedProperty entryProperty,
             Type moduleType,
             out Type[] dependencies,
             out string error)
@@ -174,30 +192,13 @@ namespace Verve.Editor
             dependencies = Array.Empty<Type>();
             error = null;
 
-            var entry = GameModuleManifestEditorData.ReadModuleEntry(entryProperty);
-            if (entry.module != null && !entry.usesFallbackModuleInstance)
+            try
             {
-                try
-                {
-                    dependencies = GameModuleDependencyUtility.GetDependencies(entry.module);
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    error =
-                        $"Failed to inspect dependencies for {GameModuleUtility.GetTypeDisplayName(moduleType)}. {ex.Message}";
-                    return false;
-                }
+                dependencies = GameModuleDependencyUtility.GetDependencies(moduleType);
             }
-
-            if (!GameModuleDependencyUtility.TryInspectDependencies(
-                    moduleType,
-                    entry.fields,
-                    out dependencies,
-                    out var inspectError))
+            catch (Exception ex)
             {
-                error =
-                    $"Failed to inspect dependencies for {GameModuleUtility.GetTypeDisplayName(moduleType)}. {inspectError}";
+                error = $"Failed to inspect dependencies for {GameModuleUtility.GetTypeDisplayName(moduleType)}. {ex.Message}";
                 return false;
             }
 

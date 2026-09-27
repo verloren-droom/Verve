@@ -1,0 +1,16 @@
+{
+    "name": "Verve.Network",
+    "rootNamespace": "Verve",
+    "references": [
+        "Verve.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

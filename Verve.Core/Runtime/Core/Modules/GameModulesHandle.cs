@@ -4,16 +4,23 @@ namespace Verve
     using System.Threading;
     using System.Threading.Tasks;
     using System.Runtime.CompilerServices;
-
-
+    
     /// <summary>
-    ///   <para>显式持有 <see cref="GameModules"/> 容器生命周期的句柄</para>
+    ///   <para>模块容器句柄；持有并释放容器。</para>
     /// </summary>
     [Serializable]
     public sealed class GameModulesHandle : IDisposable, IAsyncDisposable
     {
+        /// <summary>
+        ///   <para>模块容器。</para>
+        /// </summary>
         private GameModules m_Modules;
 
+        /// <summary>
+        ///   <para>创建模块容器句柄。</para>
+        /// </summary>
+        /// <param name="id">标识。</param>
+        /// <param name="modules">模块。</param>
         internal GameModulesHandle(int id, GameModules modules)
         {
             Id = id;
@@ -21,12 +28,12 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>模块容器句柄编号</para>
+        ///   <para>模块容器句柄编号。</para>
         /// </summary>
         public int Id { [MethodImpl(MethodImplOptions.AggressiveInlining)] get; }
 
         /// <summary>
-        ///   <para>当前句柄是否已经失效</para>
+        ///   <para>当前句柄是否已经失效。</para>
         /// </summary>
         public bool IsDisposed
         {
@@ -35,7 +42,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>当前持有的模块容器</para>
+        ///   <para>当前持有的模块容器。</para>
         /// </summary>
         public GameModules Modules
         {
@@ -52,8 +59,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>尝试获取当前持有的模块容器</para>
+        ///   <para>尝试获取当前持有的模块容器。</para>
         /// </summary>
+        /// <param name="modules">模块。</param>
         public bool TryGetModules(out GameModules modules)
         {
             modules = Volatile.Read(ref m_Modules);
@@ -66,22 +74,22 @@ namespace Verve
             return true;
         }
 
-        /// <summary>
-        ///   <para>释放该句柄持有的模块容器</para>
-        /// </summary>
-        public void Dispose()
-        {
-            Game.DestroyModules(this);
-        }
+        /// <inheritdoc />
+        public void Dispose() => Game.DestroyModules(this);
+
+        /// <inheritdoc />
+        public ValueTask DisposeAsync() => Game.DestroyModulesAsync(this);
 
         /// <summary>
-        ///   <para>异步释放该句柄持有的模块容器</para>
+        ///   <para>异步释放该句柄持有的模块容器。</para>
         /// </summary>
-        public ValueTask DisposeAsync()
-        {
-            return Game.DestroyModulesAsync(this);
-        }
+        /// <param name="ct">取消令牌。</param>
+        public ValueTask DisposeAsync(CancellationToken ct) => Game.DestroyModulesAsync(this, ct);
 
+        /// <summary>
+        ///   <para>尝试移交并移除容器引用。</para>
+        /// </summary>
+        /// <param name="modules">模块。</param>
         internal bool TryDetachModules(out GameModules modules)
         {
             while (true)
@@ -101,6 +109,10 @@ namespace Verve
             }
         }
 
+        /// <summary>
+        ///   <para>尝试移交并移除容器引用。</para>
+        /// </summary>
+        /// <param name="expectedModules">预期模块。</param>
         internal bool TryDetachModules(GameModules expectedModules)
         {
             if (expectedModules == null)
@@ -123,6 +135,10 @@ namespace Verve
             }
         }
 
+        /// <summary>
+        ///   <para>绑定模块。</para>
+        /// </summary>
+        /// <param name="modules">模块。</param>
         internal void AttachModules(GameModules modules)
         {
             if (modules == null) throw new ArgumentNullException(nameof(modules));
@@ -132,10 +148,8 @@ namespace Verve
             }
         }
 
+        /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override string ToString()
-        {
-            return $"{nameof(GameModulesHandle)}#{Id}";
-        }
+        public override string ToString() => $"{nameof(GameModulesHandle)}#{Id}";
     }
 }

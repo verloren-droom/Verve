@@ -3,7 +3,13 @@
     "rootNamespace": "",
     "references": [
         "Verve.Core",
-        "Verve.Editor"
+        "Verve.Editor",
+        "Verve.Table",
+        "Verve.UI",
+        "Verve.Loader",
+        "Verve.UI.Editor",
+        "Verve.Table.Editor",
+        "Verve.Loader.Editor"
     ],
     "includePlatforms": [
         "Editor"

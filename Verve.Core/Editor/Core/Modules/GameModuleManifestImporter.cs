@@ -8,53 +8,61 @@ namespace Verve.Editor
     using UnityEditor;
     using UnityEngine;
     using System.Collections.Generic;
-    using Unity.Plastic.Newtonsoft.Json;
-    using Unity.Plastic.Newtonsoft.Json.Linq;
-#if UNITY_2020_2_OR_NEWER
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
     using UnityEditor.AssetImporters;
-#else
-    using UnityEditor.Experimental.AssetImporters;
-#endif
-
-
+    
     /// <summary>
-    ///   <para>游戏模块清单导入器</para>
+    ///   <para>游戏模块清单导入器。</para>
     /// </summary>
     [ScriptedImporter(GameModuleManifestAsset.VERSION, k_Extension)]
     sealed class GameModuleManifestImporter : ScriptedImporter
     {
         /// <summary>
-        ///   <para>清单文件扩展名</para>
+        ///   <para>清单文件扩展名。</para>
         /// </summary>
         private const string k_Extension = "gmm";
-
         /// <summary>
-        ///   <para>默认文件名</para>
+        ///   <para>默认文件名。</para>
         /// </summary>
         private const string k_DefaultFileName = "New Module Manifest";
+        /// <summary>
+        ///   <para>对象引用属性名称。</para>
+        /// </summary>
+        private const string k_ObjectRefPropertyName = "$objectReference";
 
         /// <summary>
-        ///   <para>文件编码</para>
+        ///   <para>文件编码。</para>
         /// </summary>
         private static readonly UTF8Encoding s_Utf8WithoutBom = new(false);
+        /// <summary>
+        ///   <para>文本资源图标。</para>
+        /// </summary>
         private static Texture2D s_TextAssetIcon;
 
         /// <summary>
-        ///   <para>新建文件空内容</para>
+        ///   <para>新建文件空内容。</para>
         /// </summary>
         private static string DefaultManifestJson =>
             FormatManifestJson(GameModuleManifestAsset.CreateEmptyManifestData());
 
-        private const string k_ObjectRefPropertyName = "$objectReference";
-
         /// <summary>
-        ///   <para>导入器内部使用的对象引用声明</para>
+        ///   <para>导入器内部使用的对象引用声明。</para>
         /// </summary>
         [Serializable]
         private struct ObjectRefData
         {
+            /// <summary>
+            ///   <para>路径。</para>
+            /// </summary>
             public string path;
+            /// <summary>
+            ///   <para>GUID。</para>
+            /// </summary>
             public string guid;
+            /// <summary>
+            ///   <para>文件标识。</para>
+            /// </summary>
             public long fileId;
         }
         
@@ -88,7 +96,7 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>创建新的游戏模块清单文件</para>
+        ///   <para>创建新的游戏模块清单文件。</para>
         /// </summary>
         [MenuItem("Assets/Create/Verve/Game Module Manifest", priority = 0)]
         private static void CreateManifestAsset()
@@ -99,11 +107,16 @@ namespace Verve.Editor
                 GetIconTexture());
         }
 
-        internal static Texture2D GetIconTexture()
-        {
-            return s_TextAssetIcon ??= EditorGUIUtility.IconContent("TextAsset Icon").image as Texture2D;
-        }
+        /// <summary>
+        ///   <para>获取图标纹理。</para>
+        /// </summary>
+        internal static Texture2D GetIconTexture() => s_TextAssetIcon ??= EditorGUIUtility.IconContent("TextAsset Icon").image as Texture2D;
 
+        /// <summary>
+        ///   <para>应用图标。</para>
+        /// </summary>
+        /// <param name="target">目标。</param>
+        /// <param name="icon">图标。</param>
         internal static void ApplyIcon(UnityEngine.Object target, Texture2D icon = null)
         {
             if (target == null)
@@ -119,8 +132,9 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>读取游戏模块清单文件</para>
+        ///   <para>读取游戏模块清单文件。</para>
         /// </summary>
+        /// <param name="assetPath">资源路径。</param>
         internal static GameModuleManifestAsset.GameModuleManifestData ReadManifestData(string assetPath)
         {
             if (string.IsNullOrWhiteSpace(assetPath))
@@ -145,8 +159,10 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>写入游戏模块清单文件</para>
+        ///   <para>写入游戏模块清单文件。</para>
         /// </summary>
+        /// <param name="assetPath">资源路径。</param>
+        /// <param name="manifestData">清单数据。</param>
         internal static void WriteManifestData(string assetPath, GameModuleManifestAsset.GameModuleManifestData manifestData)
         {
             if (string.IsNullOrWhiteSpace(assetPath))
@@ -154,12 +170,13 @@ namespace Verve.Editor
                 throw new ArgumentException($"{nameof(assetPath)} can not be null or empty", nameof(assetPath));
             }
 
-            File.WriteAllText(assetPath, FormatManifestJson(manifestData), s_Utf8WithoutBom);
+            Game.FileUtility.WriteAllTextAtomically(assetPath, FormatManifestJson(manifestData), s_Utf8WithoutBom);
         }
 
         /// <summary>
-        ///   <para>读取当前清单格式</para>
+        ///   <para>读取当前清单格式。</para>
         /// </summary>
+        /// <param name="json">JSON。</param>
         private static GameModuleManifestAsset.GameModuleManifestData ParseManifestData(string json)
         {
             if (JToken.Parse(json) is not JObject manifestJson)
@@ -176,14 +193,19 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>把清单数据序列化为外部 JSON 文件内容</para>
+        ///   <para>把清单数据序列化为外部 JSON 文件内容。</para>
         /// </summary>
+        /// <param name="manifestData">清单数据。</param>
         private static string FormatManifestJson(GameModuleManifestAsset.GameModuleManifestData manifestData)
         {
             var manifestJson = CreateManifestJson(GameModuleManifestAsset.NormalizeManifestData(manifestData));
             return manifestJson.ToString(Formatting.Indented);
         }
 
+        /// <summary>
+        ///   <para>创建清单 JSON。</para>
+        /// </summary>
+        /// <param name="manifestData">清单数据。</param>
         private static JObject CreateManifestJson(GameModuleManifestAsset.GameModuleManifestData manifestData)
         {
             var entries = manifestData.modules;
@@ -206,13 +228,15 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>把内部保存的字段 JSON 转换为外部对象字段</para>
+        ///   <para>把内部保存的字段 JSON 转换为外部对象字段。</para>
         /// </summary>
-        private static JObject CreateFieldsObject(string fields)
-        {
-            return JObject.Parse(GameModuleManifestAsset.NormalizeFields(fields));
-        }
+        /// <param name="fields">序列化字段 JSON。</param>
+        private static JObject CreateFieldsObject(string fields) => JObject.Parse(GameModuleManifestAsset.NormalizeFields(fields));
 
+        /// <summary>
+        ///   <para>解析清单版本。</para>
+        /// </summary>
+        /// <param name="versionJson">版本 JSON。</param>
         private static uint ParseManifestVersion(JToken versionJson)
         {
             if (versionJson == null || versionJson.Type == JTokenType.Null)
@@ -235,6 +259,10 @@ namespace Verve.Editor
             return version;
         }
 
+        /// <summary>
+        ///   <para>解析安装顺序。</para>
+        /// </summary>
+        /// <param name="installOrderJson">安装顺序 JSON。</param>
         private static GameModuleInstallOrder ParseInstallOrder(JToken installOrderJson)
         {
             if (installOrderJson == null || installOrderJson.Type == JTokenType.Null)
@@ -251,6 +279,10 @@ namespace Verve.Editor
             throw new InvalidOperationException("Unsupported manifest installOrder.");
         }
 
+        /// <summary>
+        ///   <para>解析模块条目。</para>
+        /// </summary>
+        /// <param name="modulesJson">模块 JSON。</param>
         private static GameModuleManifestAsset.GameModuleEntry[] ParseModuleEntries(JToken modulesJson)
         {
             if (modulesJson == null || modulesJson.Type == JTokenType.Null)
@@ -282,6 +314,11 @@ namespace Verve.Editor
             return moduleEntries;
         }
 
+        /// <summary>
+        ///   <para>解析模块条目。</para>
+        /// </summary>
+        /// <param name="module">模块。</param>
+        /// <param name="index">索引。</param>
         private static GameModuleManifestAsset.GameModuleEntry ParseModuleEntry(JObject module, int index)
         {
             var typeJson = module[nameof(GameModuleManifestAsset.GameModuleEntry.type)];
@@ -297,6 +334,11 @@ namespace Verve.Editor
             };
         }
 
+        /// <summary>
+        ///   <para>解析模块字段。</para>
+        /// </summary>
+        /// <param name="fields">字段名称。</param>
+        /// <param name="index">索引。</param>
         private static string ParseModuleFields(JToken fields, int index)
         {
             if (fields == null || fields.Type == JTokenType.Null)
@@ -312,6 +354,10 @@ namespace Verve.Editor
             return fields.ToString(Formatting.None);
         }
 
+        /// <summary>
+        ///   <para>创建清单条目。</para>
+        /// </summary>
+        /// <param name="module">模块。</param>
         internal static GameModuleManifestAsset.GameModuleEntry CreateManifestEntry(GameModule module)
         {
             if (module == null) throw new ArgumentNullException(nameof(module));
@@ -330,6 +376,13 @@ namespace Verve.Editor
             };
         }
 
+        /// <summary>
+        ///   <para>尝试创建模块实例。</para>
+        /// </summary>
+        /// <param name="moduleType">模块类型。</param>
+        /// <param name="fields">序列化字段 JSON。</param>
+        /// <param name="module">模块。</param>
+        /// <param name="error">错误。</param>
         internal static bool TryCreateModuleInstance(
             Type moduleType,
             string fields,
@@ -362,6 +415,12 @@ namespace Verve.Editor
             }
         }
 
+        /// <summary>
+        ///   <para>释放预览模块并报告清理错误。</para>
+        /// </summary>
+        /// <param name="module">模块。</param>
+        /// <param name="operation">操作。</param>
+        /// <param name="error">错误。</param>
         private static void DisposeModuleSafely(ref GameModule module, string operation, ref string error)
         {
             if (module == null)
@@ -381,6 +440,10 @@ namespace Verve.Editor
             module = null;
         }
 
+        /// <summary>
+        ///   <para>格式化异常信息。</para>
+        /// </summary>
+        /// <param name="exception">异常。</param>
         private static string FormatExceptionMessage(Exception exception)
         {
             if (exception == null)
@@ -410,6 +473,11 @@ namespace Verve.Editor
             return builder.Length == 0 ? exception.GetType().Name : builder.ToString();
         }
 
+        /// <summary>
+        ///   <para>创建运行时清单数据。</para>
+        /// </summary>
+        /// <param name="manifestData">清单数据。</param>
+        /// <param name="importedModules">已导入模块。</param>
         internal static GameModuleManifestAsset.GameModuleManifestData CreateRuntimeManifestData(
             GameModuleManifestAsset.GameModuleManifestData manifestData,
             out GameModuleManifestAsset.ImportedModuleData[] importedModules)
@@ -434,6 +502,11 @@ namespace Verve.Editor
             return runtimeData;
         }
 
+        /// <summary>
+        ///   <para>校验运行时清单数据。</para>
+        /// </summary>
+        /// <param name="manifestData">清单数据。</param>
+        /// <param name="importedModules">已导入模块。</param>
         private static void ValidateRuntimeManifestData(
             GameModuleManifestAsset.GameModuleManifestData manifestData,
             GameModuleManifestAsset.ImportedModuleData[] importedModules)
@@ -467,7 +540,7 @@ namespace Verve.Editor
                 }
                 finally
                 {
-                    failure = GameModuleUtility.CombineErrors(
+                    failure = ExceptionUtility.Combine(
                         failure,
                         GameModuleUtility.DisposeModuleAndCreateFailure(
                             module,
@@ -483,6 +556,10 @@ namespace Verve.Editor
             }
         }
 
+        /// <summary>
+        ///   <para>序列化清单字段。</para>
+        /// </summary>
+        /// <param name="module">模块。</param>
         private static string SerializeManifestFields(GameModule module)
         {
             var rawJson = GameModuleManifestAsset.NormalizeFields(JsonUtility.ToJson(module, false));
@@ -497,7 +574,7 @@ namespace Verve.Editor
                 moduleBox.hideFlags = HideFlags.HideAndDontSave;
                 moduleBox.module = clonedModule;
 
-                var serializedObject = new SerializedObject(moduleBox);
+                using var serializedObject = new SerializedObject(moduleBox);
                 var moduleProperty = serializedObject.FindProperty(nameof(ModuleBox.module));
                 if (moduleProperty == null)
                 {
@@ -519,7 +596,7 @@ namespace Verve.Editor
             }
             finally
             {
-                failure = GameModuleUtility.CombineErrors(
+                failure = ExceptionUtility.Combine(
                     failure,
                     GameModuleUtility.DisposeModuleAndCreateFailure(
                         clonedModule,
@@ -541,6 +618,12 @@ namespace Verve.Editor
             return result;
         }
 
+        /// <summary>
+        ///   <para>创建已导入模块。</para>
+        /// </summary>
+        /// <param name="fields">序列化字段 JSON。</param>
+        /// <param name="moduleIndex">模块索引。</param>
+        /// <param name="runtimeFields">运行时字段。</param>
         private static GameModuleManifestAsset.ImportedModuleData CreateImportedModule(
             string fields,
             int moduleIndex,
@@ -563,6 +646,11 @@ namespace Verve.Editor
             };
         }
 
+        /// <summary>
+        ///   <para>从字段中读取对象引用。</para>
+        /// </summary>
+        /// <param name="fields">字段名称。</param>
+        /// <param name="moduleIndex">模块索引。</param>
         private static ObjectRefData[] ReadObjectRefsFromFields(
             JToken fields,
             int moduleIndex)
@@ -574,6 +662,13 @@ namespace Verve.Editor
                 : objectRefs.ToArray();
         }
 
+        /// <summary>
+        ///   <para>从字段中读取对象引用。</para>
+        /// </summary>
+        /// <param name="jsonValue">JSON 值。</param>
+        /// <param name="propertyPath">属性路径。</param>
+        /// <param name="objectRefs">对象引用。</param>
+        /// <param name="moduleIndex">模块索引。</param>
         private static bool ReadObjectRefsFromFields(
             JToken jsonValue,
             string propertyPath,
@@ -623,6 +718,13 @@ namespace Verve.Editor
             return false;
         }
 
+        /// <summary>
+        ///   <para>尝试读取对象引用。</para>
+        /// </summary>
+        /// <param name="jsonObject">JSON 对象。</param>
+        /// <param name="propertyPath">属性路径。</param>
+        /// <param name="moduleIndex">模块索引。</param>
+        /// <param name="objectRef">对象引用。</param>
         private static bool TryReadObjectRef(
             JObject jsonObject,
             string propertyPath,
@@ -680,6 +782,12 @@ namespace Verve.Editor
             return true;
         }
 
+        /// <summary>
+        ///   <para>将对象引用写入字段。</para>
+        /// </summary>
+        /// <param name="fields">序列化字段 JSON。</param>
+        /// <param name="objectRefs">对象引用。</param>
+        /// <param name="objectRefPaths">对象引用路径。</param>
         private static string WriteObjectRefsToFields(
             string fields,
             ObjectRefData[] objectRefs,
@@ -722,6 +830,10 @@ namespace Verve.Editor
             return GameModuleManifestAsset.NormalizeFields(fieldsObject.ToString(Formatting.None));
         }
 
+        /// <summary>
+        ///   <para>创建对象引用 JSON。</para>
+        /// </summary>
+        /// <param name="objectRef">对象引用。</param>
         private static JObject CreateObjectRefJson(ObjectRefData objectRef)
         {
             return new JObject
@@ -734,6 +846,10 @@ namespace Verve.Editor
             };
         }
 
+        /// <summary>
+        ///   <para>规范化对象引用。</para>
+        /// </summary>
+        /// <param name="objectRefs">对象引用。</param>
         private static ObjectRefData[] NormalizeObjectRefs(ObjectRefData[] objectRefs)
         {
             if (objectRefs == null || objectRefs.Length == 0)
@@ -759,6 +875,11 @@ namespace Verve.Editor
             return normalized;
         }
 
+        /// <summary>
+        ///   <para>追加属性字段路径。</para>
+        /// </summary>
+        /// <param name="parentPath">父级路径。</param>
+        /// <param name="fieldName">字段名称。</param>
         private static string AppendPropertyFieldPath(string parentPath, string fieldName)
         {
             return string.IsNullOrEmpty(parentPath)
@@ -766,6 +887,11 @@ namespace Verve.Editor
                 : $"{parentPath}.{fieldName}";
         }
 
+        /// <summary>
+        ///   <para>追加属性数组元素路径。</para>
+        /// </summary>
+        /// <param name="parentPath">父级路径。</param>
+        /// <param name="index">索引。</param>
         private static string AppendPropertyArrayElementPath(string parentPath, int index)
         {
             return string.IsNullOrEmpty(parentPath)
@@ -773,6 +899,12 @@ namespace Verve.Editor
                 : $"{parentPath}.Array.data[{index}]";
         }
 
+        /// <summary>
+        ///   <para>尝试加载对象引用。</para>
+        /// </summary>
+        /// <param name="objectRefs">对象引用。</param>
+        /// <param name="importedRefs">已导入引用。</param>
+        /// <param name="error">错误。</param>
         private static bool TryLoadObjectRefs(
             ObjectRefData[] objectRefs,
             out GameModuleManifestAsset.ImportedObjectRef[] importedRefs,
@@ -832,6 +964,12 @@ namespace Verve.Editor
             return true;
         }
 
+        /// <summary>
+        ///   <para>读取对象引用并清空对应字段。</para>
+        /// </summary>
+        /// <param name="serializedObject">序列化对象。</param>
+        /// <param name="moduleProperty">模块属性。</param>
+        /// <param name="objectRefPaths">对象引用路径。</param>
         private static ObjectRefData[] ReadObjectRefsAndClearFields(
             SerializedObject serializedObject,
             SerializedProperty moduleProperty,
@@ -900,6 +1038,14 @@ namespace Verve.Editor
                 : objectRefs.ToArray();
         }
 
+        /// <summary>
+        ///   <para>按属性路径尝试设置 JSON。</para>
+        /// </summary>
+        /// <param name="root">JSON 根节点。</param>
+        /// <param name="propertyPath">属性路径。</param>
+        /// <param name="value">值。</param>
+        /// <param name="allowMissingLeaf">是否允许末级路径缺失。</param>
+        /// <param name="error">错误。</param>
         private static bool TrySetJsonByPropertyPath(
             JToken root,
             string propertyPath,
@@ -980,6 +1126,11 @@ namespace Verve.Editor
             return false;
         }
 
+        /// <summary>
+        ///   <para>获取相对属性路径。</para>
+        /// </summary>
+        /// <param name="rootPath">根节点路径。</param>
+        /// <param name="propertyPath">属性路径。</param>
         private static string GetRelativePropertyPath(string rootPath, string propertyPath)
         {
             if (string.IsNullOrWhiteSpace(propertyPath))
@@ -1003,6 +1154,11 @@ namespace Verve.Editor
                 : propertyPath;
         }
 
+        /// <summary>
+        ///   <para>查找持久化对象。</para>
+        /// </summary>
+        /// <param name="assetPath">资源路径。</param>
+        /// <param name="fileId">文件标识。</param>
         private static UnityEngine.Object FindPersistentObject(string assetPath, long fileId)
         {
             var assets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
@@ -1024,9 +1180,15 @@ namespace Verve.Editor
             return null;
         }
 
+        /// <summary>
+        ///   <para>模块显示区域。</para>
+        /// </summary>
         [Serializable]
         private sealed class ModuleBox : ScriptableObject
         {
+            /// <summary>
+            ///   <para>模块。</para>
+            /// </summary>
             [SerializeReference] public GameModule module;
         }
     }

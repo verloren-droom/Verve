@@ -8,15 +8,16 @@ namespace Verve.Editor
     using UnityEngine;
     using UnityEditorInternal;
     
-    
     /// <summary>
-    ///   <para>标签选择器属性绘制器</para>
+    ///   <para>标签选择器属性绘制器。</para>
     /// </summary>
     [CustomPropertyDrawer(typeof(TagSelectorAttribute))]
     sealed class TagSelectorPropertyDrawer : PropertyDrawer
     {
+        /// <summary>
+        ///   <para>多选列表展开状态。</para>
+        /// </summary>
         private static bool s_MultiSelectExpanded;
-    
         
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
@@ -32,6 +33,12 @@ namespace Verve.Editor
             }
         }
     
+        /// <summary>
+        ///   <para>绘制单选项。</para>
+        /// </summary>
+        /// <param name="position">位置。</param>
+        /// <param name="property">属性。</param>
+        /// <param name="label">标签。</param>
         private void DrawSingleSelect(Rect position, SerializedProperty property, GUIContent label)
         {
             EditorGUI.BeginProperty(position, label, property);
@@ -53,6 +60,12 @@ namespace Verve.Editor
             EditorGUI.EndProperty();
         }
     
+        /// <summary>
+        ///   <para>绘制多选项。</para>
+        /// </summary>
+        /// <param name="position">位置。</param>
+        /// <param name="property">属性。</param>
+        /// <param name="label">标签。</param>
         private void DrawMultiSelect(Rect position, SerializedProperty property, GUIContent label)
         {
             EditorGUI.BeginProperty(position, label, property);

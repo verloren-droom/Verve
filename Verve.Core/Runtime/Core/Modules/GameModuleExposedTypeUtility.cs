@@ -2,27 +2,26 @@ namespace Verve
 {
     using System;
     using System.Collections.Generic;
-
-
+    
     /// <summary>
-    ///   <para>模块公开类型工具类</para>
+    ///   <para>模块公开类型工具类。</para>
     /// </summary>
     internal static class GameModuleExposedTypeUtility
     {
         /// <summary>
-        ///   <para>模块类型到公开类型列表的缓存</para>
+        ///   <para>模块类型到公开类型列表的缓存。</para>
         /// </summary>
         private static readonly Dictionary<RuntimeTypeHandle, Type[]> s_ExposedTypeCache = new();
 
         /// <summary>
-        ///   <para>保护公开类型缓存并发访问的锁</para>
+        ///   <para>保护公开类型缓存并发访问的锁。</para>
         /// </summary>
         private static readonly object s_CacheLock = new();
 
         /// <summary>
-        ///   <para>获取模块对外公开的抽象类型列表</para>
+        ///   <para>获取模块对外公开的抽象类型列表。</para>
         /// </summary>
-        /// <param name="moduleType">目标模块类型</param>
+        /// <param name="moduleType">目标模块类型。</param>
         private static Type[] GetExposedTypes(Type moduleType)
         {
             if (moduleType == null || !typeof(IGameModule).IsAssignableFrom(moduleType))
@@ -45,9 +44,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>获取适合调试输出的公开类型文本</para>
+        ///   <para>获取适合调试输出的公开类型文本。</para>
         /// </summary>
-        /// <param name="moduleType">目标模块类型</param>
+        /// <param name="moduleType">目标模块类型。</param>
         internal static string GetExposedTypesText(Type moduleType)
         {
             var exposedTypes = GetExposedTypes(moduleType);
@@ -66,8 +65,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>构建模块的抽象公开类型列表</para>
+        ///   <para>构建模块的抽象公开类型列表。</para>
         /// </summary>
+        /// <param name="moduleType">模块类型。</param>
         private static Type[] BuildExposedTypes(Type moduleType)
         {
             var results = new List<Type>(4);
@@ -103,8 +103,10 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>判断给定类型是否可以作为模块公开类型对外暴露</para>
+        ///   <para>判断给定类型是否可以作为模块公开类型对外暴露。</para>
         /// </summary>
+        /// <param name="moduleType">模块类型。</param>
+        /// <param name="exposedType">公开类型。</param>
         private static bool IsExposedType(Type moduleType, Type exposedType)
         {
             if (exposedType == null || exposedType == moduleType)

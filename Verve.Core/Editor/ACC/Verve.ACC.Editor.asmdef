@@ -1,0 +1,20 @@
+{
+    "name": "Verve.ACC.Editor",
+    "rootNamespace": "Verve.Editor",
+    "references": [
+        "Verve.ACC",
+        "Verve.Core",
+        "Verve.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

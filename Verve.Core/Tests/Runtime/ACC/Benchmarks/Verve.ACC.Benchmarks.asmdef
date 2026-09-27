@@ -1,0 +1,25 @@
+{
+    "name": "Verve.ACC.Benchmarks",
+    "references": [
+        "Verve.Core",
+        "Verve.ACC",
+        "Unity.Entities",
+        "Unity.Collections",
+        "Unity.Burst"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS",
+        "VERVE_ENTITIES_BENCHMARKS"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.entities",
+            "expression": "[1.4.0,2.0.0)",
+            "define": "VERVE_ENTITIES_BENCHMARKS"
+        }
+    ]
+}

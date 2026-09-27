@@ -12,160 +12,302 @@ namespace Verve
     using System.Text.RegularExpressions;
     using System.Runtime.CompilerServices;
     using Object = UnityEngine.Object;
-    
-    
+
     /// <summary>
-    ///   <para>游戏入口：调试器</para>
+    ///   <para>游戏入口；调试器。</para>
     /// </summary>
     public static partial class Game
     {
+        /// <summary>
+        ///   <para>控制台驱动组件。</para>
+        /// </summary>
         private static DebugConsoleRunner s_DebugConsoleRunner;
+        /// <summary>
+        ///   <para>调试控制台启用。</para>
+        /// </summary>
         private static bool s_DebugConsoleEnabled;
+        /// <summary>
+        ///   <para>调试控制台可见。</para>
+        /// </summary>
         private static bool s_DebugConsoleVisible;
-        /// <summary>输出消息队列</summary>
+        /// <summary>
+        ///   <para>输出消息队列。</para>
+        /// </summary>
         private static readonly List<DebugConsoleMessage> s_DebugConsoleOutput = new();
-        /// <summary>当前输入命令文本</summary>
+        /// <summary>
+        ///   <para>当前输入命令文本。</para>
+        /// </summary>
         private static string s_DebugConsoleInput = "";
-        /// <summary>输出滚动位置</summary>
+        /// <summary>
+        ///   <para>输出滚动位置。</para>
+        /// </summary>
         private static Vector2 s_DebugConsoleScrollPosition = Vector2.zero;
-        /// <summary>输出区域是否展开</summary>
+        /// <summary>
+        ///   <para>输出区域是否展开。</para>
+        /// </summary>
         private static bool s_DebugConsoleOutputFoldout;
-        /// <summary>控制台当前高度</summary>
+        /// <summary>
+        ///   <para>控制台当前高度。</para>
+        /// </summary>
         private static float s_DebugConsoleHeight = 320f;
-        /// <summary>控制台最小高度</summary>
+        /// <summary>
+        ///   <para>控制台最小高度。</para>
+        /// </summary>
         private static readonly float s_DebugConsoleMinHeight = 120f;
-        /// <summary>折叠时高度</summary>
+        /// <summary>
+        ///   <para>折叠时高度。</para>
+        /// </summary>
         private static readonly float s_DebugConsoleCollapsedHeight = 50f;
-        /// <summary>拖拽条高度</summary>
+        /// <summary>
+        ///   <para>拖拽条高度。</para>
+        /// </summary>
         private static readonly float s_DebugConsoleResizeHandleHeight = 16f;
-        /// <summary>是否正在拖拽调整高度</summary>
+        /// <summary>
+        ///   <para>是否正在拖拽调整高度。</para>
+        /// </summary>
         private static bool s_DebugConsoleResizing;
-        /// <summary>拖拽起点 Y 坐标</summary>
+        /// <summary>
+        ///   <para>拖拽起点 Y 坐标。</para>
+        /// </summary>
         private static float s_DebugConsoleDragStartY;
-        /// <summary>拖拽起点高度</summary>
+        /// <summary>
+        ///   <para>拖拽起点高度。</para>
+        /// </summary>
         private static float s_DebugConsoleHeightOnDragStart;
-        /// <summary>控制台字体大小</summary>
+        /// <summary>
+        ///   <para>控制台字体大小。</para>
+        /// </summary>
         private static int s_DebugConsoleFontSize = 20;
-        /// <summary>控制台字体颜色</summary>
+        /// <summary>
+        ///   <para>控制台字体颜色。</para>
+        /// </summary>
         private static Color s_DebugConsoleFontColor = Color.white;
-        /// <summary>控制台背景颜色</summary>
+        /// <summary>
+        ///   <para>控制台背景颜色。</para>
+        /// </summary>
         private static Color s_DebugConsoleBackgroundColor = new Color(0.0f, 0.0f, 0.0f, 0.6f);
-        /// <summary>控制台命令表</summary>
+        /// <summary>
+        ///   <para>控制台命令表。</para>
+        /// </summary>
         private static Dictionary<string, DebugConsoleCommandInfo> s_DebugConsoleCommands = new(StringComparer.OrdinalIgnoreCase);
-        /// <summary>控制台是否已初始化</summary>
+        /// <summary>
+        ///   <para>控制台是否已初始化。</para>
+        /// </summary>
         private static bool s_DebugConsoleInitialized;
-        /// <summary>控制台容器样式</summary>
+        /// <summary>
+        ///   <para>控制台容器样式。</para>
+        /// </summary>
         private static GUIStyle s_DebugConsoleStyle;
-        /// <summary>输入框样式</summary>
+        /// <summary>
+        ///   <para>输入框样式。</para>
+        /// </summary>
         private static GUIStyle s_DebugConsoleInputStyle;
-        /// <summary>输出标签样式</summary>
+        /// <summary>
+        ///   <para>输出标签样式。</para>
+        /// </summary>
         private static GUIStyle s_DebugConsoleLabelStyle;
-        /// <summary>提示按钮与面板样式</summary>
+        /// <summary>
+        ///   <para>提示按钮与面板样式。</para>
+        /// </summary>
         private static GUIStyle s_DebugConsoleTipStyle;
-        /// <summary>设置面板样式</summary>
+        /// <summary>
+        ///   <para>设置面板样式。</para>
+        /// </summary>
         private static GUIStyle s_DebugConsoleSettingsStyle;
-        /// <summary>内联标签样式</summary>
+        /// <summary>
+        ///   <para>内联标签样式。</para>
+        /// </summary>
         private static GUIStyle s_DebugConsoleInlineLabelStyle;
-        /// <summary>内联按钮样式</summary>
+        /// <summary>
+        ///   <para>内联按钮样式。</para>
+        /// </summary>
         private static GUIStyle s_DebugConsoleInlineButtonStyle;
-        /// <summary>背景贴图</summary>
+        /// <summary>
+        ///   <para>背景贴图。</para>
+        /// </summary>
         private static Texture2D s_DebugConsoleBackgroundTexture;
-        /// <summary>样式字体大小缓存</summary>
+        /// <summary>
+        ///   <para>样式字体大小缓存。</para>
+        /// </summary>
         private static int s_DebugConsoleStyleFontSize = -1;
-        /// <summary>样式字体颜色缓存</summary>
+        /// <summary>
+        ///   <para>样式字体颜色缓存。</para>
+        /// </summary>
         private static Color s_DebugConsoleStyleFontColor;
-        /// <summary>样式背景颜色缓存</summary>
+        /// <summary>
+        ///   <para>样式背景颜色缓存。</para>
+        /// </summary>
         private static Color s_DebugConsoleStyleBackgroundColor;
-        /// <summary>命令是否已加载</summary>
+        /// <summary>
+        ///   <para>命令是否已加载。</para>
+        /// </summary>
         private static bool s_DebugConsoleCommandsLoaded;
-        /// <summary>提示按钮是否靠右显示</summary>
+        /// <summary>
+        ///   <para>提示按钮是否靠右显示。</para>
+        /// </summary>
         private static bool s_DebugConsoleTipRight = true;
-        /// <summary>设置面板是否显示</summary>
+        /// <summary>
+        ///   <para>设置面板是否显示。</para>
+        /// </summary>
         private static bool s_DebugConsoleSettingsVisible;
-        /// <summary>设置面板滚动位置</summary>
+        /// <summary>
+        ///   <para>设置面板滚动位置。</para>
+        /// </summary>
         private static Vector2 s_DebugConsoleSettingsScrollPosition = Vector2.zero;
-        /// <summary>默认程序集排除前缀</summary>
+        /// <summary>
+        ///   <para>默认程序集排除前缀。</para>
+        /// </summary>
         private static readonly string[] s_DebugConsoleAssemblyExcludePrefixes = { "System.", "Microsoft.", "Mono.", "netstandard" };
-        /// <summary>默认程序集排除名称</summary>
+        /// <summary>
+        ///   <para>默认程序集排除名称。</para>
+        /// </summary>
         private static readonly HashSet<string> s_DebugConsoleAssemblyExcludeNames = new(StringComparer.OrdinalIgnoreCase)
         {
             "UnityEngine",
             "UnityEditor",
             "UnityEditor.CoreModule",
         };
-        /// <summary>默认程序集排除规则</summary>
+        /// <summary>
+        ///   <para>默认程序集排除规则。</para>
+        /// </summary>
         private static readonly Regex[] s_DebugConsoleAssemblyExcludeRegex =
         {
             new("^Unity(\\.|$)", RegexOptions.Compiled),
         };
-        /// <summary>程序集缓存</summary>
+        /// <summary>
+        ///   <para>程序集缓存。</para>
+        /// </summary>
         private static List<Assembly> s_DebugAssemblyCache;
-        /// <summary>程序集缓存是否可用</summary>
+        /// <summary>
+        ///   <para>程序集缓存是否可用。</para>
+        /// </summary>
         private static bool s_DebugAssemblyCacheReady;
-        /// <summary>提示按钮显示开关</summary>
+        /// <summary>
+        ///   <para>提示按钮显示开关。</para>
+        /// </summary>
         private static bool s_DebugConsoleTipEnabled = true;
-        /// <summary>提示折叠面板是否展开</summary>
+        /// <summary>
+        ///   <para>提示折叠面板是否展开。</para>
+        /// </summary>
         private static bool s_DebugTipFoldout;
-        /// <summary>下一次采样时间点</summary>
+        /// <summary>
+        ///   <para>下一次采样时间点。</para>
+        /// </summary>
         private static float s_DebugTipNextUpdateTime;
-        /// <summary>采样间隔（秒）</summary>
+        /// <summary>
+        ///   <para>采样间隔（秒）。</para>
+        /// </summary>
         private static float s_DebugTipUpdateInterval = 0.7f;
-        /// <summary>平滑后的 FPS</summary>
+        /// <summary>
+        ///   <para>平滑后的 FPS。</para>
+        /// </summary>
         private static float s_DebugTipFps;
-        /// <summary>CPU 占用百分比</summary>
+        /// <summary>
+        ///   <para>CPU 占用百分比。</para>
+        /// </summary>
         private static float s_DebugTipCpuUsage;
-        /// <summary>上一帧采样时间（秒）</summary>
+        /// <summary>
+        ///   <para>上一帧采样时间（秒）。</para>
+        /// </summary>
         private static double s_DebugTipPrevSampleTime;
-        /// <summary>上一帧 CPU 时间戳</summary>
+        /// <summary>
+        ///   <para>上一帧 CPU 时间戳。</para>
+        /// </summary>
         private static TimeSpan s_DebugTipPrevCpuTime;
-        /// <summary>GPU 占用百分比（不可用时为 -1）</summary>
+        /// <summary>
+        ///   <para>GPU 占用百分比（不可用时为 -1）。</para>
+        /// </summary>
         private static float s_DebugTipGpuUsage = -1f;
-        /// <summary>内存总量（MB）</summary>
+        /// <summary>
+        ///   <para>内存总量（MB）。</para>
+        /// </summary>
         private static float s_DebugTipMemMB;
-        /// <summary>折线图弹窗是否显示</summary>
+        /// <summary>
+        ///   <para>折线图弹窗是否显示。</para>
+        /// </summary>
         private static bool s_DebugTipChartVisible;
-        /// <summary>当前折线图指标</summary>
+        /// <summary>
+        ///   <para>当前折线图指标。</para>
+        /// </summary>
         private static DebugTipMetric? s_DebugTipChartMetric;
-        /// <summary>折线图弹窗位置与尺寸</summary>
+        /// <summary>
+        ///   <para>折线图弹窗位置与尺寸。</para>
+        /// </summary>
         private static Rect s_DebugTipChartRect = new Rect(20f, 80f, 320f, 180f);
-        /// <summary>提示按钮拖拽偏移</summary>
+        /// <summary>
+        ///   <para>提示按钮拖拽偏移。</para>
+        /// </summary>
         private static Vector2 s_DebugTipOffset;
-        /// <summary>提示按钮是否正在拖拽</summary>
+        /// <summary>
+        ///   <para>提示按钮是否正在拖拽。</para>
+        /// </summary>
         private static bool s_DebugTipDragging;
-        /// <summary>拖拽起点偏移</summary>
+        /// <summary>
+        ///   <para>拖拽起点偏移。</para>
+        /// </summary>
         private static Vector2 s_DebugTipDragOffset;
-        /// <summary>FPS 采样序列</summary>
+        /// <summary>
+        ///   <para>FPS 采样序列。</para>
+        /// </summary>
         private static readonly List<float> s_DebugTipFpsSamples = new();
-        /// <summary>CPU 采样序列</summary>
+        /// <summary>
+        ///   <para>CPU 采样序列。</para>
+        /// </summary>
         private static readonly List<float> s_DebugTipCpuSamples = new();
-        /// <summary>GPU 采样序列</summary>
+        /// <summary>
+        ///   <para>GPU 采样序列。</para>
+        /// </summary>
         private static readonly List<float> s_DebugTipGpuSamples = new();
-        /// <summary>内存采样序列</summary>
+        /// <summary>
+        ///   <para>内存采样序列。</para>
+        /// </summary>
         private static readonly List<float> s_DebugTipMemSamples = new();
-        /// <summary>采样序列容量</summary>
+        /// <summary>
+        ///   <para>采样序列容量。</para>
+        /// </summary>
         private static int s_DebugTipSampleCapacity = 72;
-        /// <summary>提示面板行文字样式</summary>
+        /// <summary>
+        ///   <para>提示面板行文字样式。</para>
+        /// </summary>
         private static GUIStyle s_DebugConsoleTipLineStyle;
-        /// <summary>提示面板按钮样式</summary>
+        /// <summary>
+        ///   <para>提示面板按钮样式。</para>
+        /// </summary>
         private static GUIStyle s_DebugConsoleTipButtonStyle;
-        /// <summary>折线图绘制贴图</summary>
+        /// <summary>
+        ///   <para>折线图绘制贴图。</para>
+        /// </summary>
         private static Texture2D s_DebugConsoleTipLineTexture;
-        /// <summary>折线图指标类型</summary>
+        /// <summary>
+        ///   <para>折线图指标类型。</para>
+        /// </summary>
         private enum DebugTipMetric : byte
         {
+            /// <summary>
+            ///   <para>帧率。</para>
+            /// </summary>
             Fps,
+            /// <summary>
+            ///   <para>CPU。</para>
+            /// </summary>
             Cpu,
+            /// <summary>
+            ///   <para>GPU。</para>
+            /// </summary>
             Gpu,
+            /// <summary>
+            ///   <para>内存。</para>
+            /// </summary>
             Mem,
         }
 
         /// <summary>
-        ///   <para>命令调试器开关</para>
+        ///   <para>命令调试器开关。</para>
         /// </summary>
         public static KeyCode DebugConsoleToggleKey { get; set; } = KeyCode.BackQuote;
 
         /// <summary>
-        ///   <para>命令调试器是否启用</para>
+        ///   <para>命令调试器是否启用。</para>
         /// </summary>
         public static bool DebugConsoleEnabled
         {
@@ -187,7 +329,7 @@ namespace Verve
         }
         
         /// <summary>
-        ///   <para>提示按钮是否显示</para>
+        ///   <para>提示按钮是否显示。</para>
         /// </summary>
         public static bool DebugConsoleTipEnabled
         {
@@ -195,6 +337,9 @@ namespace Verve
             set => s_DebugConsoleTipEnabled = value;
         }
 
+        /// <summary>
+        ///   <para>重置调试控制台状态。</para>
+        /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetDebugConsoleState()
         {
@@ -203,6 +348,9 @@ namespace Verve
             HookDebugConsoleEvents();
         }
 
+        /// <summary>
+        ///   <para>订阅调试控制台事件。</para>
+        /// </summary>
         private static void HookDebugConsoleEvents()
         {
             OnModulesCreated -= HandleModulesCreatedForDebugConsole;
@@ -211,12 +359,20 @@ namespace Verve
             OnModulesDestroyed += HandleModulesDestroyedForDebugConsole;
         }
 
+        /// <summary>
+        ///   <para>模块容器创建后刷新控制台命令。</para>
+        /// </summary>
+        /// <param name="handle">句柄。</param>
         private static void HandleModulesCreatedForDebugConsole(GameModulesHandle handle)
         {
             if (!s_DebugConsoleEnabled) return;
             EnsureDebugConsoleRunner();
         }
 
+        /// <summary>
+        ///   <para>模块容器销毁后刷新控制台命令。</para>
+        /// </summary>
+        /// <param name="handle">句柄。</param>
         private static void HandleModulesDestroyedForDebugConsole(GameModulesHandle handle)
         {
             if (!HasActiveModuleHandles())
@@ -225,7 +381,9 @@ namespace Verve
             }
         }
 
-        /// <summary>确保调试控制台运行器存在</summary>
+        /// <summary>
+        ///   <para>确保调试控制台运行器存在。</para>
+        /// </summary>
         private static void EnsureDebugConsoleRunner()
         {
             if (!Application.isPlaying) return;
@@ -236,7 +394,9 @@ namespace Verve
             s_DebugConsoleRunner = runnerObj.AddComponent<DebugConsoleRunner>();
         }
 
-        /// <summary>销毁调试控制台运行器</summary>
+        /// <summary>
+        ///   <para>销毁调试控制台运行器。</para>
+        /// </summary>
         private static void CleanupDebugConsoleRunner()
         {
             DebugConsoleShutdown();
@@ -247,9 +407,15 @@ namespace Verve
             }
         }
 
+        /// <summary>
+        ///   <para>控制台驱动组件。</para>
+        /// </summary>
         [DefaultExecutionOrder(-1000), DisallowMultipleComponent]
         private sealed class DebugConsoleRunner : ComponentInstanceBase<DebugConsoleRunner>
         {
+            /// <summary>
+            ///   <para>绘制界面。</para>
+            /// </summary>
             private void OnGUI()
             {
                 DebugConsoleDrawGUI();
@@ -257,11 +423,25 @@ namespace Verve
             }
         }
         
+        /// <summary>
+        ///   <para>控制台命令信息。</para>
+        /// </summary>
         private class DebugConsoleCommandInfo
         {
+            /// <summary>
+            ///   <para>描述。</para>
+            /// </summary>
             public readonly string description;
+            /// <summary>
+            ///   <para>方法。</para>
+            /// </summary>
             public readonly MethodInfo method;
             
+            /// <summary>
+            ///   <para>创建控制台命令信息。</para>
+            /// </summary>
+            /// <param name="description">描述。</param>
+            /// <param name="method">方法。</param>
             public DebugConsoleCommandInfo(string description, MethodInfo method)
             {
                 this.description = description;
@@ -269,11 +449,24 @@ namespace Verve
             }
         }
 
+        /// <summary>
+        ///   <para>控制台消息。</para>
+        /// </summary>
         private readonly struct DebugConsoleMessage
         {
+            /// <summary>
+            ///   <para>文本。</para>
+            /// </summary>
             public readonly string text;
+            /// <summary>
+            ///   <para>时间戳。</para>
+            /// </summary>
             public readonly DateTime timestamp;
 
+            /// <summary>
+            ///   <para>创建控制台消息。</para>
+            /// </summary>
+            /// <param name="text">要压缩的字符串。</param>
             public DebugConsoleMessage(string text)
             {
                 this.text = text;
@@ -282,7 +475,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>初始化调试控制台</para>
+        ///   <para>初始化调试控制台。</para>
         /// </summary>
         private static void DebugConsoleStartup()
         {
@@ -293,7 +486,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>关闭并清理调试控制台</para>
+        ///   <para>关闭并清理调试控制台。</para>
         /// </summary>
         private static void DebugConsoleShutdown()
         {
@@ -309,7 +502,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>绘制调试控制台 UI</para>
+        ///   <para>绘制调试控制台 UI。</para>
         /// </summary>
         private static void DebugConsoleDrawGUI()
         {
@@ -364,8 +557,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>处理输入事件</para>
+        ///   <para>处理输入事件。</para>
         /// </summary>
+        /// <param name="e">事件参数。</param>
         private static void DebugConsoleHandleInputEvents(Event e)
         {
             if (e.isKey && e.type == EventType.KeyDown && e.keyCode == DebugConsoleToggleKey)
@@ -394,8 +588,11 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>处理控制台高度拖拽</para>
+        ///   <para>处理控制台高度拖拽。</para>
         /// </summary>
+        /// <param name="e">事件参数。</param>
+        /// <param name="handleRect">句柄区域。</param>
+        /// <param name="maxHeight">最大高度。</param>
         private static void DebugConsoleHandleResize(Event e, Rect handleRect, float maxHeight)
         {
             if (e.type == EventType.MouseDown && e.button == 0 && handleRect.Contains(e.mousePosition))
@@ -428,8 +625,10 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>吞掉控制台区域事件</para>
+        ///   <para>吞掉控制台区域事件。</para>
         /// </summary>
+        /// <param name="e">事件参数。</param>
+        /// <param name="consoleRect">控制台区域。</param>
         private static void DebugConsoleConsumeEvents(Event e, Rect consoleRect)
         {
             if (e == null) return;
@@ -445,8 +644,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>绘制提示按钮与折叠信息面板</para>
+        ///   <para>绘制提示按钮与折叠信息面板。</para>
         /// </summary>
+        /// <param name="e">事件参数。</param>
         private static void DebugConsoleDrawTip(Event e)
         {
             DebugConsoleEnsureStyles();
@@ -561,7 +761,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>采样并缓存提示面板所需指标</para>
+        ///   <para>采样并缓存提示面板所需指标。</para>
         /// </summary>
         private static void UpdateTipMetrics()
         {
@@ -600,7 +800,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>初始化并同步 GUI 样式</para>
+        ///   <para>初始化并同步 GUI 样式。</para>
         /// </summary>
         private static void DebugConsoleEnsureStyles()
         {
@@ -688,8 +888,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>切换提示折线图弹窗</para>
+        ///   <para>切换提示折线图弹窗。</para>
         /// </summary>
+        /// <param name="metric">指标。</param>
         private static void ToggleTipChart(DebugTipMetric metric)
         {
             if (s_DebugTipChartVisible && s_DebugTipChartMetric == metric)
@@ -704,8 +905,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>限制折线图弹窗在屏幕范围内</para>
+        ///   <para>限制折线图弹窗在屏幕范围内。</para>
         /// </summary>
+        /// <param name="rect">区域。</param>
         private static Rect ClampTipChartRect(Rect rect)
         {
             float maxWidth = Mathf.Max(120f, Screen.width - 10f);
@@ -717,6 +919,11 @@ namespace Verve
             return rect;
         }
 
+        /// <summary>
+        ///   <para>限制提示锚点。</para>
+        /// </summary>
+        /// <param name="position">位置。</param>
+        /// <param name="size">大小。</param>
         private static Vector2 ClampTipAnchor(Vector2 position, Vector2 size)
         {
             float x = Mathf.Clamp(position.x, 0f, Screen.width - size.x);
@@ -725,8 +932,10 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>追加采样并保持容量</para>
+        ///   <para>追加采样并保持容量。</para>
         /// </summary>
+        /// <param name="samples">采样。</param>
+        /// <param name="value">值。</param>
         private static void AppendTipSample(List<float> samples, float value)
         {
             if (samples.Count >= s_DebugTipSampleCapacity)
@@ -737,8 +946,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>折线图弹窗内容绘制</para>
+        ///   <para>折线图弹窗内容绘制。</para>
         /// </summary>
+        /// <param name="id">标识。</param>
         private static void DebugTipChartWindow(int id)
         {
             var lineStyle = s_DebugConsoleTipLineStyle;
@@ -752,8 +962,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>获取指标标题</para>
+        ///   <para>获取指标标题。</para>
         /// </summary>
+        /// <param name="metric">指标。</param>
         private static string GetTipMetricTitle(DebugTipMetric metric)
         {
             switch (metric)
@@ -767,8 +978,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>获取对应采样序列</para>
+        ///   <para>获取对应采样序列。</para>
         /// </summary>
+        /// <param name="metric">指标。</param>
         private static List<float> GetTipSamples(DebugTipMetric metric)
         {
             switch (metric)
@@ -782,8 +994,10 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>绘制折线图</para>
+        ///   <para>绘制折线图。</para>
         /// </summary>
+        /// <param name="rect">区域。</param>
+        /// <param name="samples">采样。</param>
         private static void DrawTipChart(Rect rect, List<float> samples)
         {
             GUI.Box(rect, GUIContent.none, s_DebugConsoleTipStyle);
@@ -828,8 +1042,12 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>绘制提示线段</para>
+        ///   <para>绘制提示线段。</para>
         /// </summary>
+        /// <param name="start">开始。</param>
+        /// <param name="end">结束。</param>
+        /// <param name="width">宽度。</param>
+        /// <param name="color">颜色。</param>
         private static void DrawTipLine(Vector2 start, Vector2 end, float width, Color color)
         {
             var savedMatrix = GUI.matrix;
@@ -852,8 +1070,10 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>绘制提示框外框</para>
+        ///   <para>绘制提示框外框。</para>
         /// </summary>
+        /// <param name="rect">区域。</param>
+        /// <param name="thickness">厚度。</param>
         private static void DrawTipOutline(Rect rect, float thickness)
         {
             var color = GUI.color;
@@ -866,7 +1086,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>设置面板：用于调整调试器显示参数</para>
+        ///   <para>设置面板：用于调整调试器显示参数。</para>
         /// </summary>
         private static void DebugConsoleDrawSettingsPanel()
         {
@@ -888,8 +1108,11 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>颜色滑条：RGB + Alpha（背景使用）</para>
+        ///   <para>颜色滑条：RGB + Alpha（背景使用）。</para>
         /// </summary>
+        /// <param name="label">标签。</param>
+        /// <param name="color">颜色。</param>
+        /// <param name="alphaReadonly">是否禁止修改透明度。</param>
         private static void DebugConsoleDrawColorSliders(string label, ref Color color, bool alphaReadonly)
         {
             GUILayout.Label(label);
@@ -902,6 +1125,11 @@ namespace Verve
             }
         }
 
+        /// <summary>
+        ///   <para>调试控制台绘制颜色滑动条。</para>
+        /// </summary>
+        /// <param name="label">标签。</param>
+        /// <param name="value">值。</param>
         private static float DebugConsoleDrawColorSlider(string label, float value)
         {
             GUILayout.BeginHorizontal();
@@ -912,6 +1140,9 @@ namespace Verve
             return value;
         }
 
+        /// <summary>
+        ///   <para>调试控制台绘制表头行。</para>
+        /// </summary>
         private static void DebugConsoleDrawHeaderRow()
         {
             GUILayout.BeginHorizontal();
@@ -930,6 +1161,10 @@ namespace Verve
             GUILayout.EndHorizontal();
         }
 
+        /// <summary>
+        ///   <para>调试控制台绘制输入行。</para>
+        /// </summary>
+        /// <param name="inputRowHeight">输入行高度。</param>
         private static void DebugConsoleDrawInputRow(float inputRowHeight)
         {
             GUILayout.BeginHorizontal();
@@ -947,6 +1182,9 @@ namespace Verve
             GUILayout.EndHorizontal();
         }
 
+        /// <summary>
+        ///   <para>调试控制台执行输入。</para>
+        /// </summary>
         private static void DebugConsoleExecuteInput()
         {
             if (string.IsNullOrWhiteSpace(s_DebugConsoleInput)) return;
@@ -971,6 +1209,10 @@ namespace Verve
             s_DebugConsoleScrollPosition = new Vector2(0, float.MaxValue);
         }
 
+        /// <summary>
+        ///   <para>向控制台追加输出。</para>
+        /// </summary>
+        /// <param name="message">消息内容。</param>
         private static void DebugConsoleAddToOutput(string message)
         {
             s_DebugConsoleOutput.Add(new DebugConsoleMessage(message));
@@ -981,38 +1223,31 @@ namespace Verve
             }
         }
 
+        /// <summary>
+        ///   <para>查找全部控制台命令。</para>
+        /// </summary>
         private static Dictionary<string, DebugConsoleCommandInfo> DebugConsoleFindAllConsoleCommand()
         {
             var commands = new Dictionary<string, DebugConsoleCommandInfo>(StringComparer.OrdinalIgnoreCase);
-            var assemblies = DebugGetFilteredAssemblies();
-            for (int i = 0; i < assemblies.Count; i++)
+            foreach (var assembly in DebugGetFilteredAssemblies())
+            foreach (var type in assembly.GetTypes())
+            foreach (var method in type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
             {
-                var assembly = assemblies[i];
-                try
-                {
-                    var types = assembly.GetTypes();
-                    for (int j = 0; j < types.Length; j++)
-                    {
-                        var methods = types[j].GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-                        for (int k = 0; k < methods.Length; k++)
-                        {
-                            var method = methods[k];
-                            var attr = Attribute.GetCustomAttribute(method, typeof(ConsoleCommandAttribute)) as ConsoleCommandAttribute;
-                            if (attr == null) continue;
-                            var commandKey = attr.command;
-                            if (string.IsNullOrWhiteSpace(commandKey)) continue;
-                            if (commands.ContainsKey(commandKey)) continue;
-
-                            commands.Add(commandKey, new DebugConsoleCommandInfo(attr.description, method));
-                        }
-                    }
-                }
-                catch { }
+                var attribute = method.GetCustomAttribute<ConsoleCommandAttribute>();
+                if (attribute == null) continue;
+                if (string.IsNullOrWhiteSpace(attribute.command))
+                    throw new InvalidOperationException($"控制台命令名称为空：{type.FullName}.{method.Name}。");
+                if (!commands.TryAdd(attribute.command, new DebugConsoleCommandInfo(attribute.description, method)))
+                    throw new InvalidOperationException($"控制台命令名称重复：{attribute.command}（{type.FullName}.{method.Name}）。");
             }
 
             return commands;
         }
 
+        /// <summary>
+        ///   <para>调试获取筛选后的程序集。</para>
+        /// </summary>
+        /// <param name="forceReload">是否强制重新加载。</param>
         internal static IReadOnlyList<Assembly> DebugGetFilteredAssemblies(bool forceReload = false)
         {
             if (!forceReload && s_DebugAssemblyCacheReady && s_DebugAssemblyCache != null) return s_DebugAssemblyCache;
@@ -1033,6 +1268,9 @@ namespace Verve
             return s_DebugAssemblyCache;
         }
 
+        /// <summary>
+        ///   <para>按需加载控制台命令。</para>
+        /// </summary>
         private static void DebugConsoleEnsureCommandsLoaded()
         {
             if (s_DebugConsoleCommandsLoaded) return;
@@ -1040,6 +1278,10 @@ namespace Verve
             s_DebugConsoleCommandsLoaded = true;
         }
 
+        /// <summary>
+        ///   <para>判断程序集名称是否被排除。</para>
+        /// </summary>
+        /// <param name="assemblyName">程序集名称。</param>
         private static bool DebugConsoleIsAssemblyNameExcluded(string assemblyName)
         {
             for (int i = 0; i < s_DebugConsoleAssemblyExcludePrefixes.Length; i++)
@@ -1057,19 +1299,25 @@ namespace Verve
             return false;
         }
 
+        /// <summary>
+        ///   <para>调试控制台执行命令。</para>
+        /// </summary>
+        /// <param name="commandLine">命令行。</param>
         private static object DebugConsoleExecuteCommand(string commandLine)
         {
             if (string.IsNullOrWhiteSpace(commandLine)) return null;
             DebugConsoleEnsureCommandsLoaded();
 
             string[] parts = Regex.Split(commandLine.Trim(), @"\s+(?=(?:[^""]*""[^""]*"")*[^""]*$)");
-            string command = parts[0].ToLower();
+            string command = parts[0];
             string[] args = new string[parts.Length - 1];
             Array.Copy(parts, 1, args, 0, args.Length);
 
             if (s_DebugConsoleCommands.TryGetValue(command, out DebugConsoleCommandInfo info))
             {
                 var parameters = info.method.GetParameters();
+                if (args.Length > parameters.Length)
+                    return $"Invalid arguments: expected at most {parameters.Length} parameter(s)";
                 object[] convertedArgs = new object[parameters.Length];
 
                 for (int i = 0; i < parameters.Length; i++)
@@ -1101,6 +1349,9 @@ namespace Verve
 
         #region 内置命令
 
+        /// <summary>
+        ///   <para>帮助命令。</para>
+        /// </summary>
         [ConsoleCommand("help", "显示所有命令")]
         private static string HelpCommand()
         {
@@ -1122,12 +1373,15 @@ namespace Verve
             return sb.ToString();
         }
 
+        /// <summary>
+        ///   <para>清空命令。</para>
+        /// </summary>
         [ConsoleCommand("clear", "清理输出命令")]
-        private static void ClearCommand()
-        {
-            s_DebugConsoleOutput.Clear();
-        }
+        private static void ClearCommand() => s_DebugConsoleOutput.Clear();
 
+        /// <summary>
+        ///   <para>重新加载命令。</para>
+        /// </summary>
         [ConsoleCommand("reload_commands", "重新加载命令")]
         private static string ReloadCommandsCommand()
         {
@@ -1136,6 +1390,10 @@ namespace Verve
             return $"已加载完成 {s_DebugConsoleCommands.Count} 个命令";
         }
 
+        /// <summary>
+        ///   <para>时间缩放命令。</para>
+        /// </summary>
+        /// <param name="timeScale">时间缩放。</param>
         [ConsoleCommand("time_scale", "设置时间缩放（格式: time_scale [值]）")]
         private static string TimeScaleCommand(float timeScale = 1.0f)
         {
@@ -1144,6 +1402,10 @@ namespace Verve
             return $"时间缩放设置为: {Time.timeScale}";
         }
 
+        /// <summary>
+        ///   <para>帧率命令。</para>
+        /// </summary>
+        /// <param name="targetFrameRate">目标帧率。</param>
         [ConsoleCommand("fps", "显示或设置目标帧率（格式: fps [目标帧率]）")]
         private static string FPSCommand(int targetFrameRate = -1)
         {
@@ -1155,6 +1417,9 @@ namespace Verve
             return $"目标帧率设置为: {Application.targetFrameRate}";
         }
 
+        /// <summary>
+        ///   <para>信息命令。</para>
+        /// </summary>
         [ConsoleCommand("info", "显示系统信息")]
         private static string InfoCommand()
         {
@@ -1170,6 +1435,9 @@ namespace Verve
             return sb.ToString();
         }
 
+        /// <summary>
+        ///   <para>垃圾回收命令。</para>
+        /// </summary>
         [ConsoleCommand("gc", "执行垃圾回收")]
         private static string GCCommand()
         {
@@ -1180,6 +1448,10 @@ namespace Verve
             return $"垃圾回收完成 | 释放: {(startMem - endMem) / 1024:F1}KB | 当前: {endMem / 1024:F1}KB";
         }
 
+        /// <summary>
+        ///   <para>音量命令。</para>
+        /// </summary>
+        /// <param name="volume">音量。</param>
         [ConsoleCommand("volume", "设置全局音量（格式: volume [0.0 - 1.0]）")]
         private static string VolumeCommand(float volume)
         {
@@ -1188,6 +1460,9 @@ namespace Verve
             return $"音量设置为: {AudioListener.volume:F2}";
         }
 
+        /// <summary>
+        ///   <para>重置场景命令。</para>
+        /// </summary>
         [ConsoleCommand("reset_scene", "重置当前场景")]
         private static string ResetSceneCommand()
         {
@@ -1196,6 +1471,12 @@ namespace Verve
             return $"场景 '{currentSceneName}' 已重置";
         }
 
+        /// <summary>
+        ///   <para>分辨率命令。</para>
+        /// </summary>
+        /// <param name="width">宽度。</param>
+        /// <param name="height">高度。</param>
+        /// <param name="fullscreen">全屏。</param>
         [ConsoleCommand("resolution", "设置分辨率 (格式: resolution 宽 高 [全屏])")]
         private static string ResolutionCommand(int width, int height, bool fullscreen = false)
         {
@@ -1206,6 +1487,10 @@ namespace Verve
             return $"分辨率已设置: {Screen.width}x{Screen.height} {(fullscreen ? "全屏" : "窗口")}";
         }
 
+        /// <summary>
+        ///   <para>连通性测试命令。</para>
+        /// </summary>
+        /// <param name="host">主机。</param>
         [ConsoleCommand("ping", "测试网络延迟（格式: ping [地址]）")]
         private static string PingCommand(string host = "8.8.8.8")
         {
@@ -1219,6 +1504,9 @@ namespace Verve
                 : $"无法 ping 通 {host}: {reply.Status}";
         }
 
+        /// <summary>
+        ///   <para>退出命令。</para>
+        /// </summary>
         [ConsoleCommand("quit", "退出应用程序")]
         private static void QuitCommand()
         {

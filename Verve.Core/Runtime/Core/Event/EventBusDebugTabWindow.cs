@@ -1,4 +1,4 @@
-#if DEBUG && UNITY_5_3_OR_NEWER
+#if (DEBUG || DEVELOPMENT_BUILD) && UNITY_5_3_OR_NEWER
 
 namespace Verve
 {
@@ -7,43 +7,88 @@ namespace Verve
     using UnityEngine;
     using UnityEngine.Scripting;
     using System.Collections.Generic;
-    
-    
+
     /// <summary>
-    ///   <para>事件总线调试窗口</para>
+    ///   <para>事件总线调试窗口。</para>
     /// </summary>
     [Preserve, DebugItem("EventBus")]
     sealed class EventBusDebugTabWindow : DebugTabWindow
     {
+        /// <summary>
+        ///   <para>记录数量上限。</para>
+        /// </summary>
         private const int MaxRecords = 1000;
+        /// <summary>
+        ///   <para>搜索筛选。</para>
+        /// </summary>
         private string m_SearchFilter = "";
+        /// <summary>
+        ///   <para>滚动位置。</para>
+        /// </summary>
         private Vector2 m_ScrollPosition;
+        /// <summary>
+        ///   <para>显示取消订阅事件。</para>
+        /// </summary>
         private bool m_ShowOffEvents = true;
+        /// <summary>
+        ///   <para>取消订阅事件数量。</para>
+        /// </summary>
         private int m_OffEventCount;
+        /// <summary>
+        ///   <para>事件折叠栏。</para>
+        /// </summary>
         private readonly Dictionary<string, bool> m_EventFoldouts = new();
+        /// <summary>
+        ///   <para>处理函数折叠栏。</para>
+        /// </summary>
         private readonly Dictionary<string, bool> m_HandlerFoldouts = new();
-        private readonly List<EventDispatcher<int>.EventRecord> m_EventRecords = new();
+        /// <summary>
+        ///   <para>事件记录。</para>
+        /// </summary>
+        private readonly List<EventDispatcher<EventKey>.EventRecord> m_EventRecords = new();
+        /// <summary>
+        ///   <para>表头样式。</para>
+        /// </summary>
         private GUIStyle m_HeaderStyle;
+        /// <summary>
+        ///   <para>标记样式。</para>
+        /// </summary>
         private GUIStyle m_TagStyle;
+        /// <summary>
+        ///   <para>详情样式。</para>
+        /// </summary>
         private GUIStyle m_DetailStyle;
+        /// <summary>
+        ///   <para>区域样式。</para>
+        /// </summary>
         private GUIStyle m_SectionStyle;
+        /// <summary>
+        ///   <para>样式就绪。</para>
+        /// </summary>
         private bool m_StylesReady;
+        /// <summary>
+        ///   <para>样式字体大小。</para>
+        /// </summary>
         private int m_StyleFontSize = -1;
+        /// <summary>
+        ///   <para>样式字体颜色。</para>
+        /// </summary>
         private Color m_StyleFontColor;
 
+        /// <summary>
+        ///   <para>创建事件总线调试标签页窗口。</para>
+        /// </summary>
+        /// <param name="settings">设置。</param>
         [Preserve]
         public EventBusDebugTabWindow(DebugTabWindowSettings settings) : base(settings) { }
 
-        public override void OnShow()
-        {
-            Game.OnEventRecorded += OnEventRecorded;
-        }
+        /// <inheritdoc />
+        public override void OnShow() => Game.OnEventRecorded += OnEventRecorded;
 
-        public override void OnHide()
-        {
-            Game.OnEventRecorded -= OnEventRecorded;
-        }
+        /// <inheritdoc />
+        public override void OnHide() => Game.OnEventRecorded -= OnEventRecorded;
 
+        /// <inheritdoc />
         public override void Draw()
         {
             EnsureStyles();
@@ -51,6 +96,9 @@ namespace Verve
             DrawEventStates();
         }
 
+        /// <summary>
+        ///   <para>初始化尚未创建的样式。</para>
+        /// </summary>
         private void EnsureStyles()
         {
             if (!m_StylesReady)
@@ -64,6 +112,9 @@ namespace Verve
             ApplyStyleSettings();
         }
 
+        /// <summary>
+        ///   <para>应用样式设置。</para>
+        /// </summary>
         private void ApplyStyleSettings()
         {
             var fontSize = Settings?.FontSize ?? 12;
@@ -81,7 +132,11 @@ namespace Verve
             m_TagStyle.focused.textColor = fontColor;
         }
 
-        private void OnEventRecorded(EventDispatcher<int>.EventRecord record)
+        /// <summary>
+        ///   <para>更新事件记录。</para>
+        /// </summary>
+        /// <param name="record">记录。</param>
+        private void OnEventRecorded(EventDispatcher<EventKey>.EventRecord record)
         {
             m_EventRecords.Add(record);
             if (m_EventRecords.Count > MaxRecords)
@@ -90,6 +145,9 @@ namespace Verve
             }
         }
 
+        /// <summary>
+        ///   <para>绘制工具栏。</para>
+        /// </summary>
         private void DrawToolbar()
         {
             GUILayout.BeginHorizontal(GUI.skin.box);
@@ -104,6 +162,9 @@ namespace Verve
             GUILayout.EndHorizontal();
         }
 
+        /// <summary>
+        ///   <para>更新取消订阅事件数量。</para>
+        /// </summary>
         private void UpdateOffEventCount()
         {
             var groups = GetEventGroups();
@@ -120,6 +181,9 @@ namespace Verve
             m_OffEventCount = groups.Count(g => !g.hasListeners);
         }
 
+        /// <summary>
+        ///   <para>绘制事件状态。</para>
+        /// </summary>
         private void DrawEventStates()
         {
             var eventGroups = GetFilteredEventGroups();
@@ -140,6 +204,10 @@ namespace Verve
             GUILayout.EndScrollView();
         }
 
+        /// <summary>
+        ///   <para>绘制事件分组卡片。</para>
+        /// </summary>
+        /// <param name="group">分组。</param>
         private void DrawEventGroupCard(EventRecordGroup group)
         {
             GUILayout.BeginVertical(m_SectionStyle);
@@ -164,6 +232,10 @@ namespace Verve
             GUILayout.EndVertical();
         }
 
+        /// <summary>
+        ///   <para>绘制事件详情。</para>
+        /// </summary>
+        /// <param name="group">分组。</param>
         private void DrawEventDetails(EventRecordGroup group)
         {
             if (group.handlers.Count == 0)
@@ -178,6 +250,10 @@ namespace Verve
             }
         }
 
+        /// <summary>
+        ///   <para>绘制处理函数分组。</para>
+        /// </summary>
+        /// <param name="handlerGroup">处理函数分组。</param>
         private void DrawHandlerGroup(HandlerGroup handlerGroup)
         {
             GUILayout.BeginVertical(GUI.skin.box);
@@ -187,7 +263,7 @@ namespace Verve
             GUILayout.Label(handlerGroup.handlerInfo ?? "Unknown Handler", m_DetailStyle);
             GUILayout.EndHorizontal();
 
-            var handlerKey = handlerGroup.handlerKey ?? Guid.NewGuid().ToString();
+            var handlerKey = handlerGroup.handlerKey;
             if (!m_HandlerFoldouts.TryGetValue(handlerKey, out var folded))
             {
                 folded = false;
@@ -207,23 +283,17 @@ namespace Verve
             GUILayout.EndVertical();
         }
 
-        private void DrawEventRecord(EventDispatcher<int>.EventRecord record)
+        /// <summary>
+        ///   <para>绘制事件记录。</para>
+        /// </summary>
+        /// <param name="record">记录。</param>
+        private void DrawEventRecord(EventDispatcher<EventKey>.EventRecord record)
         {
             GUILayout.BeginVertical(GUI.skin.box);
             GUILayout.BeginHorizontal();
             GUILayout.Label($"[{record.timestamp:HH:mm:ss.fff}] {record.recordStatus}", m_DetailStyle);
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
-
-            if (record.recordStatus == EventRecordStatus.Emit && !string.IsNullOrEmpty(record.emitSource))
-            {
-                var location = record.emitSource;
-                if (!string.IsNullOrEmpty(record.emitFile))
-                {
-                    location = record.emitLine > 0 ? $"{location} ({record.emitFile}:{record.emitLine})" : $"{location} ({record.emitFile})";
-                }
-                GUILayout.Label($"Emit: {location}", m_DetailStyle);
-            }
 
             if (record.recordStatus == EventRecordStatus.Emit && record.arguments != null && record.arguments.Length > 0)
             {
@@ -239,34 +309,23 @@ namespace Verve
             GUILayout.EndVertical();
         }
 
-        private string GetEventKeyText(int eventKey)
-        {
-            if (Game.StringToHashCache != null)
-            {
-                foreach (var kvp in Game.StringToHashCache)
-                {
-                    if (kvp.Value == eventKey)
-                    {
-                        return kvp.Key;
-                    }
-                }
-            }
-            return eventKey.ToString();
-        }
-
+        /// <summary>
+        ///   <para>获取事件分组。</para>
+        /// </summary>
         private List<EventRecordGroup> GetEventGroups()
         {
-            var groups = new Dictionary<int, EventRecordGroup>();
+            var groups = new Dictionary<EventKey, EventRecordGroup>();
 
-            foreach (var kvp in Game.EventHandlers)
+            var activeEvents = Game.EventHandlers;
+            foreach (var kvp in activeEvents)
             {
                 var eventKey = kvp.Key;
                 if (!groups.TryGetValue(eventKey, out var group))
                 {
                     group = new EventRecordGroup
                     {
-                        eventKey = GetEventKeyText(eventKey),
-                        eventKeyHash = eventKey,
+                        eventKey = eventKey.ToString(),
+                        eventKeyId = eventKey,
                         hasListeners = kvp.Value.Count > 0
                     };
                     groups[eventKey] = group;
@@ -299,8 +358,8 @@ namespace Verve
                 {
                     group = new EventRecordGroup
                     {
-                        eventKey = GetEventKeyText(eventKey),
-                        eventKeyHash = eventKey,
+                        eventKey = eventKey.ToString(),
+                        eventKeyId = eventKey,
                         hasListeners = false
                     };
                     groups[eventKey] = group;
@@ -337,7 +396,7 @@ namespace Verve
 
             foreach (var group in groups.Values)
             {
-                if (Game.EventHandlers.TryGetValue(group.eventKeyHash, out var activeHandlers))
+                if (activeEvents.TryGetValue(group.eventKeyId, out var activeHandlers))
                 {
                     for (int i = 0; i < group.handlers.Count; i++)
                     {
@@ -353,6 +412,9 @@ namespace Verve
             return groups.Values.ToList();
         }
 
+        /// <summary>
+        ///   <para>获取筛选后的事件分组。</para>
+        /// </summary>
         private List<EventRecordGroup> GetFilteredEventGroups()
         {
             var groups = GetEventGroups();
@@ -373,22 +435,61 @@ namespace Verve
             return groups;
         }
         
+        /// <summary>
+        ///   <para>处理函数分组。</para>
+        /// </summary>
         private class HandlerGroup
         {
+            /// <summary>
+            ///   <para>处理函数。</para>
+            /// </summary>
             public Delegate handler;
+            /// <summary>
+            ///   <para>处理函数键。</para>
+            /// </summary>
             public string handlerKey;
+            /// <summary>
+            ///   <para>处理函数信息。</para>
+            /// </summary>
             public string handlerInfo;
+            /// <summary>
+            ///   <para>是否激活。</para>
+            /// </summary>
             public bool isActive;
-            public readonly List<EventDispatcher<int>.EventRecord> records = new();
+            /// <summary>
+            ///   <para>记录。</para>
+            /// </summary>
+            public readonly List<EventDispatcher<EventKey>.EventRecord> records = new();
         }
         
+        /// <summary>
+        ///   <para>事件记录分组。</para>
+        /// </summary>
         private class EventRecordGroup
         {
+            /// <summary>
+            ///   <para>事件键。</para>
+            /// </summary>
             public string eventKey;
-            public int eventKeyHash;
+            /// <summary>
+            ///   <para>事件键标识。</para>
+            /// </summary>
+            public EventKey eventKeyId;
+            /// <summary>
+            ///   <para>包含监听器。</para>
+            /// </summary>
             public bool hasListeners;
+            /// <summary>
+            ///   <para>发布数量。</para>
+            /// </summary>
             public int emitCount;
+            /// <summary>
+            ///   <para>最后发布时间。</para>
+            /// </summary>
             public DateTime lastEmitTime;
+            /// <summary>
+            ///   <para>处理函数。</para>
+            /// </summary>
             public readonly List<HandlerGroup> handlers = new();
         }
     }

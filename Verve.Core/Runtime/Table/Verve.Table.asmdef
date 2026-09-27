@@ -1,0 +1,16 @@
+{
+    "name": "Verve.Table",
+    "rootNamespace": "Verve",
+    "references": [
+        "Verve.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

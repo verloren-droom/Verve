@@ -6,40 +6,100 @@ namespace Verve
     using UnityEngine;
     using UnityEngine.Scripting;
     using System.Collections.Generic;
-    
-    
+
     /// <summary>
-    ///   <para>游戏模块调试窗口</para>
+    ///   <para>游戏模块调试窗口。</para>
     /// </summary>
     [Preserve, DebugItem("Module")]
     sealed class GameModuleDebugTabWindow : DebugTabWindow
     {
+        /// <summary>
+        ///   <para>滚动位置。</para>
+        /// </summary>
         private Vector2 m_ScrollPosition;
+        /// <summary>
+        ///   <para>句柄。</para>
+        /// </summary>
         private readonly List<GameModulesHandle> m_Handles = new(8);
+        /// <summary>
+        ///   <para>模块容器。</para>
+        /// </summary>
         private readonly List<IGameModule> m_Modules = new(32);
-        private readonly List<GameModules.OwnedTickRegistration> m_OwnedTicks = new(16);
+        /// <summary>
+        ///   <para>模块注册的 Tick 对象。</para>
+        /// </summary>
+        private readonly List<GameModuleTickRegistration> m_OwnedTicks = new(16);
+        /// <summary>
+        ///   <para>搜索。</para>
+        /// </summary>
         private string m_Search = "";
+        /// <summary>
+        ///   <para>模块折叠栏。</para>
+        /// </summary>
         private bool m_ModulesFoldout = true;
+        /// <summary>
+        ///   <para>句柄总数。</para>
+        /// </summary>
         private int m_HandlesTotal;
+        /// <summary>
+        ///   <para>显示的句柄数量。</para>
+        /// </summary>
         private int m_HandlesShown;
+        /// <summary>
+        ///   <para>模块总数。</para>
+        /// </summary>
         private int m_ModulesTotal;
+        /// <summary>
+        ///   <para>显示的模块数量。</para>
+        /// </summary>
         private int m_ModulesShown;
+        /// <summary>
+        ///   <para>已安装模块数量。</para>
+        /// </summary>
         private int m_ModulesInstalled;
+        /// <summary>
+        ///   <para>模块注册的 Tick 对象总数。</para>
+        /// </summary>
         private int m_OwnedTicksTotal;
+        /// <summary>
+        ///   <para>表头样式。</para>
+        /// </summary>
         private GUIStyle m_HeaderStyle;
+        /// <summary>
+        ///   <para>详情样式。</para>
+        /// </summary>
         private GUIStyle m_DetailStyle;
+        /// <summary>
+        ///   <para>区域样式。</para>
+        /// </summary>
         private GUIStyle m_SectionStyle;
+        /// <summary>
+        ///   <para>样式就绪。</para>
+        /// </summary>
         private bool m_StylesReady;
+        /// <summary>
+        ///   <para>样式字体大小。</para>
+        /// </summary>
         private int m_StyleFontSize = -1;
+        /// <summary>
+        ///   <para>样式字体颜色。</para>
+        /// </summary>
         private Color m_StyleFontColor;
 
+        /// <summary>
+        ///   <para>创建模块调试标签页窗口。</para>
+        /// </summary>
+        /// <param name="settings">设置。</param>
         [Preserve]
         public GameModuleDebugTabWindow(DebugTabWindowSettings settings) : base(settings) { }
 
+        /// <inheritdoc />
         public override void OnShow() { }
 
+        /// <inheritdoc />
         public override void OnHide() { }
 
+        /// <inheritdoc />
         public override void Draw()
         {
             EnsureStyles();
@@ -60,6 +120,9 @@ namespace Verve
             GUILayout.EndScrollView();
         }
 
+        /// <summary>
+        ///   <para>初始化尚未创建的样式。</para>
+        /// </summary>
         private void EnsureStyles()
         {
             if (!m_StylesReady)
@@ -72,6 +135,9 @@ namespace Verve
             ApplyStyleSettings();
         }
 
+        /// <summary>
+        ///   <para>应用样式设置。</para>
+        /// </summary>
         private void ApplyStyleSettings()
         {
             var fontSize = Settings?.FontSize ?? 12;
@@ -85,6 +151,9 @@ namespace Verve
             m_DetailStyle.normal.textColor = fontColor;
         }
 
+        /// <summary>
+        ///   <para>绘制工具栏。</para>
+        /// </summary>
         private void DrawToolbar()
         {
             GUILayout.BeginHorizontal(GUI.skin.box);
@@ -107,6 +176,9 @@ namespace Verve
             }
         }
 
+        /// <summary>
+        ///   <para>计算显示统计。</para>
+        /// </summary>
         private void CalculateStats()
         {
             m_HandlesTotal = m_Handles.Count;
@@ -145,6 +217,10 @@ namespace Verve
             }
         }
 
+        /// <summary>
+        ///   <para>匹配搜索。</para>
+        /// </summary>
+        /// <param name="instance">实例。</param>
         private bool MatchesSearch(object instance)
         {
             if (string.IsNullOrEmpty(m_Search)) return true;
@@ -158,6 +234,11 @@ namespace Verve
             return false;
         }
 
+        /// <summary>
+        ///   <para>匹配模块搜索。</para>
+        /// </summary>
+        /// <param name="modules">模块。</param>
+        /// <param name="module">模块。</param>
         private bool MatchesModuleSearch(GameModules modules, IGameModule module)
         {
             if (MatchesSearch(module)) return true;
@@ -165,13 +246,17 @@ namespace Verve
             return MatchesOwnedTickSearch(modules, module);
         }
 
+        /// <summary>
+        ///   <para>匹配依赖搜索。</para>
+        /// </summary>
+        /// <param name="module">模块。</param>
         private bool MatchesDependencySearch(IGameModule module)
         {
             if (module == null || string.IsNullOrEmpty(m_Search)) return false;
 
             try
             {
-                var dependencies = GameModuleDependencyUtility.GetDependencies(module);
+                var dependencies = GameModuleDependencyUtility.GetDependencies(module.GetType());
                 for (int i = 0; i < dependencies.Length; i++)
                 {
                     if (MatchesTypeSearch(dependencies[i])) return true;
@@ -186,6 +271,11 @@ namespace Verve
             return false;
         }
 
+        /// <summary>
+        ///   <para>匹配模块注册的 Tick 对象。</para>
+        /// </summary>
+        /// <param name="modules">模块。</param>
+        /// <param name="module">模块。</param>
         private bool MatchesOwnedTickSearch(GameModules modules, IGameModule module)
         {
             if (modules == null || module == null || string.IsNullOrEmpty(m_Search)) return false;
@@ -208,6 +298,10 @@ namespace Verve
             return false;
         }
 
+        /// <summary>
+        ///   <para>匹配类型搜索。</para>
+        /// </summary>
+        /// <param name="type">类型。</param>
         private bool MatchesTypeSearch(Type type)
         {
             if (type == null || string.IsNullOrEmpty(m_Search)) return false;
@@ -220,6 +314,10 @@ namespace Verve
             return assembly.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
+        /// <summary>
+        ///   <para>匹配搜索。</para>
+        /// </summary>
+        /// <param name="handle">句柄。</param>
         private bool MatchesSearch(GameModulesHandle handle)
         {
             if (handle == null) return false;
@@ -230,6 +328,11 @@ namespace Verve
             return handle.ToString().IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
+        /// <summary>
+        ///   <para>统计模块注册的 Tick 对象。</para>
+        /// </summary>
+        /// <param name="modules">模块。</param>
+        /// <param name="module">模块。</param>
         private int CountOwnedTicks(GameModules modules, IGameModule module)
         {
             if (modules == null || module == null) return 0;
@@ -245,6 +348,9 @@ namespace Verve
             }
         }
 
+        /// <summary>
+        ///   <para>绘制模块区域。</para>
+        /// </summary>
         private void DrawModulesSection()
         {
             if (!m_ModulesFoldout) return;
@@ -254,6 +360,10 @@ namespace Verve
             }
         }
 
+        /// <summary>
+        ///   <para>绘制句柄区域。</para>
+        /// </summary>
+        /// <param name="handle">句柄。</param>
         private void DrawHandleSection(GameModulesHandle handle)
         {
             if (!TryCopyHandleModules(handle, out var modules)) return;
@@ -299,6 +409,11 @@ namespace Verve
             GUILayout.EndVertical();
         }
 
+        /// <summary>
+        ///   <para>尝试读取句柄中的模块引用。</para>
+        /// </summary>
+        /// <param name="handle">句柄。</param>
+        /// <param name="modules">模块。</param>
         private bool TryCopyHandleModules(GameModulesHandle handle, out GameModules modules)
         {
             modules = null;
@@ -320,6 +435,13 @@ namespace Verve
             }
         }
 
+        /// <summary>
+        ///   <para>绘制模块卡片。</para>
+        /// </summary>
+        /// <param name="handle">句柄。</param>
+        /// <param name="modules">模块。</param>
+        /// <param name="displayIndex">显示索引。</param>
+        /// <param name="module">模块。</param>
         private void DrawModuleCard(GameModulesHandle handle, GameModules modules, int displayIndex, IGameModule module)
         {
             GUILayout.BeginVertical(GUI.skin.box);
@@ -345,6 +467,10 @@ namespace Verve
             GUILayout.EndVertical();
         }
 
+        /// <summary>
+        ///   <para>绘制依赖。</para>
+        /// </summary>
+        /// <param name="module">模块。</param>
         private void DrawDependencies(IGameModule module)
         {
             if (module == null)
@@ -356,7 +482,7 @@ namespace Verve
             Type[] dependencies;
             try
             {
-                dependencies = GameModuleDependencyUtility.GetDependencies(module);
+                dependencies = GameModuleDependencyUtility.GetDependencies(module.GetType());
             }
             catch (Exception ex)
             {
@@ -379,6 +505,11 @@ namespace Verve
             }
         }
 
+        /// <summary>
+        ///   <para>绘制模块注册的 Tick 对象。</para>
+        /// </summary>
+        /// <param name="modules">模块。</param>
+        /// <param name="module">模块。</param>
         private void DrawOwnedTicks(GameModules modules, IGameModule module)
         {
             if (modules == null || module == null)
@@ -408,14 +539,17 @@ namespace Verve
             {
                 var registration = m_OwnedTicks[i];
                 var tickSystem = registration.tickSystem;
-                var mode = registration.runInBackground ? "Background" : "Main";
                 var phases = GameModules.GetTickPhasesText(tickSystem);
                 GUILayout.Label(
-                    $"  - {GameModuleUtility.GetTypeDisplayName(tickSystem?.GetType())} [{mode}] Phases: {phases}",
+                    $"  - {GameModuleUtility.GetTypeDisplayName(tickSystem?.GetType())} Phases: {phases}",
                     m_DetailStyle);
             }
         }
 
+        /// <summary>
+        ///   <para>判断依赖模块是否已安装。</para>
+        /// </summary>
+        /// <param name="dependencyType">依赖类型。</param>
         private bool IsDependencyInstalled(Type dependencyType)
         {
             if (dependencyType == null) return false;
@@ -432,6 +566,10 @@ namespace Verve
             return false;
         }
 
+        /// <summary>
+        ///   <para>获取容器状态。</para>
+        /// </summary>
+        /// <param name="modules">模块。</param>
         private static string GetContainerState(GameModules modules)
         {
             if (modules == null) return "Disposed";
@@ -440,6 +578,10 @@ namespace Verve
             return modules.IsChanging ? "Changing" : "Alive";
         }
 
+        /// <summary>
+        ///   <para>获取模块状态。</para>
+        /// </summary>
+        /// <param name="module">模块。</param>
         private static string GetModuleState(IGameModule module)
         {
             if (module == null) return "Null";

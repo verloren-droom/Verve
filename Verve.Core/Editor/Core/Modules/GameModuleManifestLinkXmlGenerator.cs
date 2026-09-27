@@ -3,7 +3,6 @@
 namespace Verve.Editor
 {
     using System;
-    using System.IO;
     using System.Text;
     using System.Collections;
     using UnityEngine;
@@ -12,34 +11,46 @@ namespace Verve.Editor
     using System.Reflection;
     using System.Collections.Generic;
     using UnityEditor.Build.Reporting;
-
-
+    
     /// <summary>
-    ///   <para>为模块清单中的反射创建类型生成 UnityLinker 保留配置</para>
+    ///   <para>模块清单链接配置生成器；保留反射创建的类型。</para>
     /// </summary>
     sealed class GameModuleManifestLinkXmlGenerator : IPreprocessBuildWithReport
     {
+        /// <summary>
+        ///   <para>输出目录。</para>
+        /// </summary>
         private const string k_OutputDirectory = "Assets/Verve.Generated";
+        /// <summary>
+        ///   <para>输出路径。</para>
+        /// </summary>
         private const string k_OutputPath = k_OutputDirectory + "/GameModuleManifest.link.xml";
+        /// <summary>
+        ///   <para>最大保留图深度。</para>
+        /// </summary>
         private const int k_MaxPreserveGraphDepth = 32;
 
+        /// <summary>
+        ///   <para>不含 BOM 的 UTF-8 编码。</para>
+        /// </summary>
         private static readonly UTF8Encoding s_Utf8WithoutBom = new(false);
 
         public int callbackOrder => 0;
 
-        public void OnPreprocessBuild(BuildReport report)
-        {
-            GenerateLinkXml();
-        }
+        public void OnPreprocessBuild(BuildReport report) => GenerateLinkXml();
 
+        /// <summary>
+        ///   <para>生成链接 XML。</para>
+        /// </summary>
         private static void GenerateLinkXml()
         {
             var moduleTypes = FindManifestTypesToPreserve();
-            Directory.CreateDirectory(k_OutputDirectory);
-            File.WriteAllText(k_OutputPath, CreateLinkXml(moduleTypes), s_Utf8WithoutBom);
-            AssetDatabase.ImportAsset(k_OutputPath, ImportAssetOptions.ForceUpdate);
+            CoreEditorUtility.WriteTextAsset(k_OutputPath, CoreEditorUtility.CreateLinkXml(moduleTypes), s_Utf8WithoutBom);
         }
 
+        /// <summary>
+        ///   <para>查找清单中需要保留的类型。</para>
+        /// </summary>
         private static List<Type> FindManifestTypesToPreserve()
         {
             var result = new List<Type>();
@@ -69,44 +80,46 @@ namespace Verve.Editor
             return result;
         }
 
+        /// <summary>
+        ///   <para>添加清单中需要保留的类型。</para>
+        /// </summary>
+        /// <param name="manifest">清单。</param>
+        /// <param name="assetPath">资源路径。</param>
+        /// <param name="result">结果。</param>
+        /// <param name="seen">已访问。</param>
         private static void AppendManifestTypesToPreserve(
             GameModuleManifestAsset manifest,
             string assetPath,
             List<Type> result,
             HashSet<RuntimeTypeHandle> seen)
         {
-            IReadOnlyList<GameModuleManifest.InstallItem> installItems = null;
-            Exception failure = null;
             try
             {
-                installItems = manifest.ToManifest().CreateInstallItems();
-                var visitedObjects = new HashSet<object>(GameModuleUtility.ReferenceComparer<object>.Instance);
-                for (int i = 0; i < installItems.Count; i++)
+                var descriptors = manifest.ToManifest().GetInstallDescriptors();
+                using var factory = new GameModuleFactory();
+                var visitedObjects = new HashSet<object>(ReferenceEqualityComparer<object>.Instance);
+                foreach (var descriptor in descriptors)
                 {
-                    var item = installItems[i];
-                    AppendTypeToPreserve(item.moduleType, result, seen, k_MaxPreserveGraphDepth);
-                    AppendDependencyTypesToPreserve(item.dependencies, result, seen);
-                    AppendRuntimeValueTypesToPreserve(item.module, result, seen, visitedObjects, k_MaxPreserveGraphDepth);
+                    AppendTypeToPreserve(descriptor.ModuleType, result, seen, k_MaxPreserveGraphDepth);
+                    AppendDependencyTypesToPreserve(descriptor.DependencyTypes, result, seen);
+                    using var module = descriptor.CreateModule(factory);
+                    descriptor.Configure?.Invoke(module);
+                    AppendRuntimeValueTypesToPreserve(module, result, seen, visitedObjects, k_MaxPreserveGraphDepth);
                 }
             }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                failure = GameModuleUtility.CombineErrors(
-                    failure,
-                    DisposeManifestInstallItems(installItems));
-            }
-
-            if (failure != null)
+            catch (Exception failure)
             {
                 throw new BuildFailedException(
-                    $"{nameof(GameModuleManifestAsset)} could not generate stripping data. asset={assetPath}, error={failure.Message}");
+                    $"{nameof(GameModuleManifestAsset)} could not generate stripping data. asset={assetPath}, error={failure}");
             }
         }
 
+        /// <summary>
+        ///   <para>添加需要保留的依赖类型。</para>
+        /// </summary>
+        /// <param name="dependencies">依赖。</param>
+        /// <param name="result">结果。</param>
+        /// <param name="seen">已访问。</param>
         private static void AppendDependencyTypesToPreserve(
             Type[] dependencies,
             List<Type> result,
@@ -123,27 +136,14 @@ namespace Verve.Editor
             }
         }
 
-        private static Exception DisposeManifestInstallItems(
-            IReadOnlyList<GameModuleManifest.InstallItem> installItems)
-        {
-            if (installItems == null || installItems.Count == 0)
-            {
-                return null;
-            }
-
-            Exception failure = null;
-            for (int i = installItems.Count - 1; i >= 0; i--)
-            {
-                failure = GameModuleUtility.CombineErrors(
-                    failure,
-                    GameModuleUtility.DisposeModuleAndCreateFailure(
-                        installItems[i].module,
-                        "disposing module after link.xml generation"));
-            }
-
-            return failure;
-        }
-
+        /// <summary>
+        ///   <para>添加运行时字段值涉及的类型。</para>
+        /// </summary>
+        /// <param name="value">值。</param>
+        /// <param name="result">结果。</param>
+        /// <param name="seenTypes">已访问类型集合。</param>
+        /// <param name="visitedObjects">已访问对象集合。</param>
+        /// <param name="remainingDepth">剩余遍历深度。</param>
         private static void AppendRuntimeValueTypesToPreserve(
             object value,
             List<Type> result,
@@ -199,6 +199,13 @@ namespace Verve.Editor
             }
         }
 
+        /// <summary>
+        ///   <para>添加需要保留的类型。</para>
+        /// </summary>
+        /// <param name="type">类型。</param>
+        /// <param name="result">结果。</param>
+        /// <param name="seen">已访问。</param>
+        /// <param name="remainingDepth">剩余遍历深度。</param>
         private static void AppendTypeToPreserve(
             Type type,
             List<Type> result,
@@ -243,27 +250,22 @@ namespace Verve.Editor
             }
         }
 
+        /// <summary>
+        ///   <para>获取序列化字段。</para>
+        /// </summary>
+        /// <param name="type">类型。</param>
         private static IEnumerable<FieldInfo> GetSerializedFields(Type type)
         {
-            const BindingFlags flags =
-                BindingFlags.Instance |
-                BindingFlags.Public |
-                BindingFlags.NonPublic |
-                BindingFlags.DeclaredOnly;
-
-            for (var current = type; current != null && current != typeof(object); current = current.BaseType)
+            foreach (var field in Game.ReflectionUtility.EnumerateFields(type))
             {
-                var fields = current.GetFields(flags);
-                for (int i = 0; i < fields.Length; i++)
-                {
-                    if (IsSerializedField(fields[i]))
-                    {
-                        yield return fields[i];
-                    }
-                }
+                if (IsSerializedField(field)) yield return field;
             }
         }
 
+        /// <summary>
+        ///   <para>判断是否为序列化字段。</para>
+        /// </summary>
+        /// <param name="field">字段。</param>
         private static bool IsSerializedField(FieldInfo field)
         {
             if (field == null ||
@@ -280,6 +282,10 @@ namespace Verve.Editor
                    field.GetCustomAttribute<SerializeReference>() != null;
         }
 
+        /// <summary>
+        ///   <para>判断是否需要保留类型。</para>
+        /// </summary>
+        /// <param name="type">类型。</param>
         private static bool ShouldPreserveType(Type type)
         {
             if (type == null ||
@@ -311,58 +317,6 @@ namespace Verve.Editor
             return type.IsClass || type.IsValueType || type.IsInterface;
         }
 
-        private static string CreateLinkXml(List<Type> moduleTypes)
-        {
-            var builder = new StringBuilder(1024);
-            builder.AppendLine("<linker>");
-
-            string currentAssembly = null;
-            for (int i = 0; i < moduleTypes.Count; i++)
-            {
-                var moduleType = moduleTypes[i];
-                var assemblyName = moduleType.Assembly.GetName().Name;
-                if (!string.Equals(currentAssembly, assemblyName, StringComparison.Ordinal))
-                {
-                    if (currentAssembly != null)
-                    {
-                        builder.AppendLine("  </assembly>");
-                    }
-
-                    currentAssembly = assemblyName;
-                    builder
-                        .Append("  <assembly fullname=\"")
-                        .Append(EscapeXml(assemblyName))
-                        .AppendLine("\">");
-                }
-
-                builder
-                    .Append("    <type fullname=\"")
-                    .Append(EscapeXml(GetLinkerTypeName(moduleType)))
-                    .AppendLine("\" preserve=\"all\" />");
-            }
-
-            if (currentAssembly != null)
-            {
-                builder.AppendLine("  </assembly>");
-            }
-
-            builder.AppendLine("</linker>");
-            return builder.ToString();
-        }
-
-        private static string GetLinkerTypeName(Type type)
-        {
-            return (type.FullName ?? type.Name).Replace('+', '/');
-        }
-
-        private static string EscapeXml(string value)
-        {
-            return (value ?? string.Empty)
-                .Replace("&", "&amp;")
-                .Replace("\"", "&quot;")
-                .Replace("<", "&lt;")
-                .Replace(">", "&gt;");
-        }
     }
 }
 

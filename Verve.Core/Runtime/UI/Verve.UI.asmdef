@@ -1,0 +1,17 @@
+{
+    "name": "Verve.UI",
+    "rootNamespace": "Verve",
+    "references": [
+        "Verve.Core",
+        "Verve.Loader"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

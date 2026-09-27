@@ -3,41 +3,49 @@ namespace Verve
     using System;
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;
-    using System.Runtime.ExceptionServices;
-
-
+    
     /// <summary>
-    ///   <para>游戏模块描述符</para>
+    ///   <para>游戏模块描述符。</para>
     /// </summary>
     [Serializable]
     public sealed class GameModuleDescriptor
     {
         /// <summary>
-        ///   <para>执行清单安装时使用的模块创建工厂</para>
+        ///   <para>执行清单安装时使用的模块创建工厂。</para>
         /// </summary>
         private readonly Func<GameModule> m_Factory;
+        /// <summary>
+        ///   <para>条目配置委托；在框架接管和工厂配置后调用。</para>
+        /// </summary>
+        internal Action<GameModule> Configure { get; }
 
         /// <summary>
-        ///   <para>模块的精确运行时类型</para>
+        ///   <para>模块的精确运行时类型。</para>
         /// </summary>
         public Type ModuleType { get; }
 
         /// <summary>
-        ///   <para>模块类型句柄</para>
+        ///   <para>模块类型句柄。</para>
         /// </summary>
         internal RuntimeTypeHandle ModuleTypeHandle { get; }
 
         /// <summary>
-        ///   <para>模块类型显示名</para>
+        ///   <para>模块类型显示名。</para>
         /// </summary>
         internal string ModuleTypeName { get; }
 
         /// <summary>
-        ///   <para>创建模块描述符</para>
+        ///   <para>模块类型声明的依赖列表。</para>
         /// </summary>
-        /// <param name="moduleType">模块类型</param>
-        /// <param name="factory">模块创建工厂</param>
-        public GameModuleDescriptor(Type moduleType, Func<GameModule> factory)
+        internal Type[] DependencyTypes { get; }
+
+        /// <summary>
+        ///   <para>创建模块描述符。</para>
+        /// </summary>
+        /// <param name="moduleType">模块类型。</param>
+        /// <param name="factory">模块创建工厂。</param>
+        /// <param name="configure">接管后执行的条目配置。</param>
+        public GameModuleDescriptor(Type moduleType, Func<GameModule> factory = null, Action<GameModule> configure = null)
         {
             if (moduleType == null) throw new ArgumentNullException(nameof(moduleType));
 
@@ -50,119 +58,104 @@ namespace Verve
             ModuleType = moduleType;
             ModuleTypeHandle = moduleType.TypeHandle;
             ModuleTypeName = GameModuleUtility.GetTypeDisplayName(moduleType);
-            m_Factory = factory ?? throw new ArgumentNullException(nameof(factory));
+            DependencyTypes = GameModuleDependencyUtility.GetDependencies(moduleType);
+            m_Factory = factory;
+            Configure = configure;
         }
 
         /// <summary>
-        ///   <para>通过描述符创建模块实例并校验精确运行时类型</para>
+        ///   <para>通过描述符创建模块实例并校验精确运行时类型。</para>
         /// </summary>
-        internal GameModule CreateModule()
-        {
-            return GameModuleUtility.CreateModuleForExactType(ModuleType, m_Factory);
-        }
+        /// <param name="factory">模块创建工厂。</param>
+        internal GameModule CreateModule(IGameModuleFactory factory) => GameModuleUtility.CreateModuleForExactType(ModuleType, m_Factory ?? (() => factory.Create(ModuleType)));
 
-        public override string ToString()
-        {
-            return ModuleTypeName;
-        }
+        /// <inheritdoc />
+        public override string ToString() => ModuleTypeName;
     }
 
     /// <summary>
-    ///   <para>模块清单的安装顺序</para>
+    ///   <para>模块清单的安装顺序。</para>
     /// </summary>
     public enum GameModuleInstallOrder : byte
     {
         /// <summary>
-        ///   <para>按模块依赖关系自动整理安装顺序</para>
+        ///   <para>按模块依赖关系自动整理安装顺序。</para>
         /// </summary>
         Dependency = 0,
         /// <summary>
-        ///   <para>按清单声明顺序安装；依赖必须已经出现在更早的条目中</para>
+        ///   <para>按清单声明顺序安装；依赖必须已经出现在更早的条目中。</para>
         /// </summary>
         Declared = 1,
     }
-
+    
     /// <summary>
-    ///   <para>游戏模块清单</para>
+    ///   <para>游戏模块清单。</para>
     /// </summary>
     [Serializable]
     public sealed class GameModuleManifest
     {
         /// <summary>
-        ///   <para>拓扑排序中的访问状态</para>
+        ///   <para>拓扑排序中的访问状态。</para>
         /// </summary>
         private enum VisitState : byte
         {
+            /// <summary>
+            ///   <para>访问中。</para>
+            /// </summary>
             Visiting = 0,
+            /// <summary>
+            ///   <para>完成。</para>
+            /// </summary>
             Done = 1,
         }
 
         /// <summary>
-        ///   <para>一次清单安装中准备好的模块项</para>
-        /// </summary>
-        internal readonly struct InstallItem
-        {
-            public readonly GameModule module;
-            public readonly Type moduleType;
-            public readonly RuntimeTypeHandle moduleTypeHandle;
-            public readonly Type[] dependencies;
-
-            public InstallItem(GameModule module, Type[] dependencies)
-            {
-                this.module = module ?? throw new ArgumentNullException(nameof(module));
-                moduleType = module.GetType();
-                moduleTypeHandle = moduleType.TypeHandle;
-                this.dependencies = dependencies ?? Array.Empty<Type>();
-            }
-        }
-
-        /// <summary>
-        ///   <para>非递归拓扑排序时使用的访问栈帧</para>
+        ///   <para>非递归拓扑排序时使用的访问栈帧。</para>
         /// </summary>
         [Serializable]
         private struct VisitFrame
         {
             /// <summary>
-            ///   <para>当前处理中的模块项索引</para>
+            ///   <para>当前处理中的模块项索引。</para>
             /// </summary>
             public int itemIndex;
             /// <summary>
-            ///   <para>当前已处理到的依赖索引</para>
+            ///   <para>当前已处理到的依赖索引。</para>
             /// </summary>
             public int dependencyIndex;
             /// <summary>
-            ///   <para>当前模块项是否已经进入访问流程</para>
+            ///   <para>当前模块项是否已经进入访问流程。</para>
             /// </summary>
             public bool entered;
         }
 
         /// <summary>
-        ///   <para>清单中的模块描述符列表</para>
+        ///   <para>清单中的模块描述符列表。</para>
         /// </summary>
         private readonly List<GameModuleDescriptor> m_Descriptors = new();
 
         /// <summary>
-        ///   <para>清单描述符列表引用</para>
+        ///   <para>清单描述符列表引用。</para>
         /// </summary>
         private readonly IReadOnlyList<GameModuleDescriptor> m_DescriptorList;
 
         /// <summary>
-        ///   <para>模块类型句柄到描述符</para>
+        ///   <para>模块类型句柄到描述符。</para>
         /// </summary>
         private readonly Dictionary<RuntimeTypeHandle, GameModuleDescriptor> m_ByType = new();
 
         /// <summary>
-        ///   <para>清单安装顺序</para>
+        ///   <para>清单安装顺序。</para>
         /// </summary>
         private readonly GameModuleInstallOrder m_InstallOrder;
         
         /// <summary>
-        ///   <para>清单内模块描述符</para>
+        ///   <para>清单内模块描述符。</para>
         /// </summary>
         public IReadOnlyList<GameModuleDescriptor> Descriptors => m_DescriptorList;
         
         /// <summary>
-        ///   <para>清单安装顺序</para>
+        ///   <para>清单安装顺序。</para>
         /// </summary>
         public GameModuleInstallOrder InstallOrder
         {
@@ -171,7 +164,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>清单模块数量</para>
+        ///   <para>清单模块数量。</para>
         /// </summary>
         public int Count
         {
@@ -179,6 +172,10 @@ namespace Verve
             get => m_Descriptors.Count;
         }
 
+        /// <summary>
+        ///   <para>创建模块清单。</para>
+        /// </summary>
+        /// <param name="installOrder">安装顺序。</param>
         public GameModuleManifest(GameModuleInstallOrder installOrder = GameModuleInstallOrder.Dependency)
         {
             m_DescriptorList = m_Descriptors.AsReadOnly();
@@ -186,10 +183,11 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>添加模块描述符</para>
+        ///   <para>添加模块描述符。</para>
         /// </summary>
-        /// <param name="factory">模块创建工厂</param>
-        /// <param name="replace">是否替换同精确类型下已有的描述符</param>
+        /// <param name="factory">模块创建工厂。</param>
+        /// <param name="replace">是否替换同精确类型下已有的描述符。</param>
+        /// <typeparam name="T">模块类型。</typeparam>
         public GameModuleDescriptor Add<T>(Func<T> factory, bool replace = false)
             where T : GameModule
         {
@@ -200,37 +198,32 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>添加模块描述符并使用无参构造函数创建模块实例</para>
+        ///   <para>添加模块描述符，安装时使用所属容器的创建策略。</para>
         /// </summary>
-        /// <param name="replace">是否替换同精确类型下已有的描述符</param>
+        /// <param name="replace">是否替换同精确类型下已有的描述符。</param>
+        /// <typeparam name="T">模块类型。</typeparam>
         public GameModuleDescriptor Add<T>(bool replace = false)
-            where T : GameModule, new()
-        {
-            var descriptor = new GameModuleDescriptor(typeof(T), static () => new T());
-            Add(descriptor, replace);
-            return descriptor;
-        }
+            where T : GameModule => Add(typeof(T), replace: replace);
 
         /// <summary>
-        ///   <para>添加模块描述符</para>
+        ///   <para>添加模块描述符。</para>
         /// </summary>
-        /// <param name="moduleType">模块类型</param>
-        /// <param name="factory">模块创建工厂</param>
-        /// <param name="replace">是否替换已存在描述符</param>
-        public GameModuleDescriptor Add(Type moduleType, Func<GameModule> factory, bool replace = false)
+        /// <param name="moduleType">模块类型。</param>
+        /// <param name="factory">模块创建工厂。</param>
+        /// <param name="replace">是否替换已存在描述符。</param>
+        public GameModuleDescriptor Add(Type moduleType, Func<GameModule> factory = null, bool replace = false)
         {
             if (moduleType == null) throw new ArgumentNullException(nameof(moduleType));
-            if (factory == null) throw new ArgumentNullException(nameof(factory));
             var descriptor = new GameModuleDescriptor(moduleType, factory);
             Add(descriptor, replace);
             return descriptor;
         }
 
         /// <summary>
-        ///   <para>把模块描述符加入清单</para>
+        ///   <para>把模块描述符加入清单。</para>
         /// </summary>
-        /// <param name="descriptor">模块描述符</param>
-        /// <param name="replace">是否替换已存在描述符</param>
+        /// <param name="descriptor">模块描述符。</param>
+        /// <param name="replace">是否替换已存在描述符。</param>
         public void Add(GameModuleDescriptor descriptor, bool replace = false)
         {
             if (descriptor == null) throw new ArgumentNullException(nameof(descriptor));
@@ -258,19 +251,21 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>移除指定泛型类型对应的模块描述符</para>
+        ///   <para>移除指定泛型类型对应的模块描述符。</para>
         /// </summary>
+        /// <typeparam name="T">模块类型。</typeparam>
         public bool Remove<T>() where T : GameModule => Remove(typeof(T));
 
         /// <summary>
-        ///   <para>检查清单是否包含指定泛型模块类型</para>
+        ///   <para>检查清单是否包含指定泛型模块类型。</para>
         /// </summary>
+        /// <typeparam name="T">模块类型。</typeparam>
         public bool Contains<T>() where T : GameModule => Contains(typeof(T));
 
         /// <summary>
-        ///   <para>移除指定类型对应的模块描述符</para>
+        ///   <para>移除指定类型对应的模块描述符。</para>
         /// </summary>
-        /// <param name="moduleType">模块类型</param>
+        /// <param name="moduleType">模块类型。</param>
         public bool Remove(Type moduleType)
         {
             if (moduleType == null) return false;
@@ -289,9 +284,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>检查清单是否包含指定模块类型</para>
+        ///   <para>检查清单是否包含指定模块类型。</para>
         /// </summary>
-        /// <param name="moduleType">模块类型</param>
+        /// <param name="moduleType">模块类型。</param>
         public bool Contains(Type moduleType)
         {
             if (moduleType == null) return false;
@@ -299,10 +294,10 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>尝试获取指定类型对应的模块描述符</para>
+        ///   <para>尝试获取指定类型对应的模块描述符。</para>
         /// </summary>
-        /// <param name="moduleType">模块类型</param>
-        /// <param name="descriptor">模块描述符</param>
+        /// <param name="moduleType">模块类型。</param>
+        /// <param name="descriptor">模块描述符。</param>
         public bool TryGetDescriptor(Type moduleType, out GameModuleDescriptor descriptor)
         {
             descriptor = null;
@@ -311,16 +306,15 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>尝试获取指定泛型类型对应的模块描述符</para>
+        ///   <para>尝试获取指定泛型类型对应的模块描述符。</para>
         /// </summary>
+        /// <param name="descriptor">模块描述符。</param>
+        /// <typeparam name="T">模块类型。</typeparam>
         public bool TryGetDescriptor<T>(out GameModuleDescriptor descriptor)
-            where T : GameModule
-        {
-            return TryGetDescriptor(typeof(T), out descriptor);
-        }
+            where T : GameModule => TryGetDescriptor(typeof(T), out descriptor);
 
         /// <summary>
-        ///   <para>清空清单中的全部模块描述符</para>
+        ///   <para>清空清单中的全部模块描述符。</para>
         /// </summary>
         public void Clear()
         {
@@ -330,152 +324,97 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>创建一次清单安装所需的模块项，并按当前清单策略决定最终顺序</para>
+        ///   <para>只整理声明；每个实例在即将安装时才创建，创建成功即交给容器。</para>
         /// </summary>
-        internal IReadOnlyList<InstallItem> CreateInstallItems()
+        internal IReadOnlyList<GameModuleDescriptor> GetInstallDescriptors()
         {
-            if (m_Descriptors.Count == 0)
-            {
-                return Array.Empty<InstallItem>();
-            }
-
-            var installItems = CreatePreparedInstallItems();
-
-            try
-            {
-                return InstallOrder == GameModuleInstallOrder.Declared
-                    ? ValidateDeclaredInstallItems(installItems)
-                    : OrderInstallItems(installItems);
-            }
-            catch (Exception ex)
-            {
-                var failure = GameModuleUtility.CombineErrors(ex, DisposePreparedItems(installItems));
-                ExceptionDispatchInfo.Capture(failure).Throw();
-                throw;
-            }
+            return InstallOrder == GameModuleInstallOrder.Declared
+                ? ValidateDeclaredDescriptors(m_Descriptors)
+                : OrderDescriptors(m_Descriptors);
         }
 
         /// <summary>
-        ///   <para>创建本次清单安装所需的全部安装项</para>
+        ///   <para>按依赖关系整理描述符顺序。</para>
         /// </summary>
-        private List<InstallItem> CreatePreparedInstallItems()
+        /// <param name="descriptors">描述符。</param>
+        private static GameModuleDescriptor[] OrderDescriptors(List<GameModuleDescriptor> descriptors)
         {
-            var installItems = new List<InstallItem>(m_Descriptors.Count);
-            try
+            var orderedDescriptors = new List<GameModuleDescriptor>(descriptors.Count);
+            var visitState = new Dictionary<RuntimeTypeHandle, VisitState>(descriptors.Count);
+            var stack = new List<VisitFrame>(descriptors.Count);
+            var exactTypeIndexMap = CreateExactTypeIndexMap(descriptors);
+
+            for (int i = 0; i < descriptors.Count; i++)
             {
-                for (int i = 0; i < m_Descriptors.Count; i++)
-                {
-                    installItems.Add(CreateInstallItem(m_Descriptors[i]));
-                }
-            }
-            catch (Exception ex)
-            {
-                var failure = GameModuleUtility.CombineErrors(ex, DisposePreparedItems(installItems));
-                ExceptionDispatchInfo.Capture(failure).Throw();
-                throw;
+                AppendOrderedDescriptorsFrom(i, descriptors, exactTypeIndexMap, orderedDescriptors, visitState, stack);
             }
 
-            return installItems;
+            return orderedDescriptors.ToArray();
         }
 
         /// <summary>
-        ///   <para>创建单个安装项并读取其声明的依赖</para>
+        ///   <para>校验当前声明顺序是否已经满足依赖要求，并直接返回当前顺序。</para>
         /// </summary>
-        private static InstallItem CreateInstallItem(GameModuleDescriptor descriptor)
+        /// <param name="descriptors">描述符。</param>
+        private static GameModuleDescriptor[] ValidateDeclaredDescriptors(List<GameModuleDescriptor> descriptors)
         {
-            if (descriptor == null) throw new ArgumentNullException(nameof(descriptor));
-
-            GameModule module = null;
-            try
+            if (descriptors.Count == 0)
             {
-                module = descriptor.CreateModule();
-                var entry = new InstallItem(module, GameModuleDependencyUtility.GetDependencies(module));
-                module = null;
-                return entry;
-            }
-            catch (Exception ex)
-            {
-                var failure = GameModuleUtility.CombineErrors(
-                    ex,
-                    GameModuleUtility.DisposeModuleAndCreateFailure(module, "disposing module after manifest item creation failed"));
-                ExceptionDispatchInfo.Capture(failure).Throw();
-                throw;
-            }
-        }
-
-        /// <summary>
-        ///   <para>按依赖关系整理安装项顺序</para>
-        /// </summary>
-        private static InstallItem[] OrderInstallItems(List<InstallItem> installItems)
-        {
-            var orderedItems = new List<InstallItem>(installItems.Count);
-            var visitState = new Dictionary<RuntimeTypeHandle, VisitState>(installItems.Count);
-            var stack = new List<VisitFrame>(installItems.Count);
-            var exactTypeIndexMap = CreateExactTypeIndexMap(installItems);
-
-            for (int i = 0; i < installItems.Count; i++)
-            {
-                AppendOrderedItemsFrom(i, installItems, exactTypeIndexMap, orderedItems, visitState, stack);
+                return Array.Empty<GameModuleDescriptor>();
             }
 
-            return orderedItems.ToArray();
-        }
+            var exactTypeIndexMap = CreateExactTypeIndexMap(descriptors);
 
-        /// <summary>
-        ///   <para>校验当前声明顺序是否已经满足依赖要求，并直接返回当前顺序</para>
-        /// </summary>
-        private static InstallItem[] ValidateDeclaredInstallItems(List<InstallItem> installItems)
-        {
-            if (installItems.Count == 0)
+            for (int i = 0; i < descriptors.Count; i++)
             {
-                return Array.Empty<InstallItem>();
-            }
-
-            var exactTypeIndexMap = CreateExactTypeIndexMap(installItems);
-
-            for (int i = 0; i < installItems.Count; i++)
-            {
-                var item = installItems[i];
-                for (int j = 0; j < item.dependencies.Length; j++)
+                var descriptor = descriptors[i];
+                var dependencies = descriptor.DependencyTypes;
+                for (int j = 0; j < dependencies.Length; j++)
                 {
                     if (!TryFindDependencyItemIndex(
-                            item.moduleType,
-                            item.moduleTypeHandle,
-                            item.dependencies[j],
-                            installItems,
+                            descriptor.ModuleType,
+                            descriptor.ModuleTypeHandle,
+                            dependencies[j],
+                            descriptors,
                             exactTypeIndexMap,
                             i,
                             out _,
                             out var error))
                     {
                         throw new InvalidOperationException(
-                            $"{nameof(GameModuleManifest)} declared install order is invalid at {item.moduleType.FullName}. {error}");
+                            $"{nameof(GameModuleManifest)} declared install order is invalid at {descriptor.ModuleType.FullName}. {error}");
                     }
                 }
 
             }
 
-            return installItems.ToArray();
+            return descriptors.ToArray();
         }
 
         /// <summary>
-        ///   <para>从指定根安装项开始追加依赖有序结果</para>
+        ///   <para>从指定根描述符开始追加依赖有序结果。</para>
         /// </summary>
-        private static void AppendOrderedItemsFrom(
+        /// <param name="rootIndex">根节点索引。</param>
+        /// <param name="descriptors">描述符。</param>
+        /// <param name="exactTypeIndexMap">精确类型到索引的映射。</param>
+        /// <param name="orderedDescriptors">已排序描述符。</param>
+        /// <param name="visitState">访问状态。</param>
+        /// <param name="stack">栈。</param>
+        private static void AppendOrderedDescriptorsFrom(
             int rootIndex,
-            List<InstallItem> installItems,
+            List<GameModuleDescriptor> descriptors,
             Dictionary<RuntimeTypeHandle, int> exactTypeIndexMap,
-            List<InstallItem> orderedItems,
+            List<GameModuleDescriptor> orderedDescriptors,
             Dictionary<RuntimeTypeHandle, VisitState> visitState,
             List<VisitFrame> stack)
         {
-            var rootEntry = installItems[rootIndex];
-            var rootHandle = rootEntry.moduleTypeHandle;
+            var rootEntry = descriptors[rootIndex];
+            var rootHandle = rootEntry.ModuleTypeHandle;
             if (visitState.TryGetValue(rootHandle, out var rootState))
             {
                 if (rootState == VisitState.Visiting)
                 {
-                    throw new InvalidOperationException($"Module dependency cycle detected at {rootEntry.moduleType.FullName}.");
+                    throw new InvalidOperationException($"Module dependency cycle detected at {rootEntry.ModuleType.FullName}.");
                 }
 
                 if (rootState == VisitState.Done)
@@ -491,9 +430,9 @@ namespace Verve
             {
                 int topIndex = stack.Count - 1;
                 var frame = stack[topIndex];
-                var item = installItems[frame.itemIndex];
-                var moduleType = item.moduleType;
-                var moduleHandle = item.moduleTypeHandle;
+                var descriptor = descriptors[frame.itemIndex];
+                var moduleType = descriptor.ModuleType;
+                var moduleHandle = descriptor.ModuleTypeHandle;
 
                 if (!frame.entered)
                 {
@@ -516,7 +455,7 @@ namespace Verve
                     stack[topIndex] = frame;
                 }
 
-                var dependencies = item.dependencies;
+                var dependencies = descriptor.DependencyTypes;
                 if (frame.dependencyIndex < dependencies.Length)
                 {
                     var dependencyType = dependencies[frame.dependencyIndex];
@@ -527,9 +466,9 @@ namespace Verve
                             moduleType,
                             moduleHandle,
                             dependencyType,
-                            installItems,
+                            descriptors,
                             exactTypeIndexMap,
-                            installItems.Count,
+                            descriptors.Count,
                             out var dependencyItemIndex,
                             out var error))
                     {
@@ -546,34 +485,43 @@ namespace Verve
                 }
 
                 visitState[moduleHandle] = VisitState.Done;
-                orderedItems.Add(item);
+                orderedDescriptors.Add(descriptor);
                 stack.RemoveAt(topIndex);
             }
         }
 
         /// <summary>
-        ///   <para>构建“精确模块类型 -> 清单索引”的查找表</para>
+        ///   <para>构建“精确模块类型 -> 清单索引”的查找表。</para>
         /// </summary>
-        private static Dictionary<RuntimeTypeHandle, int> CreateExactTypeIndexMap(List<InstallItem> installItems)
+        /// <param name="descriptors">描述符。</param>
+        private static Dictionary<RuntimeTypeHandle, int> CreateExactTypeIndexMap(List<GameModuleDescriptor> descriptors)
         {
-            var map = new Dictionary<RuntimeTypeHandle, int>(installItems.Count);
+            var map = new Dictionary<RuntimeTypeHandle, int>(descriptors.Count);
 
-            for (int i = 0; i < installItems.Count; i++)
+            for (int i = 0; i < descriptors.Count; i++)
             {
-                map[installItems[i].moduleTypeHandle] = i;
+                map[descriptors[i].ModuleTypeHandle] = i;
             }
 
             return map;
         }
 
         /// <summary>
-        ///   <para>解析某个依赖类型对应的安装项索引</para>
+        ///   <para>解析某个依赖类型对应的安装项索引。</para>
         /// </summary>
+        /// <param name="moduleType">模块类型。</param>
+        /// <param name="moduleTypeHandle">模块类型句柄。</param>
+        /// <param name="dependencyType">依赖类型。</param>
+        /// <param name="descriptors">描述符。</param>
+        /// <param name="exactTypeIndexMap">精确类型到索引的映射。</param>
+        /// <param name="searchCount">搜索数量。</param>
+        /// <param name="itemIndex">项索引。</param>
+        /// <param name="error">错误。</param>
         private static bool TryFindDependencyItemIndex(
             Type moduleType,
             RuntimeTypeHandle moduleTypeHandle,
             Type dependencyType,
-            List<InstallItem> installItems,
+            List<GameModuleDescriptor> descriptors,
             Dictionary<RuntimeTypeHandle, int> exactTypeIndexMap,
             int searchCount,
             out int itemIndex,
@@ -590,8 +538,8 @@ namespace Verve
 
             if (exactTypeIndexMap.TryGetValue(dependencyType.TypeHandle, out itemIndex) &&
                 itemIndex >= 0 &&
-                itemIndex < installItems.Count &&
-                !installItems[itemIndex].moduleTypeHandle.Equals(moduleTypeHandle))
+                itemIndex < descriptors.Count &&
+                !descriptors[itemIndex].ModuleTypeHandle.Equals(moduleTypeHandle))
             {
                 if (itemIndex < searchCount)
                 {
@@ -608,11 +556,11 @@ namespace Verve
             Type firstMatchType = null;
             itemIndex = -1;
 
-            for (int i = 0; i < installItems.Count; i++)
+            for (int i = 0; i < descriptors.Count; i++)
             {
-                var candidateItem = installItems[i];
-                var candidateType = candidateItem.moduleType;
-                if (candidateItem.moduleTypeHandle.Equals(moduleTypeHandle)) continue;
+                var candidateItem = descriptors[i];
+                var candidateType = candidateItem.ModuleType;
+                if (candidateItem.ModuleTypeHandle.Equals(moduleTypeHandle)) continue;
                 if (!dependencyType.IsAssignableFrom(candidateType)) continue;
 
                 if (itemIndex >= 0)
@@ -643,26 +591,6 @@ namespace Verve
             }
 
             return true;
-        }
-
-        /// <summary>
-        ///   <para>释放已经创建但尚未交给容器安装流程的模块项</para>
-        /// </summary>
-        private static Exception DisposePreparedItems(List<InstallItem> installItems)
-        {
-            if (installItems.Count == 0) return null;
-
-            List<Exception> errors = null;
-            for (int i = installItems.Count - 1; i >= 0; i--)
-            {
-                GameModuleUtility.AddError(
-                    ref errors,
-                    GameModuleUtility.DisposeModuleAndCreateFailure(
-                        installItems[i].module,
-                        "disposing module after manifest item creation failed"));
-            }
-
-            return GameModuleUtility.ToCombinedError(errors);
         }
     }
 }

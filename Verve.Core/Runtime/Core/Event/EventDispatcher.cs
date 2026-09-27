@@ -1,728 +1,570 @@
 namespace Verve
 {
     using System;
-    using System.Threading;
     using System.Collections.Generic;
-    using System.Runtime.CompilerServices;
 
-    
     /// <summary>
-    ///   <para>事件分发器</para>
+    ///   <para>同步事件分发器；订阅变更时复制快照，发布时不分配监听器数组。</para>
     /// </summary>
-    /// <typeparam name="TKey">事件索引类型</typeparam>
-    [Serializable]
-    public class EventDispatcher<TKey> : IDisposable
-        where TKey : IEquatable<TKey>
+    /// <typeparam name="TKey">键类型。</typeparam>
+    public sealed class EventDispatcher<TKey> : DisposableObject
     {
         /// <summary>
-        ///   <para>所有事件处理函数</para>
+        ///   <para>锁。</para>
         /// </summary>
-        private readonly Dictionary<TKey, List<Delegate>> m_EventHandlers;
-        
+        private readonly object m_Lock = new();
         /// <summary>
-        ///   <para>事件分发异步锁</para>
+        ///   <para>处理函数。</para>
         /// </summary>
-        private readonly ReaderWriterLockSlim m_Lock;
-        private int m_Disposed;
-        
+        private readonly Dictionary<TKey, Registration[]> m_Handlers;
         /// <summary>
-        ///   <para>所有事件处理函数</para>
+        ///   <para>创建事件分发器。</para>
         /// </summary>
-        public IReadOnlyDictionary<TKey, List<Delegate>> Handlers => m_EventHandlers;
-        
-#if DEBUG
+        /// <param name="capacity">事件表初始容量。</param>
+        public EventDispatcher(int capacity = 32) => m_Handlers = new(capacity);
+
         /// <summary>
-        ///   <para>事件记录回调</para>
+        ///   <para>处理函数。</para>
+        /// </summary>
+        public IReadOnlyDictionary<TKey, IReadOnlyList<Delegate>> Handlers
+        {
+            get
+            {
+                lock (m_Lock)
+                {
+                    ThrowIfDisposed();
+                    var result = new Dictionary<TKey, IReadOnlyList<Delegate>>(m_Handlers.Count);
+                    foreach (var pair in m_Handlers)
+                        result.Add(pair.Key, Array.ConvertAll(pair.Value, item => item.Handler));
+                    return result;
+                }
+            }
+        }
+
+#if (DEBUG || DEVELOPMENT_BUILD)
+        /// <summary>
+        ///   <para>事件记录通知。</para>
         /// </summary>
         internal event Action<EventRecord> OnEventRecorded;
 #endif
 
-        /// <summary>
-        ///   <para>事件分发器构造函数</para>
-        /// </summary>
-        /// <param name="capacity">容量</param>
-        public EventDispatcher(int capacity = 32)
+        /// <inheritdoc />
+        protected override void OnDispose()
         {
-            m_EventHandlers = new Dictionary<TKey, List<Delegate>>(capacity);
-            m_Lock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-        }
-        
-        /// <summary>
-        ///   <para>事件分发器析构函数</para>
-        /// </summary>
-        ~EventDispatcher() => Dispose();
-
-        public void Dispose()
-        {
-            if (Interlocked.Exchange(ref m_Disposed, 1) != 0) return;
-            m_Lock.EnterWriteLock();
-            try
+            lock (m_Lock)
             {
-                m_EventHandlers?.Clear();
-            }
-            finally
-            {
-                m_Lock.ExitWriteLock();
-            }
-            m_Lock.Dispose();
-            GC.SuppressFinalize(this);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IDisposable On(TKey eventKey, Action handler)
-            => On_Implement(eventKey, handler);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IDisposable On<T>(TKey eventKey, Action<T> handler)
-            => On_Implement(eventKey, handler);
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IDisposable On<T1, T2>(TKey eventKey, Action<T1, T2> handler)
-            => On_Implement(eventKey, handler);
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IDisposable On<T1, T2, T3>(TKey eventKey, Action<T1, T2, T3> handler)
-            => On_Implement(eventKey, handler);
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IDisposable On<T1, T2, T3, T4>(TKey eventKey, Action<T1, T2, T3, T4> handler)
-            => On_Implement(eventKey, handler);
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IDisposable On<T1, T2, T3, T4, T5>(TKey eventKey, Action<T1, T2, T3, T4, T5> handler)
-            => On_Implement(eventKey, handler);
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IDisposable On<T1, T2, T3, T4, T5, T6>(TKey eventKey, Action<T1, T2, T3, T4, T5, T6> handler)
-            => On_Implement(eventKey, handler);
-        
-        /// <summary>
-        ///   <para>监听事件</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <returns>
-        ///   <para>取消监听事件处理函数</para>
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private IDisposable On_Implement(TKey eventKey, Delegate handler)
-        {
-            if (eventKey == null)
-                throw new ArgumentNullException(nameof(eventKey));
-            if (handler == null)
-                throw new ArgumentNullException(nameof(handler));
-
-            m_Lock.EnterWriteLock();
-            try
-            {
-                if (!m_EventHandlers.TryGetValue(eventKey, out var handlers))
-                {
-                    handlers = new List<Delegate>();
-                    m_EventHandlers[eventKey] = handlers;
-                }
-                if (!handlers.Contains(handler))
-                {
-                    handlers.Add(handler);
-#if DEBUG
-                    OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.On, handler));
+                foreach (var entries in m_Handlers.Values)
+                    foreach (var entry in entries) entry.Subscription.Detach();
+                m_Handlers.Clear();
+#if (DEBUG || DEVELOPMENT_BUILD)
+                OnEventRecorded = null;
 #endif
-                }
-            }
-            finally
-            {
-                m_Lock.ExitWriteLock();
-            }
-            return new EventHandlerDisposable(this, eventKey, handler);
-        }
-        
-        /// <summary>
-        ///   <para>检查是否包含指定事件键</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">指定事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Has(TKey eventKey, Delegate handler = null)
-        {
-            if (eventKey == null) return false;
-            
-            m_Lock.EnterReadLock();
-            try
-            {
-                if (!m_EventHandlers.TryGetValue(eventKey, out var handlers))
-                    return false;
-                    
-                return handler == null ? handlers.Count > 0 : handlers.Contains(handler);
-            }
-            finally
-            {
-                m_Lock.ExitReadLock();
             }
         }
 
         /// <summary>
-        ///   <para>取消监听事件</para>
+        ///   <para>订阅。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Off(TKey eventKey)
+        /// <param name="key">键。</param>
+        /// <param name="handler">处理函数。</param>
+        private IDisposable Subscribe(TKey key, Delegate handler)
         {
-            if (eventKey == null) return;
-
-            m_Lock.EnterWriteLock();
-            try
+            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+            var subscription = new Subscription(this, key);
+            lock (m_Lock)
             {
-                if (m_EventHandlers.TryGetValue(eventKey, out var handlers))
+                ThrowIfDisposed();
+                if (!m_Handlers.TryGetValue(key, out var current)) current = Array.Empty<Registration>();
+                foreach (var item in current)
                 {
-                    handlers.Clear();
-                    m_EventHandlers.Remove(eventKey);
-#if DEBUG
-                    OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Off));
-#endif
+                    if (item.Handler.GetType() != handler.GetType())
+                        throw new InvalidOperationException($"Event '{key}' is already registered with a different payload signature.");
+                    if (item.Handler.Equals(handler))
+                        throw new InvalidOperationException($"Handler is already subscribed to event '{key}'.");
                 }
+                var next = new Registration[current.Length + 1];
+                Array.Copy(current, next, current.Length);
+                next[current.Length] = new Registration(subscription, handler);
+                m_Handlers[key] = next;
             }
-            finally
+#if (DEBUG || DEVELOPMENT_BUILD)
+            try { OnEventRecorded?.Invoke(new EventRecord(key, EventRecordStatus.On, handler)); }
+            catch (Exception failure)
             {
-                m_Lock.ExitWriteLock();
+                try { subscription.Dispose(); }
+                catch (Exception cleanup) { throw ExceptionUtility.Combine(failure, cleanup); }
+                throw;
             }
+#endif
+            return subscription;
         }
-        
+
         /// <summary>
-        ///   <para>取消监听事件</para>
+        ///   <para>判断事件是否存在订阅。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Off(TKey eventKey, Delegate handler)
+        /// <param name="key">键。</param>
+        /// <param name="handler">处理函数。</param>
+        public bool Has(TKey key, Delegate handler = null)
         {
-            if (eventKey == null || handler == null) return;
-
-            m_Lock.EnterWriteLock();
-            try
+            lock (m_Lock)
             {
-                if (m_EventHandlers.TryGetValue(eventKey, out var handlers) && handlers.Remove(handler) && handlers.Count == 0 && m_EventHandlers.Remove(eventKey))
-                {
-#if DEBUG
-                    OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Off, handler));
-#endif
-                }
-            }
-            finally
-            {
-                m_Lock.ExitWriteLock();
+                ThrowIfDisposed();
+                if (!m_Handlers.TryGetValue(key, out var current)) return false;
+                if (handler == null) return true;
+                return Array.Exists(current, item => item.Handler.Equals(handler));
             }
         }
 
         /// <summary>
-        ///   <para>取消所有监听事件</para>
+        ///   <para>取消订阅。</para>
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="key">键。</param>
+        public void Off(TKey key)
+        {
+            bool removed;
+            lock (m_Lock)
+            {
+                ThrowIfDisposed();
+                removed = m_Handlers.Remove(key, out var entries);
+                if (removed)
+                    foreach (var entry in entries) entry.Subscription.Detach();
+            }
+#if (DEBUG || DEVELOPMENT_BUILD)
+            if (removed) OnEventRecorded?.Invoke(new EventRecord(key, EventRecordStatus.Off));
+#endif
+        }
+
+        /// <summary>
+        ///   <para>取消订阅。</para>
+        /// </summary>
+        /// <param name="key">键。</param>
+        /// <param name="handler">处理函数。</param>
+        public void Off(TKey key, Delegate handler)
+        {
+            Subscription subscription;
+            lock (m_Lock)
+            {
+                ThrowIfDisposed();
+                if (!m_Handlers.TryGetValue(key, out var current)) return;
+                subscription = Array.Find(current, item => item.Handler.Equals(handler)).Subscription;
+            }
+            subscription?.Dispose();
+        }
+
+        /// <summary>
+        ///   <para>取消全部事件订阅。</para>
+        /// </summary>
         public void OffAll()
         {
-            m_Lock.EnterWriteLock();
-            try
+            lock (m_Lock)
             {
-                foreach (var handlers in m_EventHandlers.Values)
-                {
-                    handlers?.Clear();
-                }
-                m_EventHandlers.Clear();
-            }
-            finally
-            {
-                m_Lock.ExitWriteLock();
+                ThrowIfDisposed();
+                foreach (var entries in m_Handlers.Values)
+                    foreach (var entry in entries) entry.Subscription.Detach();
+                m_Handlers.Clear();
             }
         }
 
-        #region 发送事件
-
         /// <summary>
-        ///   <para>发送事件（无参数）</para>
+        ///   <para>获取快照。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Emit(TKey eventKey
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
+        /// <param name="key">键。</param>
+        /// <typeparam name="THandler">处理函数类型。</typeparam>
+        private Registration[] GetSnapshot<THandler>(TKey key) where THandler : Delegate
         {
-            if (eventKey == null) return;
-
-            Delegate[] handlersArray = null;
-            m_Lock.EnterReadLock();
-            try
+            lock (m_Lock)
             {
-                if (m_EventHandlers.TryGetValue(eventKey, out var handlers) && handlers.Count > 0)
-                {
-                    handlersArray = handlers.ToArray();
-                }
-            }
-            finally
-            {
-                m_Lock.ExitReadLock();
-            }
-
-            if (handlersArray == null) return;
-            for (var i = 0; i < handlersArray.Length; i++)
-            {
-                if (handlersArray[i] != null && handlersArray[i] is Action handler)
-                {
-                    try
-                    {
-                        handler.Invoke();
-                    }
-                    catch (Exception ex)
-                    {
-                        Game.LogError($"Event handler error: {ex}");
-                    }
-                    finally
-                    {
-#if DEBUG
-                        OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, new EventEmitInfo(emitMember, emitFile, emitLine)));
-#endif
-                    }
-                }
+                ThrowIfDisposed();
+                if (!m_Handlers.TryGetValue(key, out var snapshot)) return Array.Empty<Registration>();
+                if (snapshot[0].Handler.GetType() != typeof(THandler))
+                    throw new InvalidOperationException($"Event '{key}' was emitted with a different payload signature.");
+                return snapshot;
             }
         }
 
         /// <summary>
-        ///   <para>发送事件（一个参数）</para>
+        ///   <para>取消订阅。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg">参数1</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Emit<T>(TKey eventKey, T arg
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
+        /// <param name="subscription">订阅。</param>
+        private void Unsubscribe(Subscription subscription)
         {
-            if (eventKey == null) return;
-
-            Delegate[] handlersArray = null;
-            m_Lock.EnterReadLock();
-            try
+            TKey key;
+            Delegate handler;
+            lock (m_Lock)
             {
-                if (m_EventHandlers.TryGetValue(eventKey, out var handlers) && handlers.Count > 0)
+                // 取消或释放已解除所有权，旧句柄不会影响后续同键订阅。
+                if (subscription.Owner != this) return;
+                key = subscription.Key;
+                var current = m_Handlers[key];
+                int index = Array.FindIndex(current, entry => ReferenceEquals(entry.Subscription, subscription));
+                handler = current[index].Handler;
+                if (current.Length == 1) m_Handlers.Remove(key);
+                else
                 {
-                    handlersArray = handlers.ToArray();
+                    var next = new Registration[current.Length - 1];
+                    Array.Copy(current, 0, next, 0, index);
+                    Array.Copy(current, index + 1, next, index, current.Length - index - 1);
+                    m_Handlers[key] = next;
                 }
+                subscription.Detach();
             }
-            finally
-            {
-                m_Lock.ExitReadLock();
-            }
-
-            if (handlersArray == null) return;
-            for (var i = 0; i < handlersArray.Length; i++)
-            {
-                if (handlersArray[i] != null && handlersArray[i] is Action<T> handler)
-                {
-                    try
-                    {
-                        handler.Invoke(arg);
-                    }
-                    catch (Exception ex)
-                    {
-                        Game.LogError($"Event handler error: {ex}");
-                    }
-                    finally
-                    {
-#if DEBUG
-                        OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg, new EventEmitInfo(emitMember, emitFile, emitLine)));
+#if (DEBUG || DEVELOPMENT_BUILD)
+            OnEventRecorded?.Invoke(new EventRecord(key, EventRecordStatus.Off, handler));
 #endif
-                    }
-                }
-            }
         }
 
         /// <summary>
-        ///   <para>发送事件（两个参数）</para>
+        ///   <para>订阅快照条目；当前发布不受中途取消订阅影响。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Emit<T1, T2>(TKey eventKey, T1 arg1, T2 arg2
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
+        private readonly struct Registration
         {
-            if (eventKey == null) return;
+            /// <summary>
+            ///   <para>订阅句柄。</para>
+            /// </summary>
+            internal readonly Subscription Subscription;
+            /// <summary>
+            ///   <para>处理函数。</para>
+            /// </summary>
+            internal readonly Delegate Handler;
 
-            Delegate[] handlersArray = null;
-            m_Lock.EnterReadLock();
-            try
+            /// <summary>
+            ///   <para>创建快照条目。</para>
+            /// </summary>
+            /// <param name="subscription">订阅句柄。</param>
+            /// <param name="handler">处理函数。</param>
+            internal Registration(Subscription subscription, Delegate handler)
             {
-                if (m_EventHandlers.TryGetValue(eventKey, out var handlers) && handlers.Count > 0)
-                {
-                    handlersArray = handlers.ToArray();
-                }
-            }
-            finally
-            {
-                m_Lock.ExitReadLock();
-            }
-
-            if (handlersArray == null) return;
-            for (var i = 0; i < handlersArray.Length; i++)
-            {
-                if (handlersArray[i] != null && handlersArray[i] is Action<T1, T2> handler)
-                {
-                    try
-                    {
-                        handler.Invoke(arg1, arg2);
-                    }
-                    catch (Exception ex)
-                    {
-                        Game.LogError($"Event handler error: {ex}");
-                    }
-                    finally
-                    {
-#if DEBUG
-                        OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2, new EventEmitInfo(emitMember, emitFile, emitLine)));
-#endif
-                    }
-                }
+                Subscription = subscription;
+                Handler = handler;
             }
         }
 
         /// <summary>
-        ///   <para>发送事件（三个参数）</para>
+        ///   <para>事件订阅句柄；不持有回调，取消后解除所有者和键引用。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        /// <param name="arg3">参数3</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Emit<T1, T2, T3>(TKey eventKey, T1 arg1, T2 arg2, T3 arg3
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
+        private sealed class Subscription : DisposableObject
         {
-            if (eventKey == null) return;
+            /// <summary>
+            ///   <para>所有者。</para>
+            /// </summary>
+            internal EventDispatcher<TKey> Owner { get; private set; }
+            /// <summary>
+            ///   <para>键。</para>
+            /// </summary>
+            internal TKey Key { get; private set; }
 
-            Delegate[] handlersArray = null;
-            m_Lock.EnterReadLock();
-            try
+            /// <summary>
+            ///   <para>创建订阅。</para>
+            /// </summary>
+            /// <param name="owner">所有者。</param>
+            /// <param name="key">键。</param>
+            internal Subscription(EventDispatcher<TKey> owner, TKey key)
             {
-                if (m_EventHandlers.TryGetValue(eventKey, out var handlers) && handlers.Count > 0)
-                {
-                    handlersArray = handlers.ToArray();
-                }
-            }
-            finally
-            {
-                m_Lock.ExitReadLock();
+                Owner = owner;
+                Key = key;
             }
 
-            if (handlersArray == null) return;
-            for (var i = 0; i < handlersArray.Length; i++)
+            /// <summary>
+            ///   <para>在所有者锁内解除引用。</para>
+            /// </summary>
+            internal void Detach()
             {
-                if (handlersArray[i] != null && handlersArray[i] is Action<T1, T2, T3> handler)
-                {
-                    try
-                    {
-                        handler.Invoke(arg1, arg2, arg3);
-                    }
-                    catch (Exception ex)
-                    {
-                        Game.LogError($"Event handler error: {ex}");
-                    }
-                    finally
-                    {
-#if DEBUG
-                        OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2, arg3, new EventEmitInfo(emitMember, emitFile, emitLine)));
-#endif
-                    }
-                }
+                Owner = null;
+                Key = default;
             }
+
+            /// <inheritdoc />
+            protected override void OnDispose() => Owner?.Unsubscribe(this);
         }
 
         /// <summary>
-        ///   <para>发送事件（四个参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        /// <param name="arg3">参数3</param>
-        /// <param name="arg4">参数4</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Emit<T1, T2, T3, T4>(TKey eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
-        {
-            if (eventKey == null) return;
-
-            Delegate[] handlersArray = null;
-            m_Lock.EnterReadLock();
-            try
-            {
-                if (m_EventHandlers.TryGetValue(eventKey, out var handlers) && handlers.Count > 0)
-                {
-                    handlersArray = handlers.ToArray();
-                }
-            }
-            finally
-            {
-                m_Lock.ExitReadLock();
-            }
-
-            if (handlersArray == null) return;
-            for (var i = 0; i < handlersArray.Length; i++)
-            {
-                if (handlersArray[i] != null && handlersArray[i] is Action<T1, T2, T3, T4> handler)
-                {
-                    try
-                    {
-                        handler.Invoke(arg1, arg2, arg3, arg4);
-                    }
-                    catch (Exception ex)
-                    {
-                        Game.LogError($"Event handler error: {ex}");
-                    }
-                    finally
-                    {
-#if DEBUG
-                        OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2, arg3, arg4, new EventEmitInfo(emitMember, emitFile, emitLine)));
-#endif
-                    }
-                }
-            }
-        }
+        /// <param name="key">键。</param>
+        /// <param name="handler">处理函数。</param>
+        public IDisposable On(TKey key, Action handler) => Subscribe(key, handler);
 
         /// <summary>
-        ///   <para>发送事件（五个参数）</para>
+        ///   <para>发布事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        /// <param name="arg3">参数3</param>
-        /// <param name="arg4">参数4</param>
-        /// <param name="arg5">参数5</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Emit<T1, T2, T3, T4, T5>(TKey eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
+        /// <param name="key">键。</param>
+        public void Emit(TKey key)
         {
-            if (eventKey == null) return;
-
-            Delegate[] handlersArray = null;
-            m_Lock.EnterReadLock();
-            try
+            foreach (var subscription in GetSnapshot<Action>(key))
             {
-                if (m_EventHandlers.TryGetValue(eventKey, out var handlers) && handlers.Count > 0)
-                {
-                    handlersArray = handlers.ToArray();
-                }
-            }
-            finally
-            {
-                m_Lock.ExitReadLock();
-            }
-
-            if (handlersArray == null) return;
-            for (var i = 0; i < handlersArray.Length; i++)
-            {
-                if (handlersArray[i] != null && handlersArray[i] is Action<T1, T2, T3, T4, T5> handler)
-                {
-                    try
-                    {
-                        handler.Invoke(arg1, arg2, arg3, arg4, arg5);
-                    }
-                    catch (Exception ex)
-                    {
-                        Game.LogError($"Event handler error: {ex}");
-                    }
-                    finally
-                    {
-#if DEBUG
-                        OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2, arg3, arg4, arg5, new EventEmitInfo(emitMember, emitFile, emitLine)));
+                var handler = (Action)subscription.Handler;
+#if (DEBUG || DEVELOPMENT_BUILD)
+                OnEventRecorded?.Invoke(new EventRecord(key, EventRecordStatus.Emit, handler));
 #endif
-                    }
-                }
+                handler();
             }
         }
 
         /// <summary>
-        ///   <para>发送事件（五个参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        /// <param name="arg3">参数3</param>
-        /// <param name="arg4">参数4</param>
-        /// <param name="arg5">参数5</param>
-        /// <param name="arg6">参数6</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Emit<T1, T2, T3, T4, T5, T6>(TKey eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
-        {
-            if (eventKey == null) return;
+        /// <param name="key">键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        public IDisposable On<T1>(TKey key, Action<T1> handler) => Subscribe(key, handler);
 
-            Delegate[] handlersArray = null;
-            m_Lock.EnterReadLock();
-            try
-            {
-                if (m_EventHandlers.TryGetValue(eventKey, out var handlers) && handlers.Count > 0)
-                {
-                    handlersArray = handlers.ToArray();
-                }
-            }
-            finally
-            {
-                m_Lock.ExitReadLock();
-            }
-
-            if (handlersArray == null) return;
-            for (var i = 0; i < handlersArray.Length; i++)
-            {
-                if (handlersArray[i] != null && handlersArray[i] is Action<T1, T2, T3, T4, T5, T6> handler)
-                {
-                    try
-                    {
-                        handler.Invoke(arg1, arg2, arg3, arg4, arg5, arg6);
-                    }
-                    catch (Exception ex)
-                    {
-                        Game.LogError($"Event handler error: {ex}");
-                    }
-                    finally
-                    {
-#if DEBUG
-                        OnEventRecorded?.Invoke(new EventRecord(eventKey, EventRecordStatus.Emit, handler, arg1, arg2, arg3, arg4, arg5, arg6, new EventEmitInfo(emitMember, emitFile, emitLine)));
-#endif
-                    }
-                }
-            }
-        }
-        
-        #endregion
-        
         /// <summary>
-        ///   <para>事件处理者</para>
+        ///   <para>发布事件。</para>
         /// </summary>
-        private struct EventHandlerDisposable : IDisposable
+        /// <param name="key">键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        public void Emit<T1>(TKey key, T1 arg1)
         {
-            private readonly EventDispatcher<TKey> m_Dispatcher;
-            private readonly TKey m_EventKey;
-            private readonly Delegate m_Handler;
-            private bool m_Disposed;
-
-            public EventHandlerDisposable(EventDispatcher<TKey> dispatcher, TKey eventKey, Delegate handler)
+            foreach (var subscription in GetSnapshot<Action<T1>>(key))
             {
-                m_Dispatcher = dispatcher;
-                m_EventKey = eventKey;
-                m_Handler = handler;
-                m_Disposed = false;
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            void IDisposable.Dispose()
-            {
-                if (m_Disposed) return;
-                m_Dispatcher?.Off(m_EventKey, m_Handler);
-                m_Disposed = true;
-            }
-        }
-        
-#if DEBUG
-        private readonly struct EventEmitInfo
-        {
-            public readonly string member;
-            public readonly string file;
-            public readonly int line;
-
-            public EventEmitInfo(string member, string file, int line)
-            {
-                this.member = member;
-                this.file = file;
-                this.line = line;
+                var handler = (Action<T1>)subscription.Handler;
+#if (DEBUG || DEVELOPMENT_BUILD)
+                OnEventRecorded?.Invoke(new EventRecord(key, EventRecordStatus.Emit, handler, arg1));
+#endif
+                handler(arg1);
             }
         }
 
         /// <summary>
-        ///   <para>事件记录信息</para>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="key">键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        public IDisposable On<T1, T2>(TKey key, Action<T1, T2> handler) => Subscribe(key, handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="key">键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        public void Emit<T1, T2>(TKey key, T1 arg1, T2 arg2)
+        {
+            foreach (var subscription in GetSnapshot<Action<T1, T2>>(key))
+            {
+                var handler = (Action<T1, T2>)subscription.Handler;
+#if (DEBUG || DEVELOPMENT_BUILD)
+                OnEventRecorded?.Invoke(new EventRecord(key, EventRecordStatus.Emit, handler, arg1, arg2));
+#endif
+                handler(arg1, arg2);
+            }
+        }
+
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="key">键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        public IDisposable On<T1, T2, T3>(TKey key, Action<T1, T2, T3> handler) => Subscribe(key, handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="key">键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <param name="arg3">第三个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        public void Emit<T1, T2, T3>(TKey key, T1 arg1, T2 arg2, T3 arg3)
+        {
+            foreach (var subscription in GetSnapshot<Action<T1, T2, T3>>(key))
+            {
+                var handler = (Action<T1, T2, T3>)subscription.Handler;
+#if (DEBUG || DEVELOPMENT_BUILD)
+                OnEventRecorded?.Invoke(new EventRecord(key, EventRecordStatus.Emit, handler, arg1, arg2, arg3));
+#endif
+                handler(arg1, arg2, arg3);
+            }
+        }
+
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="key">键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        public IDisposable On<T1, T2, T3, T4>(TKey key, Action<T1, T2, T3, T4> handler) => Subscribe(key, handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="key">键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <param name="arg3">第三个参数。</param>
+        /// <param name="arg4">第四个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        public void Emit<T1, T2, T3, T4>(TKey key, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
+        {
+            foreach (var subscription in GetSnapshot<Action<T1, T2, T3, T4>>(key))
+            {
+                var handler = (Action<T1, T2, T3, T4>)subscription.Handler;
+#if (DEBUG || DEVELOPMENT_BUILD)
+                OnEventRecorded?.Invoke(new EventRecord(key, EventRecordStatus.Emit, handler, arg1, arg2, arg3, arg4));
+#endif
+                handler(arg1, arg2, arg3, arg4);
+            }
+        }
+
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="key">键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        public IDisposable On<T1, T2, T3, T4, T5>(TKey key, Action<T1, T2, T3, T4, T5> handler) => Subscribe(key, handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="key">键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <param name="arg3">第三个参数。</param>
+        /// <param name="arg4">第四个参数。</param>
+        /// <param name="arg5">第五个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        public void Emit<T1, T2, T3, T4, T5>(TKey key, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
+        {
+            foreach (var subscription in GetSnapshot<Action<T1, T2, T3, T4, T5>>(key))
+            {
+                var handler = (Action<T1, T2, T3, T4, T5>)subscription.Handler;
+#if (DEBUG || DEVELOPMENT_BUILD)
+                OnEventRecorded?.Invoke(new EventRecord(key, EventRecordStatus.Emit, handler, arg1, arg2, arg3, arg4, arg5));
+#endif
+                handler(arg1, arg2, arg3, arg4, arg5);
+            }
+        }
+
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="key">键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        /// <typeparam name="T6">第6 个值的类型。</typeparam>
+        public IDisposable On<T1, T2, T3, T4, T5, T6>(TKey key, Action<T1, T2, T3, T4, T5, T6> handler) => Subscribe(key, handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="key">键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <param name="arg3">第三个参数。</param>
+        /// <param name="arg4">第四个参数。</param>
+        /// <param name="arg5">第五个参数。</param>
+        /// <param name="arg6">第六个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        /// <typeparam name="T6">第6 个值的类型。</typeparam>
+        public void Emit<T1, T2, T3, T4, T5, T6>(TKey key, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6)
+        {
+            foreach (var subscription in GetSnapshot<Action<T1, T2, T3, T4, T5, T6>>(key))
+            {
+                var handler = (Action<T1, T2, T3, T4, T5, T6>)subscription.Handler;
+#if (DEBUG || DEVELOPMENT_BUILD)
+                OnEventRecorded?.Invoke(new EventRecord(key, EventRecordStatus.Emit, handler, arg1, arg2, arg3, arg4, arg5, arg6));
+#endif
+                handler(arg1, arg2, arg3, arg4, arg5, arg6);
+            }
+        }
+
+#if (DEBUG || DEVELOPMENT_BUILD)
+        /// <summary>
+        ///   <para>事件记录。</para>
         /// </summary>
         internal readonly struct EventRecord
         {
+            /// <summary>
+            ///   <para>事件键。</para>
+            /// </summary>
             public readonly TKey eventKey;
+            /// <summary>
+            ///   <para>时间戳。</para>
+            /// </summary>
             public readonly DateTime timestamp;
+            /// <summary>
+            ///   <para>参数。</para>
+            /// </summary>
             public readonly object[] arguments;
+            /// <summary>
+            ///   <para>处理函数。</para>
+            /// </summary>
             public readonly Delegate handler;
+            /// <summary>
+            ///   <para>记录状态。</para>
+            /// </summary>
             public readonly EventRecordStatus recordStatus;
-            public readonly string emitSource;
-            public readonly string emitFile;
-            public readonly int emitLine;
-            
+
+            /// <summary>
+            ///   <para>创建事件记录。</para>
+            /// </summary>
+            /// <param name="eventKey">事件键。</param>
+            /// <param name="recordStatus">记录状态。</param>
+            /// <param name="handler">处理函数。</param>
+            /// <param name="args">事件参数。</param>
             public EventRecord(TKey eventKey, EventRecordStatus recordStatus, Delegate handler = null, params object[] args)
             {
                 this.eventKey = eventKey;
                 this.recordStatus = recordStatus;
                 this.handler = handler;
                 timestamp = DateTime.Now;
-                emitSource = null;
-                emitFile = null;
-                emitLine = 0;
-                if (recordStatus == EventRecordStatus.Emit && args != null && args.Length > 0 && args[^1] is EventEmitInfo emitInfo)
-                {
-                    emitSource = emitInfo.member;
-                    emitLine = emitInfo.line;
-                    if (!string.IsNullOrEmpty(emitInfo.file))
-                    {
-                        emitFile = emitInfo.file;
-                    }
-                    if (args.Length > 1)
-                    {
-                        var trimmed = new object[args.Length - 1];
-                        Array.Copy(args, 0, trimmed, 0, trimmed.Length);
-                        arguments = trimmed;
-                    }
-                    else
-                    {
-                        arguments = Array.Empty<object>();
-                    }
-                }
-                else
-                {
-                    arguments = args ?? Array.Empty<object>();
-                }
+                arguments = args;
             }
         }
 #endif
     }
-    
-#if DEBUG
+
+#if (DEBUG || DEVELOPMENT_BUILD)
     /// <summary>
-    ///   <para>事件记录状态</para>
+    ///   <para>事件记录状态。</para>
     /// </summary>
     public enum EventRecordStatus : byte
     {
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
         Emit,
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
         On,
+        /// <summary>
+        ///   <para>取消订阅。</para>
+        /// </summary>
         Off,
     }
 #endif

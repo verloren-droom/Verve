@@ -1,0 +1,28 @@
+[package]
+name = "verve-acc-net"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.87"
+description = "Embeddable encrypted QUIC transport for Verve ACC"
+build = "build.rs"
+
+[lib]
+name = "verve_acc_net"
+crate-type = ["rlib", "cdylib", "staticlib"]
+
+[dependencies]
+bytes = "1"
+quinn = { version = "0.11", default-features = false, features = ["runtime-tokio", "rustls-ring"] }
+tokio = { version = "1", features = ["io-util", "macros", "rt-multi-thread", "sync", "time"] }
+
+serde = { version = "1", features = ["derive"] }
+toml = "0.9"
+
+[dev-dependencies]
+rcgen = "0.13"
+# Test certificate generation must also work with Rust 1.87.
+time = "=0.3.45"
+
+[profile.release]
+lto = true
+codegen-units = 1

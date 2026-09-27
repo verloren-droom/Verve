@@ -3,51 +3,33 @@ namespace Verve
     using System;
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;
-    using System.Runtime.ExceptionServices;
     
-
     /// <summary>
-    ///   <para>模块运行时内部共用工具</para>
+    ///   <para>模块运行时内部共用工具。</para>
     /// </summary>
     internal static class GameModuleUtility
     {
         /// <summary>
-        ///   <para>无结果时统一返回的文本</para>
+        ///   <para>无结果时统一返回的文本。</para>
         /// </summary>
         internal const string NoneText = "None";
 
         /// <summary>
-        ///   <para>调试文本列表分隔符</para>
+        ///   <para>调试文本列表分隔符。</para>
         /// </summary>
         internal const string TextListSeparator = ", ";
 
         /// <summary>
-        ///   <para>按对象引用比较</para>
+        ///   <para>获取类型显示名称。</para>
         /// </summary>
-        internal sealed class ReferenceComparer<T> : IEqualityComparer<T>
-            where T : class
-        {
-            public static readonly ReferenceComparer<T> Instance = new();
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool Equals(T x, T y)
-            {
-                return ReferenceEquals(x, y);
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public int GetHashCode(T obj)
-            {
-                return obj == null ? 0 : RuntimeHelpers.GetHashCode(obj);
-            }
-        }
-
+        /// <param name="type">类型。</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static string GetTypeDisplayName(Type type)
-        {
-            return type?.FullName ?? type?.Name ?? "Unknown";
-        }
+        internal static string GetTypeDisplayName(Type type) => type?.FullName ?? type?.Name ?? "Unknown";
 
+        /// <summary>
+        ///   <para>获取稳定类型名称。</para>
+        /// </summary>
+        /// <param name="type">类型。</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static string GetStableTypeName(Type type)
         {
@@ -56,34 +38,32 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>判断对象是否实现了任一受支持的 Tick 接口</para>
+        ///   <para>判断对象是否实现了任一受支持的 Tick 接口。</para>
         /// </summary>
+        /// <param name="system">系统。</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool HasTickInterfaces(object system)
-        {
-            return system != null && HasTickInterfaces(system.GetType());
-        }
+        internal static bool HasTickInterfaces(object system) => system != null && HasTickInterfaces(system.GetType());
 
         /// <summary>
-        ///   <para>判断类型是否实现了任一受支持的 Tick 接口</para>
+        ///   <para>判断类型是否实现了任一受支持的 Tick 接口。</para>
         /// </summary>
+        /// <param name="type">类型。</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool HasTickInterfaces(Type type)
         {
             if (type == null) return false;
 
             return
-#if UNITY_2018_3_OR_NEWER || !UNITY_5_1_OR_NEWER
                 typeof(IEarlyTick).IsAssignableFrom(type) ||
-#endif
                 typeof(IPhysicsTick).IsAssignableFrom(type) ||
                 typeof(IGameplayTick).IsAssignableFrom(type) ||
                 typeof(ILateTick).IsAssignableFrom(type);
         }
 
         /// <summary>
-        ///   <para>获取可安装模块类型的校验错误；合法时返回空</para>
+        ///   <para>获取可安装模块类型的校验错误；合法时返回空。</para>
         /// </summary>
+        /// <param name="type">类型。</param>
         internal static string GetModuleTypeError(Type type)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
@@ -112,8 +92,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>获取模块公开类型的校验错误</para>
+        ///   <para>获取模块公开类型的校验错误。</para>
         /// </summary>
+        /// <param name="type">类型。</param>
         private static string GetExposedTypeError(Type type)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
@@ -147,8 +128,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>获取模块依赖类型的校验错误</para>
+        ///   <para>获取模块依赖类型的校验错误。</para>
         /// </summary>
+        /// <param name="type">类型。</param>
         internal static string GetDependencyTypeError(Type type)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
@@ -159,8 +141,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>校验给定模块实例满足可安装模块约束</para>
+        ///   <para>校验给定模块实例满足可安装模块约束。</para>
         /// </summary>
+        /// <param name="module">模块。</param>
         internal static void ThrowIfInvalidModule(GameModule module)
         {
             if (module == null) throw new ArgumentNullException(nameof(module));
@@ -177,8 +160,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>生成“模块/依赖类型直接实现 Tick 接口”错误文本</para>
+        ///   <para>生成“模块/依赖类型直接实现 Tick 接口”错误文本。</para>
         /// </summary>
+        /// <param name="type">类型。</param>
         private static string GetTickTypeError(Type type)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
@@ -190,8 +174,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>生成“模块类型已由外部系统托管”错误文本</para>
+        ///   <para>生成“模块类型已由外部系统托管”错误文本。</para>
         /// </summary>
+        /// <param name="type">类型。</param>
         private static string GetExternallyManagedTypeError(Type type)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
@@ -203,8 +188,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>判断类型是否已由外部系统托管</para>
+        ///   <para>判断类型是否已由外部系统托管。</para>
         /// </summary>
+        /// <param name="type">类型。</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsExternallyManagedType(Type type)
         {
@@ -216,76 +202,21 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>返回框架支持的 Tick 接口名称列表</para>
+        ///   <para>返回框架支持的 Tick 接口名称列表。</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static string GetTickInterfaceNames()
         {
-#if UNITY_2018_3_OR_NEWER || !UNITY_5_1_OR_NEWER
             return $"{nameof(IEarlyTick)}/{nameof(IPhysicsTick)}/{nameof(IGameplayTick)}/{nameof(ILateTick)}";
-#else
-            return $"{nameof(IPhysicsTick)}/{nameof(IGameplayTick)}/{nameof(ILateTick)}";
-#endif
         }
 
-        internal static void AddError(ref List<Exception> errors, Exception error)
-        {
-            if (error == null) return;
-
-            errors ??= new List<Exception>();
-            if (error is AggregateException aggregate)
-            {
-                errors.AddRange(aggregate.Flatten().InnerExceptions);
-                return;
-            }
-
-            errors.Add(error);
-        }
-
-        internal static Exception CombineErrors(Exception primary, Exception secondary)
-        {
-            if (primary == null) return secondary;
-            if (secondary == null) return primary;
-
-            var errors = new List<Exception>(4);
-            AddError(ref errors, primary);
-            AddError(ref errors, secondary);
-            return ToCombinedError(errors);
-        }
-
-        internal static Exception ToCombinedError(List<Exception> errors)
-        {
-            if (errors == null || errors.Count == 0) return null;
-            return errors.Count == 1 ? errors[0] : new AggregateException(errors);
-        }
-
-        internal static void ThrowIfErrors(List<Exception> errors)
-        {
-            if (errors == null || errors.Count == 0) return;
-            if (errors.Count == 1) throw errors[0];
-            throw new AggregateException(errors);
-        }
-
-        internal static void InvokeEvent(Action handlers, string eventName)
-        {
-            if (handlers == null) return;
-
-            List<Exception> errors = null;
-            foreach (var handler in handlers.GetInvocationList())
-            {
-                try
-                {
-                    ((Action)handler)?.Invoke();
-                }
-                catch (Exception ex)
-                {
-                    AddError(ref errors, new InvalidOperationException($"{eventName} listener failed.", ex));
-                }
-            }
-
-            ThrowIfErrors(errors);
-        }
-
+        /// <summary>
+        ///   <para>调用事件。</para>
+        /// </summary>
+        /// <param name="handlers">处理函数。</param>
+        /// <param name="argument">事件参数。</param>
+        /// <param name="eventName">事件名称。</param>
+        /// <typeparam name="T">目标类型。</typeparam>
         internal static void InvokeEvent<T>(Action<T> handlers, T argument, string eventName)
         {
             if (handlers == null) return;
@@ -299,23 +230,29 @@ namespace Verve
                 }
                 catch (Exception ex)
                 {
-                    AddError(ref errors, new InvalidOperationException($"{eventName} listener failed.", ex));
+                    ExceptionUtility.Add(ref errors, new InvalidOperationException($"{eventName} listener failed.", ex));
                 }
             }
 
-            ThrowIfErrors(errors);
+            ExceptionUtility.ThrowIfAny(errors);
         }
 
-        internal static Exception DisposeModuleAndCreateFailure(IGameModule module, string operation)
+        /// <summary>
+        ///   <para>释放失败模块并汇总错误。</para>
+        /// </summary>
+        /// <param name="module">模块。</param>
+        /// <param name="operation">操作。</param>
+        /// <param name="owner">所属容器。</param>
+        internal static Exception DisposeModuleAndCreateFailure(IGameModule module, string operation, GameModules owner = null)
         {
             if (module == null) return null;
 
             try
             {
-                if (module is IDisposable disposable)
-                {
+                if (owner != null)
+                    ((GameModule)module).DisposeOwned(owner);
+                else if (module is IDisposable disposable)
                     disposable.Dispose();
-                }
 
                 return null;
             }
@@ -327,17 +264,28 @@ namespace Verve
             }
         }
 
-        internal static GameModule CreateModule(Func<GameModule> factory)
-        {
-            return CreateModuleImpl(factory, null);
-        }
+        /// <summary>
+        ///   <para>创建模块。</para>
+        /// </summary>
+        /// <param name="factory">模块创建工厂。</param>
+        internal static GameModule CreateModule(Func<GameModule> factory) => CreateModuleImpl(factory, null);
 
+        /// <summary>
+        ///   <para>创建指定精确类型的模块。</para>
+        /// </summary>
+        /// <param name="moduleType">模块类型。</param>
+        /// <param name="factory">模块创建工厂。</param>
         internal static GameModule CreateModuleForExactType(Type moduleType, Func<GameModule> factory)
         {
             if (moduleType == null) throw new ArgumentNullException(nameof(moduleType));
             return CreateModuleImpl(factory, moduleType);
         }
 
+        /// <summary>
+        ///   <para>创建模块。</para>
+        /// </summary>
+        /// <param name="factory">模块创建工厂。</param>
+        /// <param name="expectedType">预期类型。</param>
         private static GameModule CreateModuleImpl(Func<GameModule> factory, Type expectedType)
         {
             if (factory == null) throw new ArgumentNullException(nameof(factory));
@@ -346,6 +294,12 @@ namespace Verve
             try
             {
                 module = factory.Invoke();
+                if (module != null && module.HasOwner)
+                {
+                    // 工厂不能交付借来的实例，连配置和失败清理也不能触碰它。
+                    module = null;
+                    throw new InvalidOperationException("Module factory returned an instance already owned by a container.");
+                }
                 if (module == null)
                 {
                     throw expectedType == null
@@ -369,14 +323,14 @@ namespace Verve
             }
             catch (Exception ex)
             {
-                var failure = CombineErrors(
+                var failure = ExceptionUtility.Combine(
                     ex,
                     DisposeModuleAndCreateFailure(
                         module,
                         expectedType == null
                             ? "disposing module after module factory failed"
                             : "disposing module after typed module factory failed"));
-                ExceptionDispatchInfo.Capture(failure).Throw();
+                ExceptionUtility.Rethrow(failure);
                 throw;
             }
         }

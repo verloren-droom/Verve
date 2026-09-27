@@ -8,40 +8,70 @@ namespace Verve.Editor
     using UnityEditor;
     using System.Reflection;
     using System.Collections.Generic;
-#if UNITY_2020_2_OR_NEWER
     using UnityEditor.AssetImporters;
-#else
-    using UnityEditor.Experimental.AssetImporters;
-#endif
     using Object = UnityEngine.Object;
-
-
+    
     /// <summary>
-    ///   <para>游戏模块清单导入编辑器</para>
+    ///   <para>游戏模块清单导入编辑器。</para>
     /// </summary>
     [CustomEditor(typeof(GameModuleManifestImporter))]
     sealed class GameModuleManifestImporterEditor : ScriptedImporterEditor
     {
         /// <summary>
-        ///   <para>模块按钮高度</para>
+        ///   <para>模块按钮高度。</para>
         /// </summary>
         private const float k_ModuleActionButtonHeight = 28f;
+        /// <summary>
+        ///   <para>描述最小高度。</para>
+        /// </summary>
         private const float k_DescriptionMinHeight = 64f;
+        /// <summary>
+        ///   <para>依赖句柄宽度。</para>
+        /// </summary>
         private const float k_DependencyHandleWidth = 22f;
+        /// <summary>
+        ///   <para>依赖表头高度。</para>
+        /// </summary>
         private const float k_DependencyHeaderHeight = 24f;
+        /// <summary>
+        ///   <para>依赖行高。</para>
+        /// </summary>
         private const float k_DependencyRowHeight = 22f;
 
         /// <summary>
-        ///   <para>单个模块条目的编辑上下文</para>
+        ///   <para>单个模块条目的编辑上下文。</para>
         /// </summary>
-        private sealed class ModuleEntryContext
+        private sealed class ModuleEntryContext : DisposableObject
         {
+            /// <summary>
+            ///   <para>字段编辑器；由条目上下文独占。</para>
+            /// </summary>
+            private GameModuleEditor m_Editor;
+            /// <summary>
+            ///   <para>字段编辑器；首次展开时创建。</para>
+            /// </summary>
+            public GameModuleEditor Editor => m_Editor ??= GameModuleEditor.Create(ModuleType);
+            /// <summary>
+            ///   <para>模块类型。</para>
+            /// </summary>
             public Type ModuleType { get; private set; }
+            /// <summary>
+            ///   <para>搜索文本。</para>
+            /// </summary>
             public string SearchText { get; private set; }
+            /// <summary>
+            ///   <para>错误。</para>
+            /// </summary>
             public string Error { get; set; }
-            public bool UsesFallbackModuleInstance { get; set; }
+            /// <summary>
+            ///   <para>模块。</para>
+            /// </summary>
             public GameModule Module { get; private set; }
 
+            /// <summary>
+            ///   <para>创建实例。</para>
+            /// </summary>
+            /// <param name="entry">条目。</param>
             public static ModuleEntryContext Create(GameModuleManifestEditorData.ModuleEntry entry)
             {
                 var context = new ModuleEntryContext();
@@ -52,7 +82,6 @@ namespace Verve.Editor
 
                 context.Module = entry.module;
                 context.Error = entry.error;
-                context.UsesFallbackModuleInstance = entry.usesFallbackModuleInstance;
 
                 var moduleType = entry.module?.GetType();
                 if (moduleType == null)
@@ -69,20 +98,36 @@ namespace Verve.Editor
                 return context;
             }
 
+            /// <summary>
+            ///   <para>设置模块。</para>
+            /// </summary>
+            /// <param name="module">模块。</param>
             public void SetModule(GameModule module)
             {
                 Module = module;
-                if (module == null)
-                {
-                    ModuleType = null;
-                    SearchText = string.Empty;
-                    return;
-                }
-
-                ModuleType = module.GetType();
+                var moduleType = module?.GetType();
+                // Unity 会重建托管引用；编辑器按条目类型复用，每次绘制借用当前属性。
+                if (ModuleType == moduleType) return;
+                var previousEditor = m_Editor;
+                m_Editor = null;
+                ModuleType = moduleType;
                 SearchText = BuildSearchText(ModuleType);
+                previousEditor?.Dispose();
             }
 
+            /// <inheritdoc />
+            protected override void OnDispose()
+            {
+                var editor = m_Editor;
+                m_Editor = null;
+                Module = null;
+                editor?.Dispose();
+            }
+
+            /// <summary>
+            ///   <para>构建搜索文本。</para>
+            /// </summary>
+            /// <param name="moduleType">模块类型。</param>
             private static string BuildSearchText(Type moduleType)
             {
                 if (moduleType == null)
@@ -98,67 +143,143 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>样式</para>
+        ///   <para>样式。</para>
         /// </summary>
         private static class Styles
         {
+            /// <summary>
+            ///   <para>添加模块按钮。</para>
+            /// </summary>
             public static readonly GUIStyle AddModuleButton = new(EditorStyles.miniButton);
+            /// <summary>
+            ///   <para>搜索框。</para>
+            /// </summary>
             public static readonly GUIStyle SearchField = new(EditorStyles.toolbarSearchField);
+            /// <summary>
+            ///   <para>区域容器。</para>
+            /// </summary>
             public static readonly GUIStyle SectionBox = new(GUI.skin.box)
             {
                 padding = new RectOffset(10, 10, 8, 10),
                 margin = new RectOffset(0, 0, 4, 6)
             };
+            /// <summary>
+            ///   <para>区域标题。</para>
+            /// </summary>
             public static readonly GUIStyle SectionTitle = new(EditorStyles.boldLabel)
             {
                 margin = new RectOffset(2, 0, 8, 4)
             };
+            /// <summary>
+            ///   <para>描述文本。</para>
+            /// </summary>
             public static readonly GUIStyle DescriptionText = new(EditorStyles.textArea)
             {
                 wordWrap = true
             };
+            /// <summary>
+            ///   <para>依赖表头标签。</para>
+            /// </summary>
             public static readonly GUIStyle DependencyHeaderLabel = new(EditorStyles.label)
             {
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft,
                 padding = new RectOffset(6, 4, 0, 0)
             };
+            /// <summary>
+            ///   <para>依赖句柄。</para>
+            /// </summary>
             public static readonly GUIStyle DependencyHandle = new(EditorStyles.label)
             {
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = Color.gray }
             };
+            /// <summary>
+            ///   <para>添加模块。</para>
+            /// </summary>
             public static readonly GUIContent AddModule = new("Add Module");
+            /// <summary>
+            ///   <para>高级。</para>
+            /// </summary>
             public static readonly GUIContent Advanced = new("Advanced");
+            /// <summary>
+            ///   <para>重置模块。</para>
+            /// </summary>
             public static readonly GUIContent ResetModule = new("Reset");
+            /// <summary>
+            ///   <para>移除模块。</para>
+            /// </summary>
             public static readonly GUIContent RemoveModule = new("Remove");
+            /// <summary>
+            ///   <para>安装顺序。</para>
+            /// </summary>
             public static readonly GUIContent InstallOrder = new("Install Order");
+            /// <summary>
+            ///   <para>字段。</para>
+            /// </summary>
             public static readonly GUIContent Fields = new("Fields");
+            /// <summary>
+            ///   <para>依赖。</para>
+            /// </summary>
             public static readonly GUIContent Dependencies = new("Dependencies");
+            /// <summary>
+            ///   <para>描述。</para>
+            /// </summary>
             public static readonly GUIContent Description = new("Description");
+            /// <summary>
+            ///   <para>模块类型。</para>
+            /// </summary>
             public static readonly GUIContent ModuleType = new("Module type");
+            /// <summary>
+            ///   <para>无可用模块。</para>
+            /// </summary>
             public static readonly GUIContent NoAvailableModules = new("No available modules");
+            /// <summary>
+            ///   <para>添加依赖。</para>
+            /// </summary>
             public static readonly GUIContent AddDependencies = new("Add Dependencies");
+            /// <summary>
+            ///   <para>取消。</para>
+            /// </summary>
             public static readonly GUIContent Cancel = new("Cancel");
         }
 
         /// <summary>
-        ///   <para>搜索筛选</para>
+        ///   <para>搜索筛选。</para>
         /// </summary>
         [NonSerialized] private string m_SearchFilter = string.Empty;
+        /// <summary>
+        ///   <para>显示高级选项。</para>
+        /// </summary>
         [NonSerialized] private bool m_ShowAdvancedOptions;
+        /// <summary>
+        ///   <para>跳过下一次修改检查。</para>
+        /// </summary>
         [NonSerialized] private bool m_SkipModifiedCheckOnce;
+        /// <summary>
+        ///   <para>编辑器数据。</para>
+        /// </summary>
         [NonSerialized] private GameModuleManifestEditorData m_EditorData;
+        /// <summary>
+        ///   <para>安装顺序属性。</para>
+        /// </summary>
         [NonSerialized] private SerializedProperty m_InstallOrderProperty;
+        /// <summary>
+        ///   <para>模块条目属性。</para>
+        /// </summary>
         [NonSerialized] private SerializedProperty m_ModuleEntriesProperty;
+        /// <summary>
+        ///   <para>模块条目上下文。</para>
+        /// </summary>
         [NonSerialized] private readonly List<ModuleEntryContext> m_ModuleEntryContexts = new();
 
         public override bool showImportedObject => false;
+        protected override bool needsApplyRevert => true;
         protected override bool useAssetDrawPreview => false;
         protected override Type extraDataType => typeof(GameModuleManifestEditorData);
 
         /// <summary>
-        ///   <para>当前编辑条目是否存在待应用修改</para>
+        ///   <para>当前编辑条目是否存在待应用修改。</para>
         /// </summary>
         private bool HasPendingChanges
         {
@@ -172,25 +293,43 @@ namespace Verve.Editor
             }
         }
 
+        /// <inheritdoc />
         public override void OnEnable()
         {
             base.OnEnable();
             BindModuleEntryProperties();
             RefreshModuleEntryContexts();
+            Undo.undoRedoPerformed += OnUndoRedo;
         }
 
+        /// <inheritdoc />
         public override void OnDisable()
         {
-            base.OnDisable();
-            ClearModuleEntryContexts();
+            Undo.undoRedoPerformed -= OnUndoRedo;
+            try { base.OnDisable(); }
+            finally { ClearModuleEntryContexts(); }
         }
 
+        /// <summary>
+        ///   <para>重建撤销后的编辑器；避免继续使用旧托管引用的编辑状态。</para>
+        /// </summary>
+        private void OnUndoRedo()
+        {
+            BindModuleEntryProperties();
+            RefreshModuleEntryContexts();
+            Repaint();
+        }
+
+        /// <inheritdoc />
         protected override void OnHeaderGUI()
         {
             ApplyHeaderIcon();
             base.OnHeaderGUI();
         }
 
+        /// <summary>
+        ///   <para>应用表头图标。</para>
+        /// </summary>
         private void ApplyHeaderIcon()
         {
             var icon = GameModuleManifestImporter.GetIconTexture();
@@ -210,6 +349,7 @@ namespace Verve.Editor
             }
         }
 
+        /// <inheritdoc />
         protected override void InitializeExtraDataInstance(Object extraData, int targetIndex)
         {
             m_EditorData = extraData as GameModuleManifestEditorData;
@@ -222,6 +362,7 @@ namespace Verve.Editor
             LoadEditorData(assetPath);
         }
 
+        /// <inheritdoc />
         public override bool HasModified()
         {
             if (m_SkipModifiedCheckOnce)
@@ -233,6 +374,8 @@ namespace Verve.Editor
             return HasPendingChanges || base.HasModified();
         }
 
+#if UNITY_2022_1_OR_NEWER
+        /// <inheritdoc />
         public override void DiscardChanges()
         {
             m_SkipModifiedCheckOnce = false;
@@ -242,7 +385,9 @@ namespace Verve.Editor
                 FinishReset();
             }
         }
+#endif
 
+        /// <inheritdoc />
         [Obsolete]
         protected override void ResetValues()
         {
@@ -250,6 +395,7 @@ namespace Verve.Editor
             FinishReset();
         }
 
+        /// <inheritdoc />
         protected override void Apply()
         {
             if (m_EditorData == null)
@@ -278,9 +424,9 @@ namespace Verve.Editor
             }
 
             base.Apply();
-            ReloadFromSource();
         }
 
+        /// <inheritdoc />
         public override void OnInspectorGUI()
         {
             if (m_EditorData == null || extraDataSerializedObject == null)
@@ -298,13 +444,14 @@ namespace Verve.Editor
 
             m_SearchFilter = EditorGUILayout.TextField(m_SearchFilter, Styles.SearchField);
 
-            CoreEditorUtility.DrawSplitter(true);
             DrawModules();
-            CoreEditorUtility.DrawSplitter(true);
-
-            if (GUILayout.Button(Styles.AddModule, Styles.AddModuleButton, GUILayout.Height(k_ModuleActionButtonHeight)))
+            var addModuleButtonRect = GUILayoutUtility.GetRect(
+                Styles.AddModule,
+                Styles.AddModuleButton,
+                GUILayout.Height(k_ModuleActionButtonHeight));
+            if (EditorGUI.DropdownButton(addModuleButtonRect, Styles.AddModule, FocusType.Keyboard, Styles.AddModuleButton))
             {
-                ShowAddModuleMenu();
+                ShowAddModulePopup(addModuleButtonRect);
             }
 
             DrawAdvancedOptions();
@@ -313,7 +460,7 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>绘制高级选项</para>
+        ///   <para>绘制高级选项。</para>
         /// </summary>
         private void DrawAdvancedOptions()
         {
@@ -339,7 +486,7 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>绘制清单安装顺序选项</para>
+        ///   <para>绘制清单安装顺序选项。</para>
         /// </summary>
         private void DrawInstallOrderOption()
         {
@@ -365,7 +512,7 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>绘制模块列表</para>
+        ///   <para>绘制模块列表。</para>
         /// </summary>
         private void DrawModules()
         {
@@ -392,6 +539,7 @@ namespace Verve.Editor
                 }
 
                 var entryContext = m_ModuleEntryContexts[i];
+                entryContext?.SetModule(GameModuleManifestEditorData.FindModuleProperty(entryProperty)?.managedReferenceValue as GameModule);
                 if (!MatchesSearchFilter(entryProperty, entryContext))
                 {
                     continue;
@@ -431,8 +579,10 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>绘制模块主体内容</para>
+        ///   <para>绘制模块主体内容。</para>
         /// </summary>
+        /// <param name="moduleIndex">模块索引。</param>
+        /// <param name="entryProperty">条目属性。</param>
         private void DrawModuleBody(int moduleIndex, SerializedProperty entryProperty)
         {
             if (entryProperty == null || moduleIndex < 0 || moduleIndex >= m_ModuleEntryContexts.Count)
@@ -452,7 +602,7 @@ namespace Verve.Editor
             {
                 EditorGUILayout.HelpBox(
                     entryContext.Error,
-                    entryContext.UsesFallbackModuleInstance ? MessageType.Warning : MessageType.Error
+                    MessageType.Error
                 );
             }
 
@@ -461,8 +611,9 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>绘制模块描述</para>
+        ///   <para>绘制模块描述。</para>
         /// </summary>
+        /// <param name="description">描述。</param>
         private static void DrawDescription(string description)
         {
             DrawSectionTitle(Styles.Description);
@@ -480,8 +631,11 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>绘制模块字段编辑器（字段集合来源于模块可序列化字段）</para>
+        ///   <para>绘制模块字段编辑器（字段集合来源于模块可序列化字段）。</para>
         /// </summary>
+        /// <param name="moduleIndex">模块索引。</param>
+        /// <param name="entryProperty">条目属性。</param>
+        /// <param name="entryContext">条目上下文。</param>
         private void DrawFields(int moduleIndex, SerializedProperty entryProperty, ModuleEntryContext entryContext)
         {
             DrawSectionTitle(Styles.Fields);
@@ -500,7 +654,7 @@ namespace Verve.Editor
                     return;
                 }
 
-                var moduleProperty = GameModuleManifestEditorData.FindModuleProperty(entryProperty);
+                using var moduleProperty = GameModuleManifestEditorData.FindModuleProperty(entryProperty);
                 if (moduleProperty == null)
                 {
                     EditorGUILayout.HelpBox("Serialized module state is unavailable.", MessageType.Warning);
@@ -515,38 +669,17 @@ namespace Verve.Editor
                     return;
                 }
 
-                bool hasVisibleField = false;
-                using (var change = new EditorGUI.ChangeCheckScope())
-                {
-                    var childProperty = moduleProperty.Copy();
-                    var endProperty = childProperty.GetEndProperty();
-                    bool enterChildren = true;
-
-                    while (childProperty.NextVisible(enterChildren) &&
-                           !SerializedProperty.EqualContents(childProperty, endProperty))
-                    {
-                        hasVisibleField = true;
-                        EditorGUILayout.PropertyField(childProperty, true);
-                        enterChildren = false;
-                    }
-
-                    if (change.changed)
-                    {
-                        extraDataSerializedObject.ApplyModifiedProperties();
-                        SyncModuleEntry(moduleIndex, entryContext, commitFallbackModuleInstance: true);
-                    }
-                }
-
-                if (!hasVisibleField)
-                {
-                    EditorGUILayout.HelpBox("This module does not expose editable serialized fields.", MessageType.Info);
-                }
+                entryContext.Editor.OnInspectorGUI(moduleProperty);
+                var changed = extraDataSerializedObject.hasModifiedProperties;
+                extraDataSerializedObject.ApplyModifiedProperties();
+                if (changed) SyncModuleEntry(moduleIndex, entryContext);
             }
         }
 
         /// <summary>
-        ///   <para>绘制模块依赖项信息（依赖项集合直接来源于模块实例的 <see cref="IGameModuleDependencies"/>）</para>
+        ///   <para>绘制模块依赖项信息（依赖项集合直接来源于模块类型声明）。</para>
         /// </summary>
+        /// <param name="entryContext">条目上下文。</param>
         private void DrawDependencies(ModuleEntryContext entryContext)
         {
             DrawSectionTitle(Styles.Dependencies);
@@ -559,18 +692,10 @@ namespace Verve.Editor
                     return;
                 }
 
-                if (entryContext.UsesFallbackModuleInstance)
-                {
-                    EditorGUILayout.HelpBox(string.IsNullOrWhiteSpace(entryContext.Error)
-                        ? "Dependency information is unavailable because this module entry contains invalid serialized data."
-                        : $"Dependency information is unavailable because this module entry contains invalid serialized data.\n{entryContext.Error}", MessageType.Warning);
-                    return;
-                }
-
                 Type[] dependencies;
                 try
                 {
-                    dependencies = GameModuleDependencyUtility.GetDependencies(entryContext.Module);
+                    dependencies = GameModuleDependencyUtility.GetDependencies(entryContext.ModuleType);
                 }
                 catch (Exception ex)
                 {
@@ -588,6 +713,10 @@ namespace Verve.Editor
             }
         }
 
+        /// <summary>
+        ///   <para>绘制区域标题。</para>
+        /// </summary>
+        /// <param name="title">标题。</param>
         private static void DrawSectionTitle(GUIContent title)
         {
             using (new IndentLevelScope(0))
@@ -596,22 +725,34 @@ namespace Verve.Editor
             }
         }
 
+        /// <summary>
+        ///   <para>缩进作用域。</para>
+        /// </summary>
         private readonly struct IndentLevelScope : IDisposable
         {
+            /// <summary>
+            ///   <para>缩进级别。</para>
+            /// </summary>
             private readonly int m_IndentLevel;
 
+            /// <summary>
+            ///   <para>创建缩进作用域。</para>
+            /// </summary>
+            /// <param name="indentLevel">缩进级别。</param>
             public IndentLevelScope(int indentLevel)
             {
                 m_IndentLevel = EditorGUI.indentLevel;
                 EditorGUI.indentLevel = indentLevel;
             }
 
-            public void Dispose()
-            {
-                EditorGUI.indentLevel = m_IndentLevel;
-            }
+            /// <inheritdoc />
+            public void Dispose() => EditorGUI.indentLevel = m_IndentLevel;
         }
 
+        /// <summary>
+        ///   <para>绘制依赖表。</para>
+        /// </summary>
+        /// <param name="dependencies">依赖。</param>
         private static void DrawDependencyTable(Type[] dependencies)
         {
             if (dependencies == null || dependencies.Length == 0)
@@ -700,8 +841,10 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>模块右键菜单</para>
+        ///   <para>模块右键菜单。</para>
         /// </summary>
+        /// <param name="position">位置。</param>
+        /// <param name="moduleIndex">模块索引。</param>
         private void OnModuleContextClick(Vector2 position, int moduleIndex)
         {
             var menu = new GenericMenu();
@@ -712,8 +855,9 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>重置模块字段为默认构造值</para>
+        ///   <para>重置模块字段为默认构造值。</para>
         /// </summary>
+        /// <param name="index">索引。</param>
         private void ResetModuleFields(int index)
         {
             BindModuleEntryProperties();
@@ -759,20 +903,12 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>显示添加模块菜单</para>
+        ///   <para>显示可搜索的添加模块列表。</para>
         /// </summary>
-        private void ShowAddModuleMenu()
+        /// <param name="activatorRect">弹窗锚定区域。</param>
+        private void ShowAddModulePopup(Rect activatorRect)
         {
-            var menu = new GenericMenu();
             var moduleTypes = GetAddableModuleTypes();
-
-            if (moduleTypes.Count == 0)
-            {
-                menu.AddDisabledItem(Styles.NoAvailableModules);
-                menu.ShowAsContext();
-                return;
-            }
-
             var duplicatedNames = new HashSet<string>(
                 moduleTypes
                     .GroupBy(GetModuleMenuName, StringComparer.Ordinal)
@@ -781,30 +917,355 @@ namespace Verve.Editor
                 StringComparer.Ordinal
             );
 
+            var entries = new List<ModuleTypeListPopup.Entry>(moduleTypes.Count);
             for (int i = 0; i < moduleTypes.Count; i++)
             {
                 var moduleType = moduleTypes[i];
-                var menuName = GetModuleMenuName(moduleType);
-                if (duplicatedNames.Contains(menuName))
+                var displayName = GetModuleMenuName(moduleType);
+                if (duplicatedNames.Contains(displayName))
                 {
-                    menuName = $"{menuName} ({moduleType.FullName})";
+                    displayName = $"{displayName} ({moduleType.FullName})";
                 }
 
-                if (GameModuleManifestEntryPropertyUtility.ContainsModuleType(m_ModuleEntriesProperty, moduleType))
-                {
-                    menu.AddDisabledItem(new GUIContent($"{menuName} (Already Added)"));
-                    continue;
-                }
-
-                menu.AddItem(new GUIContent(menuName), false, () => AddModule(moduleType));
+                entries.Add(new ModuleTypeListPopup.Entry(
+                    moduleType,
+                    displayName,
+                    GameModuleManifestEntryPropertyUtility.ContainsModuleType(m_ModuleEntriesProperty, moduleType)));
             }
 
-            menu.ShowAsContext();
+            var popupAnchorRect = new Rect(activatorRect.xMin, activatorRect.yMax, activatorRect.width, 0f);
+            PopupWindow.Show(popupAnchorRect, new ModuleTypeListPopup(entries, AddModule));
         }
 
         /// <summary>
-        ///   <para>添加模块</para>
+        ///   <para>可搜索的模块类型选择弹窗。</para>
         /// </summary>
+        private sealed class ModuleTypeListPopup : PopupWindowContent
+        {
+            /// <summary>
+            ///   <para>最小宽度。</para>
+            /// </summary>
+            private const float MinWidth = 300f;
+            /// <summary>
+            ///   <para>最大宽度。</para>
+            /// </summary>
+            private const float MaxWidth = 520f;
+            /// <summary>
+            ///   <para>最大高度。</para>
+            /// </summary>
+            private const float MaxHeight = 480f;
+            /// <summary>
+            ///   <para>表头高度。</para>
+            /// </summary>
+            private const float HeaderHeight = 48f;
+            /// <summary>
+            ///   <para>空列表高度。</para>
+            /// </summary>
+            private const float EmptyListHeight = 112f;
+            /// <summary>
+            ///   <para>条目高度。</para>
+            /// </summary>
+            private const float EntryHeight = 42f;
+            /// <summary>
+            ///   <para>搜索控件名称。</para>
+            /// </summary>
+            private const string SearchControlName = "VerveModuleTypeListSearch";
+
+            /// <summary>
+            ///   <para>主要标签样式。</para>
+            /// </summary>
+            private static readonly GUIStyle PrimaryLabelStyle = new(EditorStyles.label)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                clipping = TextClipping.Clip,
+                fontStyle = FontStyle.Bold
+            };
+
+            /// <summary>
+            ///   <para>次要标签样式。</para>
+            /// </summary>
+            private static readonly GUIStyle SecondaryLabelStyle = new(EditorStyles.miniLabel)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                clipping = TextClipping.Clip
+            };
+
+            /// <summary>
+            ///   <para>条目。</para>
+            /// </summary>
+            private readonly IReadOnlyList<Entry> entries;
+            /// <summary>
+            ///   <para>选中回调。</para>
+            /// </summary>
+            private readonly Action<Type> onSelected;
+            /// <summary>
+            ///   <para>滚动位置。</para>
+            /// </summary>
+            private Vector2 scrollPosition;
+            /// <summary>
+            ///   <para>搜索文本。</para>
+            /// </summary>
+            private string searchText = string.Empty;
+            /// <summary>
+            ///   <para>搜索框焦点状态。</para>
+            /// </summary>
+            private bool searchFocused;
+
+            /// <summary>
+            ///   <para>创建模块类型选择弹窗。</para>
+            /// </summary>
+            /// <param name="entries">条目。</param>
+            /// <param name="onSelected">选中回调。</param>
+            public ModuleTypeListPopup(IReadOnlyList<Entry> entries, Action<Type> onSelected)
+            {
+                this.entries = entries ?? Array.Empty<Entry>();
+                this.onSelected = onSelected;
+            }
+
+            /// <inheritdoc />
+            public override Vector2 GetWindowSize()
+            {
+                float width = MinWidth;
+                for (int i = 0; i < entries.Count; i++)
+                {
+                    width = Mathf.Max(width,
+                        EditorStyles.label.CalcSize(new GUIContent(entries[i].DisplayName)).x + 88f);
+                }
+
+                float height = entries.Count == 0
+                    ? EmptyListHeight
+                    : HeaderHeight + entries.Count * EntryHeight;
+                return new Vector2(Mathf.Min(width, MaxWidth), Mathf.Min(height, MaxHeight));
+            }
+
+            /// <inheritdoc />
+            public override void OnGUI(Rect rect)
+            {
+                EditorGUILayout.Space(2f);
+                using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
+                {
+                    GUI.SetNextControlName(SearchControlName);
+                    EditorGUI.BeginChangeCheck();
+                    string nextSearchText = EditorGUILayout.TextField(searchText, EditorStyles.toolbarSearchField);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        searchText = nextSearchText;
+                        scrollPosition = Vector2.zero;
+                    }
+                }
+
+                if (!searchFocused && Event.current.type == EventType.Repaint)
+                {
+                    EditorGUI.FocusTextInControl(SearchControlName);
+                    searchFocused = true;
+                }
+
+                int matchedCount = 0;
+                scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+                for (int i = 0; i < entries.Count; i++)
+                {
+                    var entry = entries[i];
+                    if (!entry.Matches(searchText))
+                    {
+                        continue;
+                    }
+
+                    DrawEntry(entry, matchedCount++);
+                }
+                EditorGUILayout.EndScrollView();
+
+                if (matchedCount == 0)
+                {
+                    EditorGUILayout.HelpBox(entries.Count == 0
+                        ? Styles.NoAvailableModules.text
+                        : "No modules match the current search.", MessageType.Info);
+                }
+            }
+
+            /// <summary>
+            ///   <para>绘制条目。</para>
+            /// </summary>
+            /// <param name="entry">条目。</param>
+            /// <param name="index">索引。</param>
+            private void DrawEntry(Entry entry, int index)
+            {
+                Rect rowRect = GUILayoutUtility.GetRect(0f, EntryHeight, GUILayout.ExpandWidth(true));
+                rowRect.xMin += 4f;
+                rowRect.xMax -= 4f;
+
+                Event currentEvent = Event.current;
+                bool isHovering = rowRect.Contains(currentEvent.mousePosition);
+                bool isSelectable = !entry.IsAdded;
+                if (currentEvent.type == EventType.Repaint)
+                {
+                    Color background = GetRowBackground(index, isHovering, isSelectable);
+                    EditorGUI.DrawRect(rowRect, background);
+                    EditorGUI.DrawRect(new Rect(rowRect.x, rowRect.yMax - 1f, rowRect.width, 1f),
+                        GetSeparatorColor());
+                }
+
+                Rect primaryRect = new Rect(rowRect.x + 8f, rowRect.y + 3f, rowRect.width - 16f, 18f);
+                Rect secondaryRect = new Rect(rowRect.x + 8f, rowRect.y + 20f, rowRect.width - 16f, 18f);
+                Color previousContentColor = GUI.contentColor;
+                using (new EditorGUI.DisabledScope(!isSelectable))
+                {
+                    GUI.contentColor = GetTextColor(isHovering, isSelectable, false);
+                    GUI.Label(primaryRect, new GUIContent(entry.DisplayName, entry.Tooltip), PrimaryLabelStyle);
+                    GUI.contentColor = GetTextColor(isHovering, isSelectable, true);
+                    GUI.Label(secondaryRect, entry.Type.FullName, SecondaryLabelStyle);
+                }
+                GUI.contentColor = previousContentColor;
+
+                if (currentEvent.type == EventType.MouseDown && currentEvent.button == 0 && isSelectable && isHovering)
+                {
+                    editorWindow.Close();
+                    currentEvent.Use();
+                    onSelected?.Invoke(entry.Type);
+                    GUIUtility.ExitGUI();
+                }
+            }
+
+            /// <summary>
+            ///   <para>获取行背景。</para>
+            /// </summary>
+            /// <param name="index">索引。</param>
+            /// <param name="isHovering">是否悬停。</param>
+            /// <param name="isSelectable">是否可选择。</param>
+            private static Color GetRowBackground(int index, bool isHovering, bool isSelectable)
+            {
+                if (EditorGUIUtility.isProSkin)
+                {
+                    if (isHovering && isSelectable)
+                    {
+                        return new Color(0.20f, 0.40f, 0.66f, 1f);
+                    }
+
+                    float shade = index % 2 == 0 ? 0.22f : 0.24f;
+                    return isSelectable
+                        ? new Color(shade, shade, shade, 1f)
+                        : new Color(shade + 0.015f, shade + 0.015f, shade + 0.015f, 1f);
+                }
+
+                if (isHovering && isSelectable)
+                {
+                    return new Color(0.25f, 0.49f, 0.78f, 1f);
+                }
+
+                float lightShade = index % 2 == 0 ? 0.94f : 0.91f;
+                return isSelectable
+                    ? new Color(lightShade, lightShade, lightShade, 1f)
+                    : new Color(lightShade - 0.025f, lightShade - 0.025f, lightShade - 0.025f, 1f);
+            }
+
+            /// <summary>
+            ///   <para>获取分隔符颜色。</para>
+            /// </summary>
+            private static Color GetSeparatorColor()
+            {
+                return EditorGUIUtility.isProSkin
+                    ? new Color(1f, 1f, 1f, 0.10f)
+                    : new Color(0f, 0f, 0f, 0.12f);
+            }
+
+            /// <summary>
+            ///   <para>获取文本颜色。</para>
+            /// </summary>
+            /// <param name="isHovering">是否悬停。</param>
+            /// <param name="isSelectable">是否可选择。</param>
+            /// <param name="isSecondary">是否次要。</param>
+            private static Color GetTextColor(bool isHovering, bool isSelectable, bool isSecondary)
+            {
+                if (isHovering && isSelectable)
+                {
+                    return isSecondary
+                        ? new Color(0.88f, 0.93f, 1f, 1f)
+                        : Color.white;
+                }
+
+                if (EditorGUIUtility.isProSkin)
+                {
+                    if (!isSelectable)
+                    {
+                        return isSecondary
+                            ? new Color(0.44f, 0.44f, 0.44f, 1f)
+                            : new Color(0.56f, 0.56f, 0.56f, 1f);
+                    }
+
+                    return isSecondary
+                        ? new Color(0.68f, 0.68f, 0.68f, 1f)
+                        : new Color(0.92f, 0.92f, 0.92f, 1f);
+                }
+
+                if (!isSelectable)
+                {
+                    return isSecondary
+                        ? new Color(0.46f, 0.46f, 0.46f, 1f)
+                        : new Color(0.36f, 0.36f, 0.36f, 1f);
+                }
+
+                return isSecondary
+                    ? new Color(0.30f, 0.30f, 0.30f, 1f)
+                    : new Color(0.12f, 0.12f, 0.12f, 1f);
+            }
+
+            /// <summary>
+            ///   <para>条目。</para>
+            /// </summary>
+            internal sealed class Entry
+            {
+                /// <summary>
+                ///   <para>创建条目。</para>
+                /// </summary>
+                /// <param name="type">类型。</param>
+                /// <param name="displayName">显示名称。</param>
+                /// <param name="isAdded">是否已添加。</param>
+                public Entry(Type type, string displayName, bool isAdded)
+                {
+                    Type = type ?? throw new ArgumentNullException(nameof(type));
+                    DisplayName = string.IsNullOrWhiteSpace(displayName) ? type.Name : displayName;
+                    IsAdded = isAdded;
+                    string description = GetModuleDescription(type);
+                    SearchText = $"{DisplayName}\n{type.FullName}\n{description}";
+                    Tooltip = $"{description}";
+                }
+
+                /// <summary>
+                ///   <para>类型。</para>
+                /// </summary>
+                public Type Type { get; }
+                /// <summary>
+                ///   <para>显示名称。</para>
+                /// </summary>
+                public string DisplayName { get; }
+                /// <summary>
+                ///   <para>是否已添加。</para>
+                /// </summary>
+                public bool IsAdded { get; }
+                /// <summary>
+                ///   <para>搜索文本。</para>
+                /// </summary>
+                private string SearchText { get; }
+                /// <summary>
+                ///   <para>提示。</para>
+                /// </summary>
+                public string Tooltip { get; }
+
+                /// <summary>
+                ///   <para>匹配。</para>
+                /// </summary>
+                /// <param name="search">搜索。</param>
+                public bool Matches(string search)
+                {
+                    return string.IsNullOrWhiteSpace(search) ||
+                        SearchText.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0;
+                }
+            }
+        }
+
+        /// <summary>
+        ///   <para>添加模块。</para>
+        /// </summary>
+        /// <param name="moduleType">模块类型。</param>
         private void AddModule(Type moduleType)
         {
             if (moduleType == null || m_ModuleEntriesProperty == null)
@@ -845,8 +1306,9 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>向编辑条目列表追加一个模块条目</para>
+        ///   <para>向编辑条目列表追加一个模块条目。</para>
         /// </summary>
+        /// <param name="moduleType">模块类型。</param>
         private void AppendModuleEntry(Type moduleType)
         {
             if (moduleType == null ||
@@ -863,8 +1325,11 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>计算添加模块前需要补充的缺失依赖</para>
+        ///   <para>计算添加模块前需要补充的缺失依赖。</para>
         /// </summary>
+        /// <param name="moduleType">模块类型。</param>
+        /// <param name="addableModuleTypes">可添加模块类型。</param>
+        /// <param name="error">错误。</param>
         private List<Type> FindMissingDependenciesToAdd(Type moduleType, IReadOnlyList<Type> addableModuleTypes, out string error)
         {
             error = null;
@@ -888,8 +1353,15 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>递归追加缺失依赖，返回依赖优先的追加顺序</para>
+        ///   <para>递归追加缺失依赖，返回依赖优先的追加顺序。</para>
         /// </summary>
+        /// <param name="rootType">根对象类型。</param>
+        /// <param name="moduleType">模块类型。</param>
+        /// <param name="availableModuleTypes">可用模块类型。</param>
+        /// <param name="plannedTypes">计划的类型。</param>
+        /// <param name="missingDependencyTypes">缺失依赖类型。</param>
+        /// <param name="visitingTypes">当前访问链中的类型。</param>
+        /// <param name="error">错误。</param>
         private bool TryAppendMissingDependencies(
             Type rootType,
             Type moduleType,
@@ -911,15 +1383,16 @@ namespace Verve.Editor
 
             try
             {
-                if (!GameModuleDependencyUtility.TryInspectDependencies(
-                        moduleType,
-                        GameModuleManifestAsset.EmptyFields,
-                        out var dependencyTypes,
-                        out error))
+                Type[] dependencyTypes;
+                try
+                {
+                    dependencyTypes = GameModuleDependencyUtility.GetDependencies(moduleType);
+                }
+                catch (Exception ex)
                 {
                     error =
                         $"Failed to inspect module dependencies before adding '{GetModuleMenuName(rootType)}'. " +
-                        $"module={GameModuleUtility.GetTypeDisplayName(moduleType)}, error={error}";
+                        $"module={GameModuleUtility.GetTypeDisplayName(moduleType)}, error={ex.Message}";
                     return false;
                 }
 
@@ -977,8 +1450,10 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>判断某个依赖是否已被清单或本次追加计划纳入</para>
+        ///   <para>判断某个依赖是否已被清单或本次追加计划纳入。</para>
         /// </summary>
+        /// <param name="dependencyType">依赖类型。</param>
+        /// <param name="plannedTypes">计划的类型。</param>
         private bool IsDependencyIncluded(Type dependencyType, IReadOnlyList<Type> plannedTypes)
         {
             if (dependencyType == null)
@@ -1009,8 +1484,14 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>查找依赖应该追加的具体模块类型</para>
+        ///   <para>查找依赖应该追加的具体模块类型。</para>
         /// </summary>
+        /// <param name="rootType">根对象类型。</param>
+        /// <param name="moduleType">模块类型。</param>
+        /// <param name="dependencyType">依赖类型。</param>
+        /// <param name="availableModuleTypes">可用模块类型。</param>
+        /// <param name="dependencyModuleType">依赖模块类型。</param>
+        /// <param name="error">错误。</param>
         private bool TryFindDependencyModuleType(
             Type rootType,
             Type moduleType,
@@ -1058,8 +1539,10 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>确认是否把缺失依赖一并追加到清单</para>
+        ///   <para>确认是否把缺失依赖一并追加到清单。</para>
         /// </summary>
+        /// <param name="moduleType">模块类型。</param>
+        /// <param name="dependencyTypes">依赖类型。</param>
         private bool ConfirmAddDependencies(Type moduleType, IReadOnlyList<Type> dependencyTypes)
         {
             var dependencyLines = string.Join("\n", dependencyTypes.Select(type => $"- {GetModuleMenuName(type)}"));
@@ -1075,8 +1558,9 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>移除模块</para>
+        ///   <para>移除模块。</para>
         /// </summary>
+        /// <param name="index">索引。</param>
         private void RemoveModule(int index)
         {
             if (m_ModuleEntriesProperty == null || index < 0 || index >= m_ModuleEntriesProperty.arraySize)
@@ -1093,8 +1577,9 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>确认移除模块；移除会破坏依赖时给出明确提示</para>
+        ///   <para>确认移除模块；移除会破坏依赖时给出明确提示。</para>
         /// </summary>
+        /// <param name="index">索引。</param>
         private bool ConfirmRemoveModule(int index)
         {
             var dependentTypes = new List<Type>();
@@ -1131,7 +1616,7 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>重新从清单文件加载编辑数据</para>
+        ///   <para>重新从清单文件加载编辑数据。</para>
         /// </summary>
         private void ReloadFromSource()
         {
@@ -1150,7 +1635,7 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>完成一次 Revert/Reset 之后的本地状态重载与同步</para>
+        ///   <para>完成一次 Revert/Reset 之后的本地状态重载与同步。</para>
         /// </summary>
         private void FinishReset()
         {
@@ -1161,8 +1646,9 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>按资源路径加载清单编辑数据</para>
+        ///   <para>按资源路径加载清单编辑数据。</para>
         /// </summary>
+        /// <param name="assetPath">资源路径。</param>
         private void LoadEditorData(string assetPath)
         {
             if (m_EditorData == null)
@@ -1179,7 +1665,7 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>绑定额外数据序列化属性</para>
+        ///   <para>绑定额外数据序列化属性。</para>
         /// </summary>
         private void BindModuleEntryProperties()
         {
@@ -1196,7 +1682,7 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>刷新模块条目上下文</para>
+        ///   <para>刷新模块条目上下文。</para>
         /// </summary>
         private void RefreshModuleEntryContexts()
         {
@@ -1221,17 +1707,16 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>清空模块条目上下文</para>
+        ///   <para>清空模块条目上下文。</para>
         /// </summary>
-        private void ClearModuleEntryContexts()
-        {
-            m_ModuleEntryContexts.Clear();
-        }
+        private void ClearModuleEntryContexts() => ResourceUtility.ReleaseAll(m_ModuleEntryContexts, context => context?.Dispose());
 
         /// <summary>
-        ///   <para>同步单个模块条目编辑结果到清单编辑数据</para>
+        ///   <para>同步单个模块条目编辑结果到清单编辑数据。</para>
         /// </summary>
-        private void SyncModuleEntry(int moduleIndex, ModuleEntryContext entryContext, bool commitFallbackModuleInstance)
+        /// <param name="moduleIndex">模块索引。</param>
+        /// <param name="entryContext">条目上下文。</param>
+        private void SyncModuleEntry(int moduleIndex, ModuleEntryContext entryContext)
         {
             if (entryContext == null || m_ModuleEntriesProperty == null || moduleIndex < 0 || moduleIndex >= m_ModuleEntriesProperty.arraySize)
             {
@@ -1245,14 +1730,6 @@ namespace Verve.Editor
             entryContext.SetModule(module);
 
             if (module == null || entryContext.ModuleType == null)
-            {
-                return;
-            }
-
-            var usesFallbackModuleInstance = entryProperty
-                .FindPropertyRelative(GameModuleManifestEditorData.ModuleEntry.UsesFallbackModuleInstancePropertyName)
-                ?.boolValue ?? false;
-            if (usesFallbackModuleInstance && !commitFallbackModuleInstance)
             {
                 return;
             }
@@ -1275,7 +1752,6 @@ namespace Verve.Editor
                 extraDataSerializedObject.ApplyModifiedProperties();
 
                 entryContext.Error = null;
-                entryContext.UsesFallbackModuleInstance = false;
                 HasPendingChanges = true;
             }
             catch (Exception ex)
@@ -1285,63 +1761,34 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>同步全部模块条目编辑结果到清单编辑数据</para>
+        ///   <para>同步全部模块条目编辑结果到清单编辑数据。</para>
         /// </summary>
         private void SyncAllModuleEntries()
         {
             for (int i = 0; i < m_ModuleEntryContexts.Count; i++)
             {
-                SyncModuleEntry(i, m_ModuleEntryContexts[i], commitFallbackModuleInstance: false);
+                SyncModuleEntry(i, m_ModuleEntryContexts[i]);
             }
         }
 
         /// <summary>
-        ///   <para>按条目声明类型重新创建模块实例，避免意外修改 <see cref="SerializeReference"/> 的具体类型</para>
+        ///   <para>按条目声明类型重新创建模块实例，避免意外修改 <see cref="SerializeReference"/> 的具体类型。</para>
         /// </summary>
+        /// <param name="entryProperty">条目属性。</param>
+        /// <param name="declaredType">已声明类型。</param>
         private static GameModule RecreateModuleFromDeclaredType(SerializedProperty entryProperty, Type declaredType)
         {
-            if (entryProperty == null) return null;
-            if (declaredType == null) throw new ArgumentNullException(nameof(declaredType));
-
-            var moduleProperty = GameModuleManifestEditorData.FindModuleProperty(entryProperty);
-            if (moduleProperty == null)
-            {
-                return null;
-            }
-
             var fields = GameModuleManifestEditorData.ReadModuleEntry(entryProperty).fields;
-            try
-            {
-                var declaredEntry = GameModuleManifestEditorData.CreateEntryFromManifestEntry(
-                    new GameModuleManifestAsset.GameModuleEntry
-                    {
-                        type = GameModuleUtility.GetStableTypeName(declaredType),
-                        fields = fields
-                    });
-                moduleProperty.managedReferenceValue =
-                    declaredEntry.module ?? GameModuleManifestAsset.CreateModuleInstance(declaredType, GameModuleManifestAsset.EmptyFields);
-            }
-            catch (Exception restoreException)
-            {
-                try
-                {
-                    moduleProperty.managedReferenceValue =
-                        GameModuleManifestAsset.CreateModuleInstance(declaredType, GameModuleManifestAsset.EmptyFields);
-                }
-                catch (Exception fallbackException)
-                {
-                    throw new InvalidOperationException(
-                        $"Failed to recreate declared module type {declaredType.FullName}.",
-                        GameModuleUtility.CombineErrors(restoreException, fallbackException));
-                }
-            }
-
-            return (GameModule)moduleProperty.managedReferenceValue;
+            var module = GameModuleManifestAsset.CreateModuleInstance(declaredType, fields);
+            GameModuleManifestEditorData.FindModuleProperty(entryProperty).managedReferenceValue = module;
+            return module;
         }
 
         /// <summary>
-        ///   <para>判断模块是否命中搜索筛选</para>
+        ///   <para>判断模块是否命中搜索筛选。</para>
         /// </summary>
+        /// <param name="property">属性。</param>
+        /// <param name="entryContext">条目上下文。</param>
         private bool MatchesSearchFilter(SerializedProperty property, ModuleEntryContext entryContext)
         {
             if (string.IsNullOrWhiteSpace(m_SearchFilter))
@@ -1359,8 +1806,10 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>获取模块显示名称</para>
+        ///   <para>获取模块显示名称。</para>
         /// </summary>
+        /// <param name="property">属性。</param>
+        /// <param name="entryContext">条目上下文。</param>
         private static string GetModuleDisplayName(SerializedProperty property, ModuleEntryContext entryContext)
         {
             if (entryContext?.ModuleType != null)
@@ -1368,11 +1817,11 @@ namespace Verve.Editor
                 return GetModuleMenuName(entryContext.ModuleType);
             }
 
-            return GetFallbackModuleName(GameModuleManifestEditorData.ReadModuleType(property));
+            return GetUnresolvedModuleName(GameModuleManifestEditorData.ReadModuleType(property));
         }
 
         /// <summary>
-        ///   <para>获取可添加模块类型列表</para>
+        ///   <para>获取可添加模块类型列表。</para>
         /// </summary>
         private static List<Type> GetAddableModuleTypes()
         {
@@ -1383,8 +1832,9 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>获取模块菜单显示名称</para>
+        ///   <para>获取模块菜单显示名称。</para>
         /// </summary>
+        /// <param name="moduleType">模块类型。</param>
         private static string GetModuleMenuName(Type moduleType)
         {
             if (moduleType == null)
@@ -1400,13 +1850,15 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>获取模块描述文本</para>
+        ///   <para>获取模块描述文本。</para>
         /// </summary>
-        private static string GetModuleDescription(ModuleEntryContext entryContext)
-        {
-            return entryContext?.ModuleType == null ? null : GetModuleDescription(entryContext.ModuleType);
-        }
+        /// <param name="entryContext">条目上下文。</param>
+        private static string GetModuleDescription(ModuleEntryContext entryContext) => entryContext?.ModuleType == null ? null : GetModuleDescription(entryContext.ModuleType);
 
+        /// <summary>
+        ///   <para>获取模块描述。</para>
+        /// </summary>
+        /// <param name="moduleType">模块类型。</param>
         private static string GetModuleDescription(Type moduleType)
         {
             if (moduleType == null) throw new ArgumentNullException(nameof(moduleType));
@@ -1414,17 +1866,19 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>判断模块类型是否可以直接追加到清单</para>
+        ///   <para>判断模块类型是否可以直接追加到清单。</para>
         /// </summary>
+        /// <param name="moduleType">模块类型。</param>
         private static bool CanAddModuleType(Type moduleType)
         {
             return moduleType != null && moduleType.GetCustomAttribute<GameModuleAttribute>() != null && GameModuleManifestAsset.GetManifestModuleTypeError(moduleType) == null;
         }
 
         /// <summary>
-        ///   <para>获取兜底显示名</para>
+        ///   <para>获取尚未解析类型的显示名。</para>
         /// </summary>
-        private static string GetFallbackModuleName(string typeName)
+        /// <param name="typeName">类型显示名称。</param>
+        private static string GetUnresolvedModuleName(string typeName)
         {
             if (string.IsNullOrWhiteSpace(typeName))
             {
@@ -1437,6 +1891,10 @@ namespace Verve.Editor
             return dotIndex >= 0 ? displayTypeName.Substring(dotIndex + 1) : displayTypeName;
         }
 
+        /// <summary>
+        ///   <para>获取模块显示名称。</para>
+        /// </summary>
+        /// <param name="index">索引。</param>
         private string GetModuleDisplayName(int index)
         {
             if (m_ModuleEntriesProperty == null || index < 0 || index >= m_ModuleEntriesProperty.arraySize)
@@ -1449,6 +1907,10 @@ namespace Verve.Editor
             return GetModuleDisplayName(entryProperty, entryContext);
         }
 
+        /// <summary>
+        ///   <para>应用模块条目变更。</para>
+        /// </summary>
+        /// <param name="change">变更。</param>
         private void ApplyModuleEntriesChange(Action change)
         {
             if (extraDataSerializedObject == null || change == null)
@@ -1471,8 +1933,9 @@ namespace Verve.Editor
         }
 
         /// <summary>
-        ///   <para>获取当前清单资源路径</para>
+        ///   <para>获取当前清单资源路径。</para>
         /// </summary>
+        /// <param name="targetIndex">目标索引。</param>
         private string GetAssetPath(int targetIndex = 0)
         {
             if (targets == null || targetIndex < 0 || targetIndex >= targets.Length)

@@ -5,18 +5,18 @@ namespace Verve
     using System.Threading.Tasks;
     using System.Collections.Generic;
 
-
     /// <summary>
-    ///   <para>模块容器扩展类</para>
+    ///   <para>模块容器扩展类。</para>
     /// </summary>
     public static class GameModulesExtension
     {
         /// <summary>
-        ///   <para>通过程序集异步安装模块</para>
+        ///   <para>通过程序集异步安装模块。</para>
         /// </summary>
-        /// <param name="assemblyData">程序集字节数据</param>
-        /// <param name="pdbData">可选调试符号字节数据</param>
-        /// <param name="moduleTypeNames">要安装的模块类型名；为空或长度为 0 时安装程序集内所有可安装模块</param>
+        /// <param name="assemblyData">程序集字节数据。</param>
+        /// <param name="pdbData">可选调试符号字节数据。</param>
+        /// <param name="moduleTypeNames">要安装的模块类型名；为空或长度为 0 时安装程序集内所有可安装模块。</param>
+        /// <param name="self">目标对象。</param>
         public static ValueTask InstallAsync(this GameModules self, byte[] assemblyData, byte[] pdbData = null, params string[] moduleTypeNames)
         {
 #if !ENABLE_IL2CPP
@@ -36,13 +36,13 @@ namespace Verve
 
             if (moduleTypes.Length == 1)
             {
-                return self.InstallAsync(() => (GameModule)Activator.CreateInstance(moduleTypes[0]));
+                return self.InstallAsync(moduleTypes[0]);
             }
 
             var manifest = new GameModuleManifest();
             foreach (var moduleType in moduleTypes)
             {
-                manifest.Add(moduleType, () => (GameModule)Activator.CreateInstance(moduleType));
+                manifest.Add(moduleType);
             }
 
             return self.InstallFromManifestAsync(manifest);
@@ -51,8 +51,10 @@ namespace Verve
 
 #if ENABLE_IL2CPP
         /// <summary>
-        ///   <para>解析程序集内要安装的模块类型</para>
+        ///   <para>解析程序集内要安装的模块类型。</para>
         /// </summary>
+        /// <param name="assembly">程序集。</param>
+        /// <param name="typeNames">类型名称。</param>
         private static Type[] ResolveAssemblyModuleTypes(Assembly assembly, string[] typeNames)
         {
             var assemblyTypes = assembly.GetTypes();
@@ -61,7 +63,7 @@ namespace Verve
                 var moduleTypes = new List<Type>(assemblyTypes.Length);
                 foreach (var type in assemblyTypes)
                 {
-                    if (GetAssemblyModuleTypeError(type) != null)
+                    if (GameModuleUtility.GetModuleTypeError(type) != null)
                     {
                         continue;
                     }
@@ -112,7 +114,7 @@ namespace Verve
                         $"Failed to find module type '{typeName}' in assembly '{assembly.FullName}'.");
                 }
 
-                var error = GetAssemblyModuleTypeError(matchedType);
+                var error = GameModuleUtility.GetModuleTypeError(matchedType);
                 if (error != null)
                 {
                     throw new InvalidOperationException(error);
@@ -124,22 +126,6 @@ namespace Verve
             return resolvedTypes;
         }
 
-        private static string GetAssemblyModuleTypeError(Type moduleType)
-        {
-            var error = GameModuleUtility.GetModuleTypeError(moduleType);
-            if (error != null)
-            {
-                return error;
-            }
-
-            if (moduleType.GetConstructor(Type.EmptyTypes) == null)
-            {
-                return
-                    $"{GameModuleUtility.GetTypeDisplayName(moduleType)} must declare a public parameterless constructor to be installed from assembly data.";
-            }
-
-            return null;
-        }
 #endif
     }
 }

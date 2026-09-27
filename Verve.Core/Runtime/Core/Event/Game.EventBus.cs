@@ -1,820 +1,783 @@
 namespace Verve
 {
     using System;
+    using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
 #if UNITY_5_3_OR_NEWER
     using UnityEngine;
 #endif
-    using System.Collections.Generic;
-    using System.Runtime.CompilerServices;
-
 
     /// <summary>
-    ///   <para>游戏入口：事件总线部分</para>
+    ///   <para>游戏入口。</para>
     /// </summary>
     public static partial class Game
     {
         /// <summary>
-        ///   <para>事件分发器，使用整数作为事件键</para>
+        ///   <para>事件分发器。</para>
         /// </summary>
-        [ThreadStatic] private static EventDispatcher<int> s_EventDispatcher;
-        
+        private static readonly EventDispatcher<EventKey> s_EventDispatcher = new();
+
         /// <summary>
-        ///   <para>字符串转哈希缓存</para>
+        ///   <para>事件处理函数。</para>
         /// </summary>
-        private static Dictionary<string, int> s_StringToHashCache;
-        private static readonly object s_StringToHashLock = new();
-        
-        private static EventDispatcher<int> EventDispatcher
+        public static IReadOnlyDictionary<EventKey, IReadOnlyList<Delegate>> EventHandlers => s_EventDispatcher.Handlers;
+#if (DEBUG || DEVELOPMENT_BUILD)
+        /// <summary>
+        ///   <para>事件记录通知。</para>
+        /// </summary>
+        internal static event Action<EventDispatcher<EventKey>.EventRecord> OnEventRecorded
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => s_EventDispatcher ??= new EventDispatcher<int>();
-        }
-        
-        /// <summary>
-        ///   <para>所有事件处理函数</para>
-        /// </summary>
-        public static IReadOnlyDictionary<int, List<Delegate>> EventHandlers => EventDispatcher.Handlers;
-        
-        /// <summary>
-        ///   <para>字符串转哈希缓存</para>
-        /// </summary>
-        public static IReadOnlyDictionary<string, int> StringToHashCache
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                lock (s_StringToHashLock)
-                {
-                    return s_StringToHashCache ??= new Dictionary<string, int>();
-                }
-            }
-        }
-        
-#if DEBUG
-        /// <summary>
-        ///   <para>事件记录回调</para>
-        /// </summary>
-        internal static event Action<EventDispatcher<int>.EventRecord> OnEventRecorded
-        {
-            add => EventDispatcher.OnEventRecorded += value;
-            remove => EventDispatcher.OnEventRecorded -= value;
+            add => s_EventDispatcher.OnEventRecorded += value;
+            remove => s_EventDispatcher.OnEventRecorded -= value;
         }
 #endif
 
-        #region 使用字符串作为事件键
-
         /// <summary>
-        ///   <para>监听事件（无参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
         public static IDisposable On(string eventKey, Action handler)
-            => EventDispatcher.On(GetEventHash(eventKey), handler);
-        
+            => s_EventDispatcher.On(new EventKey(eventKey), handler);
+#if UNITY_5_3_OR_NEWER
         /// <summary>
-        ///   <para>监听事件（无参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <param name="owner">事件处理器所属对象</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <param name="owner">所有者。</param>
         public static void On(string eventKey, Action handler, MonoBehaviour owner)
-            => owner?.gameObject.GetOrAddComponent<EventHandlerManager>().AddDisposable(On(eventKey, handler));
-
-        /// <summary>
-        ///   <para>监听事件（一个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IDisposable On<T>(string eventKey, Action<T> handler)
-            => EventDispatcher.On(GetEventHash(eventKey), handler);
-        
-        /// <summary>
-        ///   <para>监听事件（一个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <param name="owner">事件处理器所属对象</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void On<T>(string eventKey, Action<T> handler, MonoBehaviour owner)
-            => owner?.gameObject.GetOrAddComponent<EventHandlerManager>().AddDisposable(On(eventKey, handler));
-        
-        /// <summary>
-        ///   <para>监听事件（两个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IDisposable On<T1, T2>(string eventKey, Action<T1, T2> handler)
-            => EventDispatcher.On(GetEventHash(eventKey), handler);
-
-        /// <summary>
-        ///   <para>监听事件（两个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <param name="owner">事件处理器所属对象</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void On<T1, T2>(string eventKey, Action<T1, T2> handler, MonoBehaviour owner)
-            => owner?.gameObject.GetOrAddComponent<EventHandlerManager>().AddDisposable(On(eventKey, handler));
-
-        /// <summary>
-        ///   <para>监听事件（三个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IDisposable On<T1, T2, T3>(string eventKey, Action<T1, T2, T3> handler)
-            => EventDispatcher.On(GetEventHash(eventKey), handler);
-        
-#if UNITY_5_3_OR_NEWER
-        /// <summary>
-        ///   <para>监听事件（三个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <param name="owner">事件处理器所属对象</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void On<T1, T2, T3>(string eventKey, Action<T1, T2, T3> handler, MonoBehaviour owner)
-            => owner?.gameObject.GetOrAddComponent<EventHandlerManager>().AddDisposable(On(eventKey, handler));
+            => GetOwnerEventManager(owner).AddDisposable(On(eventKey, handler));
 #endif
-        
         /// <summary>
-        ///   <para>监听事件（四个参数）</para>
+        ///   <para>取消订阅。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IDisposable On<T1, T2, T3, T4>(string eventKey, Action<T1, T2, T3, T4> handler)
-            => EventDispatcher.On(GetEventHash(eventKey), handler);
-        
-#if UNITY_5_3_OR_NEWER
-        /// <summary>
-        ///   <para>监听事件（四个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <param name="owner">事件处理器所属对象</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void On<T1, T2, T3, T4>(string eventKey, Action<T1, T2, T3, T4> handler, MonoBehaviour owner)
-            => owner?.gameObject.GetOrAddComponent<EventHandlerManager>().AddDisposable(On(eventKey, handler));
-#endif
-        
-        /// <summary>
-        ///   <para>监听事件（五个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IDisposable On<T1, T2, T3, T4, T5>(string eventKey, Action<T1, T2, T3, T4, T5> handler)
-            => EventDispatcher.On(GetEventHash(eventKey), handler);
-        
-#if UNITY_5_3_OR_NEWER
-        /// <summary>
-        ///   <para>监听事件（五个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <param name="owner">事件处理器所属对象</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void On<T1, T2, T3, T4, T5>(string eventKey, Action<T1, T2, T3, T4, T5> handler, MonoBehaviour owner)
-            => owner?.gameObject.GetOrAddComponent<EventHandlerManager>().AddDisposable(On(eventKey, handler));
-#endif
-        
-        /// <summary>
-        ///   <para>监听事件（六个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IDisposable On<T1, T2, T3, T4, T5, T6>(string eventKey, Action<T1, T2, T3, T4, T5, T6> handler)
-            => EventDispatcher.On(GetEventHash(eventKey), handler);
-        
-        /// <summary>
-        ///   <para>监听事件（六个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <param name="owner">事件处理器所属对象</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void On<T1, T2, T3, T4, T5, T6>(string eventKey, Action<T1, T2, T3, T4, T5, T6> handler, MonoBehaviour owner)
-            => owner?.gameObject.GetOrAddComponent<EventHandlerManager>().AddDisposable(On(eventKey, handler));
-        
-        /// <summary>
-        ///   <para>取消监听事件</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Off(string eventKey)
-            => EventDispatcher.Off(GetEventHash(eventKey));
-        
-        /// <summary>
-        ///   <para>取消监听事件（无参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
         public static void Off(string eventKey, Action handler)
-            => EventDispatcher.Off(GetEventHash(eventKey), handler);
-        
-        /// <summary>
-        ///   <para>取消监听事件（一个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Off<T>(string eventKey, Action<T> handler)
-            => EventDispatcher.Off(GetEventHash(eventKey), handler);
-        
-        /// <summary>
-        ///   <para>取消监听事件（两个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Off<T1, T2>(string eventKey, Action<T1, T2> handler)
-            => EventDispatcher.Off(GetEventHash(eventKey), handler);
+            => s_EventDispatcher.Off(new EventKey(eventKey), handler);
 
         /// <summary>
-        ///   <para>取消监听事件（三个参数）</para>
+        ///   <para>发布事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Off<T1, T2, T3>(string eventKey, Action<T1, T2, T3> handler)
-            => EventDispatcher.Off(GetEventHash(eventKey), handler);
-
-        /// <summary>
-        ///   <para>取消监听事件（四个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Off<T1, T2, T3, T4>(string eventKey, Action<T1, T2, T3, T4> handler)
-            => EventDispatcher.Off(GetEventHash(eventKey), handler);
-
-        /// <summary>
-        ///   <para>取消监听事件（五个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Off<T1, T2, T3, T4, T5>(string eventKey, Action<T1, T2, T3, T4, T5> handler)
-            => s_EventDispatcher.Off(GetEventHash(eventKey), handler);
-
-        /// <summary>
-        ///   <para>取消监听事件（六个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Off<T1, T2, T3, T4, T5, T6>(string eventKey, Action<T1, T2, T3, T4, T5, T6> handler)
-            => s_EventDispatcher.Off(GetEventHash(eventKey), handler);
-
-        /// <summary>
-        ///   <para>发送事件（无参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
         public static void Emit(string eventKey
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
-            => EventDispatcher.Emit(GetEventHash(eventKey), emitMember, emitFile, emitLine);
+            ) => s_EventDispatcher.Emit(new EventKey(eventKey)
+            );
 
         /// <summary>
-        ///   <para>发送事件（一个参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg">参数</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Emit<T>(string eventKey, T arg
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        public static IDisposable On<T1>(string eventKey, Action<T1> handler)
+            => s_EventDispatcher.On(new EventKey(eventKey), handler);
+#if UNITY_5_3_OR_NEWER
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <param name="owner">所有者。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        public static void On<T1>(string eventKey, Action<T1> handler, MonoBehaviour owner)
+            => GetOwnerEventManager(owner).AddDisposable(On(eventKey, handler));
 #endif
-            )
-            => EventDispatcher.Emit(GetEventHash(eventKey), arg, emitMember, emitFile, emitLine);
+        /// <summary>
+        ///   <para>取消订阅。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        public static void Off<T1>(string eventKey, Action<T1> handler)
+            => s_EventDispatcher.Off(new EventKey(eventKey), handler);
 
         /// <summary>
-        ///   <para>发送事件（两个参数）</para>
+        ///   <para>发布事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        public static void Emit<T1>(string eventKey, T1 arg1
+            ) => s_EventDispatcher.Emit(new EventKey(eventKey), arg1
+            );
+
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        public static IDisposable On<T1, T2>(string eventKey, Action<T1, T2> handler)
+            => s_EventDispatcher.On(new EventKey(eventKey), handler);
+#if UNITY_5_3_OR_NEWER
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <param name="owner">所有者。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        public static void On<T1, T2>(string eventKey, Action<T1, T2> handler, MonoBehaviour owner)
+            => GetOwnerEventManager(owner).AddDisposable(On(eventKey, handler));
+#endif
+        /// <summary>
+        ///   <para>取消订阅。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        public static void Off<T1, T2>(string eventKey, Action<T1, T2> handler)
+            => s_EventDispatcher.Off(new EventKey(eventKey), handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
         public static void Emit<T1, T2>(string eventKey, T1 arg1, T2 arg2
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
-            => EventDispatcher.Emit(GetEventHash(eventKey), arg1, arg2, emitMember, emitFile, emitLine);
+            ) => s_EventDispatcher.Emit(new EventKey(eventKey), arg1, arg2
+            );
 
         /// <summary>
-        ///   <para>发送事件（三个参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        /// <param name="arg3">参数3</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        public static IDisposable On<T1, T2, T3>(string eventKey, Action<T1, T2, T3> handler)
+            => s_EventDispatcher.On(new EventKey(eventKey), handler);
+#if UNITY_5_3_OR_NEWER
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <param name="owner">所有者。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        public static void On<T1, T2, T3>(string eventKey, Action<T1, T2, T3> handler, MonoBehaviour owner)
+            => GetOwnerEventManager(owner).AddDisposable(On(eventKey, handler));
+#endif
+        /// <summary>
+        ///   <para>取消订阅。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        public static void Off<T1, T2, T3>(string eventKey, Action<T1, T2, T3> handler)
+            => s_EventDispatcher.Off(new EventKey(eventKey), handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <param name="arg3">第三个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
         public static void Emit<T1, T2, T3>(string eventKey, T1 arg1, T2 arg2, T3 arg3
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
-            => EventDispatcher.Emit(GetEventHash(eventKey), arg1, arg2, arg3, emitMember, emitFile, emitLine);
+            ) => s_EventDispatcher.Emit(new EventKey(eventKey), arg1, arg2, arg3
+            );
 
         /// <summary>
-        ///   <para>发送事件（四个参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        /// <param name="arg3">参数3</param>
-        /// <param name="arg4">参数4</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        public static IDisposable On<T1, T2, T3, T4>(string eventKey, Action<T1, T2, T3, T4> handler)
+            => s_EventDispatcher.On(new EventKey(eventKey), handler);
+#if UNITY_5_3_OR_NEWER
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <param name="owner">所有者。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        public static void On<T1, T2, T3, T4>(string eventKey, Action<T1, T2, T3, T4> handler, MonoBehaviour owner)
+            => GetOwnerEventManager(owner).AddDisposable(On(eventKey, handler));
+#endif
+        /// <summary>
+        ///   <para>取消订阅。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        public static void Off<T1, T2, T3, T4>(string eventKey, Action<T1, T2, T3, T4> handler)
+            => s_EventDispatcher.Off(new EventKey(eventKey), handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <param name="arg3">第三个参数。</param>
+        /// <param name="arg4">第四个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
         public static void Emit<T1, T2, T3, T4>(string eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
-            => EventDispatcher.Emit(GetEventHash(eventKey), arg1, arg2, arg3, arg4, emitMember, emitFile, emitLine);
+            ) => s_EventDispatcher.Emit(new EventKey(eventKey), arg1, arg2, arg3, arg4
+            );
 
         /// <summary>
-        ///   <para>发送事件（五个参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        /// <param name="arg3">参数3</param>
-        /// <param name="arg4">参数4</param>
-        /// <param name="arg5">参数5</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        public static IDisposable On<T1, T2, T3, T4, T5>(string eventKey, Action<T1, T2, T3, T4, T5> handler)
+            => s_EventDispatcher.On(new EventKey(eventKey), handler);
+#if UNITY_5_3_OR_NEWER
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <param name="owner">所有者。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        public static void On<T1, T2, T3, T4, T5>(string eventKey, Action<T1, T2, T3, T4, T5> handler, MonoBehaviour owner)
+            => GetOwnerEventManager(owner).AddDisposable(On(eventKey, handler));
+#endif
+        /// <summary>
+        ///   <para>取消订阅。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        public static void Off<T1, T2, T3, T4, T5>(string eventKey, Action<T1, T2, T3, T4, T5> handler)
+            => s_EventDispatcher.Off(new EventKey(eventKey), handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <param name="arg3">第三个参数。</param>
+        /// <param name="arg4">第四个参数。</param>
+        /// <param name="arg5">第五个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
         public static void Emit<T1, T2, T3, T4, T5>(string eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
-            => EventDispatcher.Emit(GetEventHash(eventKey), arg1, arg2, arg3, arg4, arg5, emitMember, emitFile, emitLine);
+            ) => s_EventDispatcher.Emit(new EventKey(eventKey), arg1, arg2, arg3, arg4, arg5
+            );
 
         /// <summary>
-        ///   <para>发送事件（六个参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        /// <param name="arg3">参数3</param>
-        /// <param name="arg4">参数4</param>
-        /// <param name="arg5">参数5</param>
-        /// <param name="arg6">参数6</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        /// <typeparam name="T6">第6 个值的类型。</typeparam>
+        public static IDisposable On<T1, T2, T3, T4, T5, T6>(string eventKey, Action<T1, T2, T3, T4, T5, T6> handler)
+            => s_EventDispatcher.On(new EventKey(eventKey), handler);
+#if UNITY_5_3_OR_NEWER
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <param name="owner">所有者。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        /// <typeparam name="T6">第6 个值的类型。</typeparam>
+        public static void On<T1, T2, T3, T4, T5, T6>(string eventKey, Action<T1, T2, T3, T4, T5, T6> handler, MonoBehaviour owner)
+            => GetOwnerEventManager(owner).AddDisposable(On(eventKey, handler));
+#endif
+        /// <summary>
+        ///   <para>取消订阅。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        /// <typeparam name="T6">第6 个值的类型。</typeparam>
+        public static void Off<T1, T2, T3, T4, T5, T6>(string eventKey, Action<T1, T2, T3, T4, T5, T6> handler)
+            => s_EventDispatcher.Off(new EventKey(eventKey), handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <param name="arg3">第三个参数。</param>
+        /// <param name="arg4">第四个参数。</param>
+        /// <param name="arg5">第五个参数。</param>
+        /// <param name="arg6">第六个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        /// <typeparam name="T6">第6 个值的类型。</typeparam>
         public static void Emit<T1, T2, T3, T4, T5, T6>(string eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
-            => EventDispatcher.Emit(GetEventHash(eventKey), arg1, arg2, arg3, arg4, arg5, arg6, emitMember, emitFile, emitLine);
-        
-        /// <summary>
-        ///   <para>检测事件是否已监听</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        public static bool Has(string eventKey, Delegate handler = null)
-            => EventDispatcher.Has(GetEventHash(eventKey), handler);
-
-        #endregion
-
-        #region 使用整数作为事件键
+            ) => s_EventDispatcher.Emit(new EventKey(eventKey), arg1, arg2, arg3, arg4, arg5, arg6
+            );
 
         /// <summary>
-        ///   <para>监听事件（无参数）</para>
+        ///   <para>取消订阅。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        public static void Off(string eventKey) => s_EventDispatcher.Off(new EventKey(eventKey));
+        /// <summary>
+        ///   <para>判断事件是否存在订阅。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        public static bool Has(string eventKey, Delegate handler = null) => s_EventDispatcher.Has(new EventKey(eventKey), handler);
+
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
         public static IDisposable On(int eventKey, Action handler)
-            => EventDispatcher.On(eventKey, handler);
-        
+            => s_EventDispatcher.On(new EventKey(eventKey), handler);
+#if UNITY_5_3_OR_NEWER
         /// <summary>
-        ///   <para>监听事件（无参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <param name="owner">事件处理器所属对象</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <param name="owner">所有者。</param>
         public static void On(int eventKey, Action handler, MonoBehaviour owner)
-            => owner?.gameObject.GetOrAddComponent<EventHandlerManager>().AddDisposable(On(eventKey, handler));
-        
+            => GetOwnerEventManager(owner).AddDisposable(On(eventKey, handler));
+#endif
         /// <summary>
-        ///   <para>监听事件（一个参数）</para>
+        ///   <para>取消订阅。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IDisposable On<T>(int eventKey, Action<T> handler)
-            => EventDispatcher.On(eventKey, handler);
-
-        /// <summary>
-        ///   <para>监听事件（一个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <param name="owner">事件处理器所属对象</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void On<T>(int eventKey, Action<T> handler, MonoBehaviour owner)
-            => owner?.gameObject.GetOrAddComponent<EventHandlerManager>().AddDisposable(On(eventKey, handler));
-
-        /// <summary>
-        ///   <para>监听事件（两个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IDisposable On<T1, T2>(int eventKey, Action<T1, T2> handler)
-            => EventDispatcher.On(eventKey, handler);
-        
-        /// <summary>
-        ///   <para>监听事件（两个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <param name="owner">事件处理器所属对象</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void On<T1, T2>(int eventKey, Action<T1, T2> handler, MonoBehaviour owner)
-            => owner?.gameObject.GetOrAddComponent<EventHandlerManager>().AddDisposable(On(eventKey, handler));
-
-        /// <summary>
-        ///   <para>监听事件（三个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IDisposable On<T1, T2, T3>(int eventKey, Action<T1, T2, T3> handler)
-            => EventDispatcher.On(eventKey, handler);
-        
-        /// <summary>
-        ///   <para>监听事件（三个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <param name="owner">事件处理器所属对象</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void On<T1, T2, T3>(int eventKey, Action<T1, T2, T3> handler, MonoBehaviour owner)
-            => owner?.gameObject.GetOrAddComponent<EventHandlerManager>().AddDisposable(On(eventKey, handler));
-
-        /// <summary>
-        ///   <para>监听事件（四个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IDisposable On<T1, T2, T3, T4>(int eventKey, Action<T1, T2, T3, T4> handler)
-            => EventDispatcher.On(eventKey, handler);
-        
-        /// <summary>
-        ///   <para>监听事件（四个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <param name="owner">事件处理器所属对象</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void On<T1, T2, T3, T4>(int eventKey, Action<T1, T2, T3, T4> handler, MonoBehaviour owner)
-            => owner?.gameObject.GetOrAddComponent<EventHandlerManager>().AddDisposable(On(eventKey, handler));
-
-        /// <summary>
-        ///   <para>监听事件（五个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IDisposable On<T1, T2, T3, T4, T5>(int eventKey, Action<T1, T2, T3, T4, T5> handler)
-            => EventDispatcher.On(eventKey, handler);
-
-        /// <summary>
-        ///   <para>监听事件（五个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <param name="owner">事件处理器所属对象</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void On<T1, T2, T3, T4, T5>(int eventKey, Action<T1, T2, T3, T4, T5> handler, MonoBehaviour owner)
-            => owner?.gameObject.GetOrAddComponent<EventHandlerManager>().AddDisposable(On(eventKey, handler));
-
-        /// <summary>
-        ///   <para>监听事件（六个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IDisposable On<T1, T2, T3, T4, T5, T6>(int eventKey, Action<T1, T2, T3, T4, T5, T6> handler)
-            => EventDispatcher.On(eventKey, handler);
-
-        /// <summary>
-        ///   <para>监听事件（六个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        /// <param name="owner">事件处理器所属对象</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void On<T1, T2, T3, T4, T5, T6>(int eventKey, Action<T1, T2, T3, T4, T5, T6> handler, MonoBehaviour owner)
-            => owner?.gameObject.GetOrAddComponent<EventHandlerManager>().AddDisposable(On(eventKey, handler));
-        
-        /// <summary>
-        ///   <para>取消监听事件</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Off(int eventKey)
-            => EventDispatcher.Off(eventKey);
-        
-        /// <summary>
-        ///   <para>取消监听事件（无参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
         public static void Off(int eventKey, Action handler)
-            => EventDispatcher.Off(eventKey, handler);
+            => s_EventDispatcher.Off(new EventKey(eventKey), handler);
 
         /// <summary>
-        ///   <para>取消监听事件（一个参数）</para>
+        ///   <para>发布事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Off<T>(int eventKey, Action<T> handler)
-            => EventDispatcher.Off(eventKey, handler);
-
-        /// <summary>
-        ///   <para>取消监听事件（两个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Off<T1, T2>(int eventKey, Action<T1, T2> handler)
-            => EventDispatcher.Off(eventKey, handler);
-
-        /// <summary>
-        ///   <para>取消监听事件（三个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Off<T1, T2, T3>(int eventKey, Action<T1, T2, T3> handler)
-            => EventDispatcher.Off(eventKey, handler);
-
-        /// <summary>
-        ///   <para>取消监听事件（四个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Off<T1, T2, T3, T4>(int eventKey, Action<T1, T2, T3, T4> handler)
-            => EventDispatcher.Off(eventKey, handler);
-        
-        /// <summary>
-        ///   <para>取消监听事件（五个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Off<T1, T2, T3, T4, T5>(int eventKey, Action<T1, T2, T3, T4, T5> handler)
-            => s_EventDispatcher.Off(eventKey, handler);
-        
-        /// <summary>
-        ///   <para>取消监听事件（六个参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Off<T1, T2, T3, T4, T5, T6>(int eventKey, Action<T1, T2, T3, T4, T5, T6> handler)
-            => s_EventDispatcher.Off(eventKey, handler);
-        
-        /// <summary>
-        ///   <para>发送事件（无参数）</para>
-        /// </summary>
-        /// <param name="eventKey">事件键</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
         public static void Emit(int eventKey
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
-            => EventDispatcher.Emit(eventKey, emitMember, emitFile, emitLine);
+            ) => s_EventDispatcher.Emit(new EventKey(eventKey)
+            );
 
         /// <summary>
-        ///   <para>发送事件（一个参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg">参数</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Emit<T>(int eventKey, T arg
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        public static IDisposable On<T1>(int eventKey, Action<T1> handler)
+            => s_EventDispatcher.On(new EventKey(eventKey), handler);
+#if UNITY_5_3_OR_NEWER
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <param name="owner">所有者。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        public static void On<T1>(int eventKey, Action<T1> handler, MonoBehaviour owner)
+            => GetOwnerEventManager(owner).AddDisposable(On(eventKey, handler));
 #endif
-            )
-            => EventDispatcher.Emit(eventKey, arg, emitMember, emitFile, emitLine);
+        /// <summary>
+        ///   <para>取消订阅。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        public static void Off<T1>(int eventKey, Action<T1> handler)
+            => s_EventDispatcher.Off(new EventKey(eventKey), handler);
 
         /// <summary>
-        ///   <para>发送事件（两个参数）</para>
+        ///   <para>发布事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        public static void Emit<T1>(int eventKey, T1 arg1
+            ) => s_EventDispatcher.Emit(new EventKey(eventKey), arg1
+            );
+
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        public static IDisposable On<T1, T2>(int eventKey, Action<T1, T2> handler)
+            => s_EventDispatcher.On(new EventKey(eventKey), handler);
+#if UNITY_5_3_OR_NEWER
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <param name="owner">所有者。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        public static void On<T1, T2>(int eventKey, Action<T1, T2> handler, MonoBehaviour owner)
+            => GetOwnerEventManager(owner).AddDisposable(On(eventKey, handler));
+#endif
+        /// <summary>
+        ///   <para>取消订阅。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        public static void Off<T1, T2>(int eventKey, Action<T1, T2> handler)
+            => s_EventDispatcher.Off(new EventKey(eventKey), handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
         public static void Emit<T1, T2>(int eventKey, T1 arg1, T2 arg2
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
-            => EventDispatcher.Emit(eventKey, arg1, arg2, emitMember, emitFile, emitLine);
+            ) => s_EventDispatcher.Emit(new EventKey(eventKey), arg1, arg2
+            );
 
         /// <summary>
-        ///   <para>发送事件（三个参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        /// <param name="arg3">参数3</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        public static IDisposable On<T1, T2, T3>(int eventKey, Action<T1, T2, T3> handler)
+            => s_EventDispatcher.On(new EventKey(eventKey), handler);
+#if UNITY_5_3_OR_NEWER
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <param name="owner">所有者。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        public static void On<T1, T2, T3>(int eventKey, Action<T1, T2, T3> handler, MonoBehaviour owner)
+            => GetOwnerEventManager(owner).AddDisposable(On(eventKey, handler));
+#endif
+        /// <summary>
+        ///   <para>取消订阅。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        public static void Off<T1, T2, T3>(int eventKey, Action<T1, T2, T3> handler)
+            => s_EventDispatcher.Off(new EventKey(eventKey), handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <param name="arg3">第三个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
         public static void Emit<T1, T2, T3>(int eventKey, T1 arg1, T2 arg2, T3 arg3
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
-            => EventDispatcher.Emit(eventKey, arg1, arg2, arg3, emitMember, emitFile, emitLine);
+            ) => s_EventDispatcher.Emit(new EventKey(eventKey), arg1, arg2, arg3
+            );
 
         /// <summary>
-        ///   <para>发送事件（四个参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        /// <param name="arg3">参数3</param>
-        /// <param name="arg4">参数4</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        public static IDisposable On<T1, T2, T3, T4>(int eventKey, Action<T1, T2, T3, T4> handler)
+            => s_EventDispatcher.On(new EventKey(eventKey), handler);
+#if UNITY_5_3_OR_NEWER
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <param name="owner">所有者。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        public static void On<T1, T2, T3, T4>(int eventKey, Action<T1, T2, T3, T4> handler, MonoBehaviour owner)
+            => GetOwnerEventManager(owner).AddDisposable(On(eventKey, handler));
+#endif
+        /// <summary>
+        ///   <para>取消订阅。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        public static void Off<T1, T2, T3, T4>(int eventKey, Action<T1, T2, T3, T4> handler)
+            => s_EventDispatcher.Off(new EventKey(eventKey), handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <param name="arg3">第三个参数。</param>
+        /// <param name="arg4">第四个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
         public static void Emit<T1, T2, T3, T4>(int eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
-            => EventDispatcher.Emit(eventKey, arg1, arg2, arg3, arg4, emitMember, emitFile, emitLine);
+            ) => s_EventDispatcher.Emit(new EventKey(eventKey), arg1, arg2, arg3, arg4
+            );
 
         /// <summary>
-        ///   <para>发送事件（五个参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        /// <param name="arg3">参数3</param>
-        /// <param name="arg4">参数4</param>
-        /// <param name="arg5">参数5</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        public static IDisposable On<T1, T2, T3, T4, T5>(int eventKey, Action<T1, T2, T3, T4, T5> handler)
+            => s_EventDispatcher.On(new EventKey(eventKey), handler);
+#if UNITY_5_3_OR_NEWER
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <param name="owner">所有者。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        public static void On<T1, T2, T3, T4, T5>(int eventKey, Action<T1, T2, T3, T4, T5> handler, MonoBehaviour owner)
+            => GetOwnerEventManager(owner).AddDisposable(On(eventKey, handler));
+#endif
+        /// <summary>
+        ///   <para>取消订阅。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        public static void Off<T1, T2, T3, T4, T5>(int eventKey, Action<T1, T2, T3, T4, T5> handler)
+            => s_EventDispatcher.Off(new EventKey(eventKey), handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <param name="arg3">第三个参数。</param>
+        /// <param name="arg4">第四个参数。</param>
+        /// <param name="arg5">第五个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
         public static void Emit<T1, T2, T3, T4, T5>(int eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
-            => EventDispatcher.Emit(eventKey, arg1, arg2, arg3, arg4, arg5, emitMember, emitFile, emitLine);
-        
+            ) => s_EventDispatcher.Emit(new EventKey(eventKey), arg1, arg2, arg3, arg4, arg5
+            );
+
         /// <summary>
-        ///   <para>发送事件（六个参数）</para>
+        ///   <para>订阅事件。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="arg1">参数1</param>
-        /// <param name="arg2">参数2</param>
-        /// <param name="arg3">参数3</param>
-        /// <param name="arg4">参数4</param>
-        /// <param name="arg5">参数5</param>
-        /// <param name="arg6">参数6</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        /// <typeparam name="T6">第6 个值的类型。</typeparam>
+        public static IDisposable On<T1, T2, T3, T4, T5, T6>(int eventKey, Action<T1, T2, T3, T4, T5, T6> handler)
+            => s_EventDispatcher.On(new EventKey(eventKey), handler);
+#if UNITY_5_3_OR_NEWER
+        /// <summary>
+        ///   <para>订阅事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <param name="owner">所有者。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        /// <typeparam name="T6">第6 个值的类型。</typeparam>
+        public static void On<T1, T2, T3, T4, T5, T6>(int eventKey, Action<T1, T2, T3, T4, T5, T6> handler, MonoBehaviour owner)
+            => GetOwnerEventManager(owner).AddDisposable(On(eventKey, handler));
+#endif
+        /// <summary>
+        ///   <para>取消订阅。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        /// <typeparam name="T6">第6 个值的类型。</typeparam>
+        public static void Off<T1, T2, T3, T4, T5, T6>(int eventKey, Action<T1, T2, T3, T4, T5, T6> handler)
+            => s_EventDispatcher.Off(new EventKey(eventKey), handler);
+
+        /// <summary>
+        ///   <para>发布事件。</para>
+        /// </summary>
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="arg1">第一个参数。</param>
+        /// <param name="arg2">第二个参数。</param>
+        /// <param name="arg3">第三个参数。</param>
+        /// <param name="arg4">第四个参数。</param>
+        /// <param name="arg5">第五个参数。</param>
+        /// <param name="arg6">第六个参数。</param>
+        /// <typeparam name="T1">第1 个值的类型。</typeparam>
+        /// <typeparam name="T2">第2 个值的类型。</typeparam>
+        /// <typeparam name="T3">第3 个值的类型。</typeparam>
+        /// <typeparam name="T4">第4 个值的类型。</typeparam>
+        /// <typeparam name="T5">第5 个值的类型。</typeparam>
+        /// <typeparam name="T6">第6 个值的类型。</typeparam>
         public static void Emit<T1, T2, T3, T4, T5, T6>(int eventKey, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6
-#if DEBUG
-            , [CallerMemberName] string emitMember = null
-            , [CallerFilePath] string emitFile = null
-            , [CallerLineNumber] int emitLine = 0
-#endif
-            )
-            => EventDispatcher.Emit(eventKey, arg1, arg2, arg3, arg4, arg5, arg6, emitMember, emitFile, emitLine);
-        
+            ) => s_EventDispatcher.Emit(new EventKey(eventKey), arg1, arg2, arg3, arg4, arg5, arg6
+            );
+
         /// <summary>
-        ///   <para>判断事件是否已监听</para>
+        ///   <para>取消订阅。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        /// <param name="handler">事件处理器</param>
-        public static bool Has(int eventKey, Delegate handler)
-            => EventDispatcher.Has(eventKey, handler);
-        
-        #endregion
-
+        /// <param name="eventKey">事件键。</param>
+        public static void Off(int eventKey) => s_EventDispatcher.Off(new EventKey(eventKey));
         /// <summary>
-        ///   <para>取消所有监听事件</para>
+        ///   <para>判断事件是否存在订阅。</para>
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void OffAll() => EventDispatcher.OffAll();
+        /// <param name="eventKey">事件键。</param>
+        /// <param name="handler">处理函数。</param>
+        public static bool Has(int eventKey, Delegate handler = null) => s_EventDispatcher.Has(new EventKey(eventKey), handler);
 
         /// <summary>
-        ///   <para>获取字符串事件键的哈希值</para>
+        ///   <para>取消全部事件订阅。</para>
         /// </summary>
-        /// <param name="eventKey">事件键</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetEventHash(string eventKey)
-        {
-            if (string.IsNullOrEmpty(eventKey))
-                throw new ArgumentException("Event Key cannot be null or empty", nameof(eventKey));
+        public static void OffAll() => s_EventDispatcher.OffAll();
 
-            lock (s_StringToHashLock)
-            {
-                s_StringToHashCache ??= new Dictionary<string, int>();
-                if (!s_StringToHashCache.TryGetValue(eventKey, out var hash))
-                {
-                    hash = ComputeStableHash(eventKey);
-                    s_StringToHashCache[eventKey] = hash;
-                }
-                return hash;
-            }
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int ComputeStableHash(string value)
-        {
-            unchecked
-            {
-                const int fnvPrime = 16777619;
-                int hash = (int)2166136261;
-                for (int i = 0; i < value.Length; i++)
-                {
-                    hash ^= value[i];
-                    hash *= fnvPrime;
-                }
-                return hash;
-            }
-        }
-
+#if UNITY_5_3_OR_NEWER
         /// <summary>
-        ///   <para>清理事件部分</para>
+        ///   <para>清理事件。</para>
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void CleanupEvent()
+        private static void CleanupEvent() => OffAll();
+
+        /// <summary>
+        ///   <para>获取所有者事件管理器。</para>
+        /// </summary>
+        /// <param name="owner">所有者。</param>
+        private static EventHandlerManager GetOwnerEventManager(MonoBehaviour owner)
         {
-            OffAll();
-            lock (s_StringToHashLock)
-            {
-                s_StringToHashCache?.Clear();
-            }
+            if (owner == null) throw new ArgumentNullException(nameof(owner));
+            return owner.gameObject.GetOrAddComponent<EventHandlerManager>();
         }
+#endif
     }
 
 #if UNITY_5_3_OR_NEWER
     /// <summary>
-    ///   <para>事件处理器管理</para>
+    ///   <para>事件处理器管理。</para>
     /// </summary>
-    [DisallowMultipleComponent]
+    [DisallowMultipleComponent, AddComponentMenu("")]
     internal sealed class EventHandlerManager : MonoBehaviour
     {
-        private readonly List<IDisposable> m_DisposableEvents = new List<IDisposable>();
-        
+        /// <summary>
+        ///   <para>订阅句柄列表。</para>
+        /// </summary>
+        private readonly List<IDisposable> m_DisposableEvents = new();
+
+        /// <summary>
+        ///   <para>登记订阅句柄。</para>
+        /// </summary>
+        /// <param name="disposable">可释放对象。</param>
         public void AddDisposable(IDisposable disposable)
         {
             if (disposable == null || m_DisposableEvents.Contains(disposable)) return;
             m_DisposableEvents.Add(disposable);
         }
 
-        private void OnDestroy()
-        {
-            foreach (var disposable in m_DisposableEvents)
-                disposable?.Dispose();
-        }
+        /// <summary>
+        ///   <para>销毁时清理。</para>
+        /// </summary>
+        private void OnDestroy() => ResourceUtility.ReleaseAll(m_DisposableEvents, subscription => subscription.Dispose());
     }
 #endif
 }

@@ -5,142 +5,183 @@ namespace Verve
     using System.Threading.Tasks;
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;
-
-
+    
     /// <summary>
-    ///   <para>模块容器</para>
-    ///   <para>负责托管一组模块实例、依赖关系和 Tick 调度器</para>
+    ///   <para>模块容器；负责托管一组模块实例、依赖关系和 GameLoop 主线程 Tick 调度器。</para>
     /// </summary>
-    [Serializable]
     public sealed class GameModules : IDisposable, IAsyncDisposable
     {
         /// <summary>
-        ///   <para>容器释放状态</para>
+        ///   <para>容器释放状态。</para>
         /// </summary>
         private enum DisposeState : byte
         {
             /// <summary>
-            ///   <para>正常运行中</para>
+            ///   <para>正常运行中。</para>
             /// </summary>
             Alive = 0,
             /// <summary>
-            ///   <para>正在释放过程中</para>
+            ///   <para>正在释放过程中。</para>
             /// </summary>
             Disposing = 1,
             /// <summary>
-            ///   <para>已完成释放</para>
+            ///   <para>已完成释放。</para>
             /// </summary>
             Disposed = 2,
         }
 
         /// <summary>
-        ///   <para>一次模块变更的句柄</para>
+        ///   <para>模块变更句柄；释放时结束本次变更。</para>
         /// </summary>
         internal readonly struct ChangeScope : IDisposable
         {
+            /// <summary>
+            ///   <para>所属容器。</para>
+            /// </summary>
             private readonly GameModules m_Owner;
+            /// <summary>
+            ///   <para>取消令牌。</para>
+            /// </summary>
+            public readonly CancellationToken cancellationToken;
 
-            public ChangeScope(GameModules owner)
+            /// <summary>
+            ///   <para>创建变更作用域。</para>
+            /// </summary>
+            /// <param name="owner">所属容器。</param>
+            /// <param name="ct">取消令牌。</param>
+            public ChangeScope(GameModules owner, CancellationToken ct)
             {
                 m_Owner = owner ?? throw new ArgumentNullException(nameof(owner));
-                owner.BeginChange();
+                cancellationToken = owner.BeginChange(ct, pauseTicks: true);
             }
 
-            public void Dispose()
+            /// <summary>
+            ///   <para>创建变更作用域。</para>
+            /// </summary>
+            /// <param name="cancellationToken">取消令牌。</param>
+            /// <param name="owner">所属容器。</param>
+            private ChangeScope(CancellationToken cancellationToken, GameModules owner)
             {
-                m_Owner.EndChange();
+                m_Owner = owner ?? throw new ArgumentNullException(nameof(owner));
+                this.cancellationToken = cancellationToken;
             }
+
+            /// <summary>
+            ///   <para>创建已进入变更流程的句柄。</para>
+            /// </summary>
+            /// <param name="owner">所属容器。</param>
+            /// <param name="cancellationToken">取消令牌。</param>
+            internal static ChangeScope CreateEntered(GameModules owner, CancellationToken cancellationToken) => new ChangeScope(cancellationToken, owner);
+
+            /// <inheritdoc />
+            public void Dispose() => m_Owner.EndChange();
         }
 
         /// <summary>
-        ///   <para>模块拥有 Tick 对象的归属登记</para>
+        ///   <para>Tick 暂停句柄；释放时恢复本层暂停。</para>
         /// </summary>
-        internal readonly struct OwnedTickRegistration
+        internal readonly struct TickPauseScope : IDisposable
         {
             /// <summary>
-            ///   <para>拥有该 Tick 对象的模块实例</para>
+            ///   <para>所属容器。</para>
             /// </summary>
-            public readonly IGameModule ownerModule;
-            /// <summary>
-            ///   <para>被注册到调度器的 Tick 对象</para>
-            /// </summary>
-            public readonly object tickSystem;
-            /// <summary>
-            ///   <para>该 Tick 对象是否以后台线程模式执行</para>
-            /// </summary>
-            public readonly bool runInBackground;
+            private readonly GameModules m_Owner;
 
-            public OwnedTickRegistration(IGameModule ownerModule, object tickSystem, bool runInBackground)
+            /// <summary>
+            ///   <para>创建 Tick 暂停作用域。</para>
+            /// </summary>
+            /// <param name="owner">所属容器。</param>
+            /// <param name="ct">取消令牌。</param>
+            public TickPauseScope(GameModules owner, CancellationToken ct)
             {
-                this.ownerModule = ownerModule;
-                this.tickSystem = tickSystem;
-                this.runInBackground = runInBackground;
+                m_Owner = owner ?? throw new ArgumentNullException(nameof(owner));
+                owner.BeginTickPause(ct);
             }
+
+            /// <inheritdoc />
+            public void Dispose() => m_Owner.EndTickPause();
         }
 
         /// <summary>
-        ///   <para>保护全局模块实例所有权映射的同步锁</para>
-        /// </summary>
-        private static readonly object s_ModuleOwnershipLock = new();
-
-        /// <summary>
-        ///   <para>模块实例到所属容器的全局映射</para>
-        ///   <para>用于阻止同一模块实例被多个容器同时安装</para>
-        /// </summary>
-        private static readonly Dictionary<IGameModule, GameModules> s_ModuleOwners = new(GameModuleUtility.ReferenceComparer<IGameModule>.Instance);
-
-        /// <summary>
-        ///   <para>模块注册表</para>
+        ///   <para>模块注册表。</para>
         /// </summary>
         private readonly GameModuleRegistry m_Registry = new();
 
         /// <summary>
-        ///   <para>当前容器使用的 Tick 调度器</para>
+        ///   <para>当前容器使用的 GameLoop 主线程 Tick 调度器。</para>
         /// </summary>
-        private readonly ITickSystemScheduler m_Scheduler;
+        private readonly IGameLoopTickSystemScheduler m_Scheduler;
+        /// <summary>
+        ///   <para>模块工厂。</para>
+        /// </summary>
+        private readonly IGameModuleFactory m_ModuleFactory;
+        /// <summary>
+        ///   <para>模块操作观察者。</para>
+        /// </summary>
+        internal IGameModuleObserver Observer { get; }
 
         /// <summary>
-        ///   <para>模块生命周期执行器</para>
+        ///   <para>模块工厂。</para>
+        /// </summary>
+        internal IGameModuleFactory ModuleFactory => m_ModuleFactory;
+
+        /// <summary>
+        ///   <para>模块拥有 Tick 对象的注册表。</para>
+        /// </summary>
+        private readonly GameModuleTickRegistry m_TickRegistry;
+
+        /// <summary>
+        ///   <para>模块生命周期执行器。</para>
         /// </summary>
         private readonly GameModuleLifecycleRunner m_LifecycleRunner;
 
         /// <summary>
-        ///   <para>Tick 执行与容器释放之间的并发屏障</para>
+        ///   <para>Tick 执行与容器释放之间的并发屏障。</para>
         /// </summary>
         private readonly object m_TickBarrierLock = new();
 
         /// <summary>
-        ///   <para>Tick 对象到所有者模块的反向索引</para>
-        /// </summary>
-        private readonly Dictionary<object, OwnedTickRegistration> m_OwnedTickBySystem = new(GameModuleUtility.ReferenceComparer<object>.Instance);
-
-        /// <summary>
-        ///   <para>模块拥有的 Tick 对象索引</para>
-        /// </summary>
-        private readonly Dictionary<IGameModule, HashSet<object>> m_OwnedTicksByModule = new(GameModuleUtility.ReferenceComparer<IGameModule>.Instance);
-
-        /// <summary>
-        ///   <para>当前正在执行中的 Tick 调用数量</para>
+        ///   <para>当前正在执行中的 Tick 调用数量。</para>
         /// </summary>
         private int m_ActiveTickCount;
 
         /// <summary>
-        ///   <para>当前是否有容器级模块变更正在进行</para>
+        ///   <para>当前是否有容器级模块变更正在进行。</para>
         /// </summary>
         private int m_IsChanging;
 
         /// <summary>
-        ///   <para>当前变更流程是否积累了待发送的模块集合变更通知</para>
+        ///   <para>当前是否因应用模块变更而暂停新 Tick 进入。</para>
         /// </summary>
-        private int m_ModulesChangedQueued;
+        private int m_TickPauseDepth;
 
         /// <summary>
-        ///   <para>容器释放状态机</para>
+        ///   <para>容器释放状态机。</para>
         /// </summary>
         private int m_DisposeState;
 
         /// <summary>
-        ///   <para>是否已释放</para>
+        ///   <para>当前模块变更流程的取消源。</para>
+        /// </summary>
+        private CancellationTokenSource m_ChangeCancellation;
+
+        /// <summary>
+        ///   <para>当前模块变更流程结束通知。</para>
+        /// </summary>
+        private TaskCompletionSource<bool> m_ChangeCompletion;
+
+        /// <summary>
+        ///   <para>启动当前模块变更流程的线程编号。</para>
+        /// </summary>
+        private int m_ChangeOwnerThreadId;
+
+        /// <summary>
+        ///   <para>当前模块变更流程是否持有 Tick 暂停。</para>
+        /// </summary>
+        private bool m_ChangeOwnsTickPause;
+
+        /// <summary>
+        ///   <para>是否已释放。</para>
         /// </summary>
         public bool IsDisposed
         {
@@ -149,7 +190,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>是否正在释放</para>
+        ///   <para>是否正在释放。</para>
         /// </summary>
         public bool IsDisposing
         {
@@ -158,7 +199,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>容器是否已不可再对外提供稳定访问</para>
+        ///   <para>容器是否已不可再对外提供稳定访问。</para>
         /// </summary>
         internal bool IsDisposedOrDisposing
         {
@@ -167,7 +208,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>是否正在执行容器级模块变更</para>
+        ///   <para>是否正在执行容器级模块变更。</para>
         /// </summary>
         public bool IsChanging
         {
@@ -176,7 +217,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>当前所有已安装模块列表</para>
+        ///   <para>当前所有已安装模块列表。</para>
         /// </summary>
         public IReadOnlyList<IGameModule> InstalledModules
         {
@@ -189,20 +230,56 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>当模块集合发生变化时触发</para>
+        ///   <para>扩展交付记录；弱键不持有实例的强引用。</para>
         /// </summary>
-        public event Action OnModulesChanged;
+        private static readonly ConditionalWeakTable<object, object> s_ClaimedExtensions = new();
 
-        public GameModules(ITickSystemScheduler scheduler = null)
+        /// <summary>
+        ///   <para>创建并接管扩展实例。</para>
+        /// </summary>
+        /// <param name="factory">扩展实例创建委托。</param>
+        /// <typeparam name="T">目标类型。</typeparam>
+        private static T CreateOwnedExtension<T>(Func<T> factory) where T : class
         {
-            m_Scheduler = scheduler ?? new TickSystemScheduler();
-            m_LifecycleRunner = new GameModuleLifecycleRunner(this, m_Registry);
+            var instance = factory() ?? throw new InvalidOperationException($"Factory returned null: {typeof(T).Name}.");
+            lock (s_ClaimedExtensions)
+            {
+                if (s_ClaimedExtensions.TryGetValue(instance, out _))
+                    throw new InvalidOperationException($"Extension instance was already transferred to a container: {typeof(T).Name}. Return a new instance for each container.");
+                s_ClaimedExtensions.Add(instance, new object());
+            }
+            return instance;
         }
 
         /// <summary>
-        ///   <para>将当前所有模块复制到指定列表中</para>
+        ///   <para>创建模块容器。</para>
         /// </summary>
-        /// <param name="output">用于接收模块副本的列表</param>
+        /// <param name="options">容器创建选项。</param>
+        public GameModules(GameModulesOptions options = null)
+        {
+            options ??= new GameModulesOptions();
+            var createScheduler = options.CreateScheduler ?? throw new ArgumentNullException(nameof(options.CreateScheduler));
+            var createModuleFactory = options.CreateModuleFactory ?? throw new ArgumentNullException(nameof(options.CreateModuleFactory));
+            var createObserver = options.CreateObserver;
+            m_ModuleFactory = CreateOwnedExtension(createModuleFactory);
+            try
+            {
+                m_Scheduler = CreateOwnedExtension(createScheduler);
+                if (createObserver != null) Observer = CreateOwnedExtension(createObserver);
+                m_TickRegistry = new GameModuleTickRegistry(m_Registry, m_Scheduler);
+                m_LifecycleRunner = new GameModuleLifecycleRunner(this, m_Registry);
+            }
+            catch (Exception failure)
+            {
+                ExceptionUtility.Rethrow(ExceptionUtility.Combine(failure, DisposeExtensions()));
+                throw;
+            }
+        }
+
+        /// <summary>
+        ///   <para>将当前所有模块复制到指定列表中。</para>
+        /// </summary>
+        /// <param name="output">用于接收模块引用的列表。</param>
         public void CopyModulesTo(List<IGameModule> output)
         {
             if (output == null) throw new ArgumentNullException(nameof(output));
@@ -211,8 +288,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>获取已安装模块</para>
+        ///   <para>获取已安装模块。</para>
         /// </summary>
+        /// <typeparam name="T">模块类型。</typeparam>
         public T GetModule<T>()
             where T : class, IGameModule
         {
@@ -221,9 +299,10 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>尝试获取已安装模块</para>
+        ///   <para>尝试获取已安装模块。</para>
         /// </summary>
-        /// <param name="module">匹配到的模块实例</param>
+        /// <param name="module">匹配到的模块实例。</param>
+        /// <typeparam name="T">模块类型。</typeparam>
         public bool TryGetModule<T>(out T module)
             where T : class, IGameModule
         {
@@ -233,192 +312,6 @@ namespace Verve
                 return false;
             }
 
-            return TryGetModuleNoThrow(out module);
-        }
-
-        /// <summary>
-        ///   <para>供生命周期上下文在容器释放期间继续读取模块依赖</para>
-        /// </summary>
-        internal T GetModuleFromContext<T>()
-            where T : class, IGameModule
-        {
-            return m_Registry.GetModule<T>();
-        }
-
-        /// <summary>
-        ///   <para>供生命周期上下文在容器释放期间继续尝试读取模块依赖</para>
-        /// </summary>
-        internal bool TryGetModuleFromContext<T>(out T module)
-            where T : class, IGameModule
-        {
-            return TryGetModuleNoThrow(out module);
-        }
-
-        /// <summary>
-        ///   <para>使用无参构造函数同步创建并安装模块</para>
-        /// </summary>
-        public void Install<T>()
-            where T : GameModule, new()
-        {
-            m_LifecycleRunner.Install(static () => new T());
-        }
-
-        /// <summary>
-        ///   <para>使用无参构造函数异步创建并安装模块</para>
-        /// </summary>
-        public ValueTask InstallAsync<T>()
-            where T : GameModule, new()
-        {
-            return m_LifecycleRunner.InstallAsync(static () => new T());
-        }
-
-        /// <summary>
-        ///   <para>使用模块创建工厂同步安装模块</para>
-        /// </summary>
-        /// <param name="factory">模块创建工厂</param>
-        public void Install(Func<GameModule> factory)
-        {
-            if (factory == null) throw new ArgumentNullException(nameof(factory));
-            m_LifecycleRunner.Install(factory);
-        }
-
-        /// <summary>
-        ///   <para>使用模块创建工厂异步安装模块</para>
-        /// </summary>
-        /// <param name="factory">模块创建工厂</param>
-        public ValueTask InstallAsync(Func<GameModule> factory)
-        {
-            if (factory == null) throw new ArgumentNullException(nameof(factory));
-            return m_LifecycleRunner.InstallAsync(factory);
-        }
-        
-        /// <summary>
-        ///   <para>按清单自身配置的安装顺序策略安装模块</para>
-        /// </summary>
-        /// <param name="manifest">要执行的模块清单</param>
-        public void InstallFromManifest(GameModuleManifest manifest)
-        {
-            if (manifest == null) throw new ArgumentNullException(nameof(manifest));
-            m_LifecycleRunner.InstallFromManifest(manifest);
-        }
-
-        /// <summary>
-        ///   <para>按清单自身配置的安装顺序策略异步安装模块</para>
-        /// </summary>
-        /// <param name="manifest">要执行的模块清单</param>
-        public ValueTask InstallFromManifestAsync(GameModuleManifest manifest)
-        {
-            if (manifest == null) throw new ArgumentNullException(nameof(manifest));
-            return m_LifecycleRunner.InstallFromManifestAsync(manifest);
-        }
-
-        /// <summary>
-        ///   <para>卸载指定精确类型的模块</para>
-        /// </summary>
-        /// <param name="dispose">卸载完成后是否调用模块的 <see cref="IDisposable.Dispose"/></param>
-        public bool Uninstall<T>(bool dispose = true)
-            where T : GameModule
-        {
-            return m_LifecycleRunner.Uninstall(typeof(T), dispose);
-        }
-
-        /// <summary>
-        ///   <para>异步卸载入口</para>
-        /// </summary>
-        /// <param name="dispose">卸载完成后是否调用模块的 <see cref="IDisposable.Dispose"/></param>
-        public ValueTask<bool> UninstallAsync<T>(bool dispose = true)
-            where T : GameModule
-        {
-            return m_LifecycleRunner.UninstallAsync(typeof(T), dispose);
-        }
-
-        /// <summary>
-        ///   <para>按逆安装顺序卸载所有模块</para>
-        /// </summary>
-        /// <param name="dispose">卸载完成后是否调用模块的 <see cref="IDisposable.Dispose"/></param>
-        public void UninstallAll(bool dispose = true)
-        {
-            m_LifecycleRunner.UninstallAll(dispose);
-        }
-
-        /// <summary>
-        ///   <para>异步卸载全部入口</para>
-        /// </summary>
-        /// <param name="dispose">卸载完成后是否调用模块的 <see cref="IDisposable.Dispose"/></param>
-        public ValueTask UninstallAllAsync(bool dispose = true)
-        {
-            return m_LifecycleRunner.UninstallAllAsync(dispose);
-        }
-
-        /// <summary>
-        ///   <para>驱动当前容器的 Tick 调度</para>
-        /// </summary>
-        /// <param name="deltaTime">当前 Tick 阶段的时间步长</param>
-        /// <param name="group">要执行的 Tick 分组</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Tick(float deltaTime, TickGroup group)
-        {
-            if (!TryEnterTick()) return;
-
-            try
-            {
-                m_Scheduler.Tick(deltaTime, group);
-            }
-            finally
-            {
-                ExitTick();
-            }
-        }
-
-        /// <summary>
-        ///   <para>释放模块容器</para>
-        /// </summary>
-        public void Dispose()
-        {
-            if (!PrepareDispose()) return;
-            FinishDispose();
-        }
-
-        /// <summary>
-        ///   <para>异步释放模块容器</para>
-        /// </summary>
-        public ValueTask DisposeAsync()
-        {
-            if (!PrepareDispose()) return default;
-            return FinishDisposeAsync();
-        }
-
-        /// <summary>
-        ///   <para>为指定模块创建生命周期上下文</para>
-        /// </summary>
-        /// <param name="module">即将执行生命周期回调的模块实例</param>
-        internal GameModuleContext CreateContext(IGameModule module)
-        {
-            if (module == null) throw new ArgumentNullException(nameof(module));
-            if (IsDisposed) throw new ObjectDisposedException(nameof(GameModules));
-            return new GameModuleContext(this, module);
-        }
-
-        /// <summary>
-        ///   <para>通知模块集合变更</para>
-        /// </summary>
-        internal void NotifyModulesChanged()
-        {
-            if (Volatile.Read(ref m_IsChanging) != 0)
-            {
-                Interlocked.Exchange(ref m_ModulesChangedQueued, 1);
-                return;
-            }
-
-            GameModuleUtility.InvokeEvent(OnModulesChanged, nameof(OnModulesChanged));
-        }
-
-        /// <summary>
-        ///   <para>不抛出容器状态异常的模块尝试解析流程</para>
-        /// </summary>
-        private bool TryGetModuleNoThrow<T>(out T module)
-            where T : class, IGameModule
-        {
             if (m_Registry.TryGetModule(typeof(T), out var resolved) && resolved is T typedModule)
             {
                 module = typedModule;
@@ -430,7 +323,216 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>进入统一释放流程的公共前置阶段</para>
+        ///   <para>供生命周期上下文在容器释放期间继续读取已声明依赖。</para>
+        /// </summary>
+        /// <param name="ownerModule">所属模块。</param>
+        /// <typeparam name="T">模块类型。</typeparam>
+        internal T GetDependencyFromContext<T>(IGameModule ownerModule)
+            where T : class, IGameModule => m_Registry.GetDependency(ownerModule, typeof(T)) as T;
+
+        /// <summary>
+        ///   <para>供生命周期上下文在容器释放期间继续尝试读取已声明依赖。</para>
+        /// </summary>
+        /// <param name="ownerModule">所属模块。</param>
+        /// <param name="module">模块。</param>
+        /// <typeparam name="T">模块类型。</typeparam>
+        internal bool TryGetDependencyFromContext<T>(IGameModule ownerModule, out T module)
+            where T : class, IGameModule
+        {
+            if (m_Registry.TryGetDependency(ownerModule, typeof(T), out var resolved) && resolved is T typedModule)
+            {
+                module = typedModule;
+                return true;
+            }
+
+            module = null;
+            return false;
+        }
+
+        /// <summary>
+        ///   <para>使用容器的创建策略同步安装模块。</para>
+        /// </summary>
+        /// <typeparam name="T">模块类型。</typeparam>
+        public void Install<T>()
+            where T : GameModule => Install(typeof(T));
+
+        /// <summary>
+        ///   <para>安装模块。</para>
+        /// </summary>
+        /// <param name="moduleType">模块类型。</param>
+        public void Install(Type moduleType)
+        {
+            var descriptor = new GameModuleDescriptor(moduleType);
+            m_LifecycleRunner.Install(() => descriptor.CreateModule(m_ModuleFactory), moduleType);
+        }
+
+        /// <summary>
+        ///   <para>使用容器的创建策略异步安装模块。</para>
+        /// </summary>
+        /// <typeparam name="T">模块类型。</typeparam>
+        public ValueTask InstallAsync<T>()
+            where T : GameModule => InstallAsync<T>(default);
+
+        /// <summary>
+        ///   <para>使用容器的创建策略异步安装模块。</para>
+        /// </summary>
+        /// <param name="ct">取消令牌。</param>
+        /// <typeparam name="T">模块类型。</typeparam>
+        public ValueTask InstallAsync<T>(CancellationToken ct)
+            where T : GameModule => InstallAsync(typeof(T), ct);
+
+        /// <summary>
+        ///   <para>异步安装。</para>
+        /// </summary>
+        /// <param name="moduleType">模块类型。</param>
+        /// <param name="ct">取消令牌。</param>
+        public ValueTask InstallAsync(Type moduleType, CancellationToken ct = default)
+        {
+            var descriptor = new GameModuleDescriptor(moduleType);
+            return m_LifecycleRunner.InstallAsync(() => descriptor.CreateModule(m_ModuleFactory), ct, moduleType);
+        }
+
+        /// <summary>
+        ///   <para>使用模块创建工厂同步安装模块。</para>
+        /// </summary>
+        /// <param name="factory">模块创建工厂。</param>
+        public void Install(Func<GameModule> factory)
+        {
+            if (factory == null) throw new ArgumentNullException(nameof(factory));
+            m_LifecycleRunner.Install(factory);
+        }
+
+        /// <summary>
+        ///   <para>使用模块创建工厂异步安装模块。</para>
+        /// </summary>
+        /// <param name="factory">模块创建工厂。</param>
+        public ValueTask InstallAsync(Func<GameModule> factory)
+        {
+            if (factory == null) throw new ArgumentNullException(nameof(factory));
+            return InstallAsync(factory, default);
+        }
+
+        /// <summary>
+        ///   <para>使用模块创建工厂异步安装模块。</para>
+        /// </summary>
+        /// <param name="factory">模块创建工厂。</param>
+        /// <param name="ct">取消令牌。</param>
+        public ValueTask InstallAsync(Func<GameModule> factory, CancellationToken ct)
+        {
+            if (factory == null) throw new ArgumentNullException(nameof(factory));
+            return m_LifecycleRunner.InstallAsync(factory, ct);
+        }
+        
+        /// <summary>
+        ///   <para>按清单自身配置的安装顺序策略安装模块。</para>
+        /// </summary>
+        /// <param name="manifest">要执行的模块清单。</param>
+        public void InstallFromManifest(GameModuleManifest manifest)
+        {
+            if (manifest == null) throw new ArgumentNullException(nameof(manifest));
+            m_LifecycleRunner.InstallFromManifest(manifest);
+        }
+
+        /// <summary>
+        ///   <para>按清单自身配置的安装顺序策略异步安装模块。</para>
+        /// </summary>
+        /// <param name="manifest">要执行的模块清单。</param>
+        public ValueTask InstallFromManifestAsync(GameModuleManifest manifest)
+        {
+            if (manifest == null) throw new ArgumentNullException(nameof(manifest));
+            return InstallFromManifestAsync(manifest, default);
+        }
+
+        /// <summary>
+        ///   <para>按清单自身配置的安装顺序策略异步安装模块。</para>
+        /// </summary>
+        /// <param name="manifest">要执行的模块清单。</param>
+        /// <param name="ct">取消令牌。</param>
+        public ValueTask InstallFromManifestAsync(GameModuleManifest manifest, CancellationToken ct)
+        {
+            if (manifest == null) throw new ArgumentNullException(nameof(manifest));
+            return m_LifecycleRunner.InstallFromManifestAsync(manifest, ct);
+        }
+
+        /// <summary>
+        ///   <para>卸载并释放指定精确类型的模块；回调失败也会完成资源清理。</para>
+        /// </summary>
+        /// <typeparam name="T">模块类型。</typeparam>
+        public bool Uninstall<T>() where T : GameModule => m_LifecycleRunner.Uninstall(typeof(T));
+
+        /// <summary>
+        ///   <para>取消仅在开始拆除前生效；拆除开始后始终完成释放。</para>
+        /// </summary>
+        /// <param name="ct">取消令牌。</param>
+        /// <typeparam name="T">模块类型。</typeparam>
+        public ValueTask<bool> UninstallAsync<T>(CancellationToken ct = default) where T : GameModule => m_LifecycleRunner.UninstallAsync(typeof(T), ct);
+
+        /// <summary>
+        ///   <para>按逆安装顺序卸载并释放所有模块。</para>
+        /// </summary>
+        public void UninstallAll() => m_LifecycleRunner.UninstallAll();
+
+        /// <summary>
+        ///   <para>异步卸载全部。</para>
+        /// </summary>
+        /// <param name="ct">取消令牌。</param>
+        public ValueTask UninstallAllAsync(CancellationToken ct = default) => m_LifecycleRunner.UninstallAllAsync(ct);
+
+        /// <summary>
+        ///   <para>驱动当前容器的 Tick 调度。</para>
+        /// </summary>
+        /// <param name="deltaTime">当前 Tick 阶段的时间步长。</param>
+        /// <param name="group">要执行的 Tick 分组。</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Tick(float deltaTime, TickGroup group)
+        {
+            if (!TryEnterTick()) return;
+
+            try
+            {
+                using var tickScope = TickExecutionScope.Enter();
+                m_Scheduler.Tick(deltaTime, group);
+            }
+            finally
+            {
+                ExitTick();
+            }
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            if (!PrepareDispose()) return;
+            FinishDispose();
+        }
+
+        /// <inheritdoc />
+        public ValueTask DisposeAsync() => DisposeAsync(default);
+
+        /// <summary>
+        ///   <para>异步释放模块容器。</para>
+        /// </summary>
+        /// <param name="ct">取消令牌。</param>
+        public async ValueTask DisposeAsync(CancellationToken ct)
+        {
+            if (!await PrepareDisposeAsync(ct)) return;
+            await FinishDisposeAsync();
+        }
+
+        /// <summary>
+        ///   <para>为指定模块创建生命周期上下文。</para>
+        /// </summary>
+        /// <param name="module">即将执行生命周期回调的模块实例。</param>
+        /// <param name="deferTickRegistration">是否延迟登记 Tick 对象。</param>
+        internal GameModuleContext CreateContext(IGameModule module, bool deferTickRegistration = false)
+        {
+            if (module == null) throw new ArgumentNullException(nameof(module));
+            if (IsDisposed) throw new ObjectDisposedException(nameof(GameModules));
+            return new GameModuleContext(this, module, deferTickRegistration);
+        }
+
+        /// <summary>
+        ///   <para>进入统一释放流程的公共前置阶段。</para>
         /// </summary>
         private bool PrepareDispose()
         {
@@ -446,13 +548,33 @@ namespace Verve
                 throw;
             }
 
-            m_Registry.ClearTransitionState();
+            return true;
+        }
+
+        /// <summary>
+        ///   <para>进入异步统一释放流程的公共前置阶段。</para>
+        /// </summary>
+        /// <param name="ct">取消令牌。</param>
+        private async ValueTask<bool> PrepareDisposeAsync(CancellationToken ct)
+        {
+            if (!(await TryBeginDisposeAsync(ct))) return false;
+
+            try
+            {
+                ct.ThrowIfCancellationRequested();
+                m_Scheduler.WaitForIdle();
+            }
+            catch
+            {
+                ResetDisposeStateToAlive();
+                throw;
+            }
 
             return true;
         }
 
         /// <summary>
-        ///   <para>执行同步释放收尾并聚合错误</para>
+        ///   <para>执行同步释放收尾并聚合错误。</para>
         /// </summary>
         private void FinishDispose()
         {
@@ -465,17 +587,10 @@ namespace Verve
                 }
                 catch (Exception ex)
                 {
-                    GameModuleUtility.AddError(ref errors, ex);
+                    ExceptionUtility.Add(ref errors, ex);
                 }
 
-                try
-                {
-                    m_Scheduler.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    GameModuleUtility.AddError(ref errors, ex);
-                }
+                ExceptionUtility.Add(ref errors, DisposeExtensions());
             }
             finally
             {
@@ -486,7 +601,7 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>执行异步释放收尾并聚合错误</para>
+        ///   <para>执行异步释放收尾并聚合错误。</para>
         /// </summary>
         private async ValueTask FinishDisposeAsync()
         {
@@ -499,17 +614,10 @@ namespace Verve
                 }
                 catch (Exception ex)
                 {
-                    GameModuleUtility.AddError(ref errors, ex);
+                    ExceptionUtility.Add(ref errors, ex);
                 }
 
-                try
-                {
-                    m_Scheduler.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    GameModuleUtility.AddError(ref errors, ex);
-                }
+                ExceptionUtility.Add(ref errors, DisposeExtensions());
             }
             finally
             {
@@ -520,235 +628,74 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>通过生命周期上下文为模块注册拥有的 Tick 对象</para>
+        ///   <para>释放扩展。</para>
         /// </summary>
-        /// <param name="ownerModule">请求注册的模块所有者</param>
-        /// <param name="system">要注册的 Tick 对象</param>
-        /// <param name="runInBackground">是否后台执行</param>
-        internal void AddTickSystemFromContext(IGameModule ownerModule, object system, bool runInBackground)
+        private Exception DisposeExtensions()
         {
-            ThrowIfNotAlive();
-            if (ownerModule == null) throw new ArgumentNullException(nameof(ownerModule));
-            if (system == null) throw new ArgumentNullException(nameof(system));
-            ValidateOwnedTickSystem(system, true);
-            lock (m_Registry.SyncRoot)
-            {
-                if (m_Registry.IsUninstalling(ownerModule))
-                {
-                    throw new InvalidOperationException("Cannot add tick systems while the owner module is uninstalling.");
-                }
-
-                if (m_OwnedTickBySystem.TryGetValue(system, out var existingOwnership)
-                    && !ReferenceEquals(existingOwnership.ownerModule, ownerModule))
-                {
-                    throw new InvalidOperationException("Tick system is already owned by another module.");
-                }
-
-                m_Scheduler.AddSystem(system, runInBackground);
-                TrackOwnedTickNoLock(ownerModule, system, runInBackground);
-            }
+            List<Exception> errors = null;
+            try { m_Scheduler?.Dispose(); }
+            catch (Exception error) { ExceptionUtility.Add(ref errors, error); }
+            try { m_ModuleFactory.Dispose(); }
+            catch (Exception error) { ExceptionUtility.Add(ref errors, error); }
+            try { Observer?.Dispose(); }
+            catch (Exception error) { ExceptionUtility.Add(ref errors, error); }
+            return ExceptionUtility.Combine(errors);
         }
 
         /// <summary>
-        ///   <para>通过生命周期上下文移除模块注册的 Tick 对象</para>
+        ///   <para>通过生命周期上下文为模块注册拥有的 Tick 对象。</para>
         /// </summary>
-        /// <param name="ownerModule">请求移除的模块所有者</param>
-        /// <param name="system">要移除的 Tick 对象</param>
+        /// <param name="ownerModule">请求注册的模块所有者。</param>
+        /// <param name="system">要注册的 Tick 对象。</param>
+        internal void AddTickSystemFromContext(IGameModule ownerModule, object system)
+        {
+            ThrowIfNotAlive();
+            m_TickRegistry.Add(ownerModule, system);
+        }
+
+        /// <summary>
+        ///   <para>校验生命周期上下文请求注册的 Tick 对象。</para>
+        /// </summary>
+        /// <param name="ownerModule">所属模块。</param>
+        /// <param name="system">系统。</param>
+        internal void ValidateTickSystemFromContext(IGameModule ownerModule, object system)
+        {
+            ThrowIfNotAlive();
+            m_TickRegistry.ValidateAdd(ownerModule, system);
+        }
+
+        /// <summary>
+        ///   <para>通过生命周期上下文移除模块注册的 Tick 对象。</para>
+        /// </summary>
+        /// <param name="ownerModule">请求移除的模块所有者。</param>
+        /// <param name="system">要移除的 Tick 对象。</param>
         internal bool RemoveTickSystemFromContext(IGameModule ownerModule, object system)
         {
             if (IsDisposed) return false;
-            if (ownerModule == null) throw new ArgumentNullException(nameof(ownerModule));
-            if (system == null) return false;
-            ValidateOwnedTickSystem(system, false);
-            lock (m_Registry.SyncRoot)
-            {
-                if (!m_OwnedTickBySystem.TryGetValue(system, out var ownership))
-                {
-                    return false;
-                }
-
-                if (!ReferenceEquals(ownership.ownerModule, ownerModule))
-                {
-                    throw new InvalidOperationException("Tick system is owned by another module and cannot be removed through this context.");
-                }
-
-                RemoveTrackedTickSystem(system, "module context removal");
-                UntrackOwnedTickNoLock(ownerModule, system);
-                return true;
-            }
+            return m_TickRegistry.Remove(ownerModule, system);
         }
 
         /// <summary>
-        ///   <para>复制指定模块当前拥有的 Tick 对象登记，供运行时调试窗口读取快照</para>
+        ///   <para>复制指定模块当前拥有的 Tick 对象登记，供运行时调试窗口读取快照。</para>
         /// </summary>
-        internal void CopyOwnedTickRegistrationsTo(IGameModule ownerModule, List<OwnedTickRegistration> output)
+        /// <param name="ownerModule">所属模块。</param>
+        /// <param name="output">接收结果的集合。</param>
+        internal void CopyOwnedTickRegistrationsTo(IGameModule ownerModule, List<GameModuleTickRegistration> output)
         {
             if (output == null) throw new ArgumentNullException(nameof(output));
             output.Clear();
             if (ownerModule == null || IsDisposedOrDisposing) return;
-
-            lock (m_Registry.SyncRoot)
-            {
-                if (!m_OwnedTicksByModule.TryGetValue(ownerModule, out var ownedSystems) || ownedSystems.Count == 0)
-                {
-                    return;
-                }
-
-                foreach (var ownedSystem in ownedSystems)
-                {
-                    if (ownedSystem == null) continue;
-                    if (!m_OwnedTickBySystem.TryGetValue(ownedSystem, out var registration)) continue;
-                    if (!ReferenceEquals(registration.ownerModule, ownerModule)) continue;
-
-                    output.Add(registration);
-                }
-            }
+            m_TickRegistry.CopyTo(ownerModule, output);
         }
 
         /// <summary>
-        ///   <para>移除指定模块拥有的全部 Tick 对象</para>
+        ///   <para>移除指定模块拥有的全部 Tick 对象。</para>
         /// </summary>
-        internal List<OwnedTickRegistration> DetachOwnedTicks(IGameModule ownerModule)
-        {
-            if (ownerModule == null) return null;
-
-            lock (m_Registry.SyncRoot)
-            {
-                if (!m_OwnedTicksByModule.TryGetValue(ownerModule, out var ownedSystems) || ownedSystems.Count == 0)
-                {
-                    return null;
-                }
-
-                var registrations = new List<OwnedTickRegistration>(ownedSystems.Count);
-                foreach (var ownedSystem in ownedSystems)
-                {
-                    if (ownedSystem == null) continue;
-                    if (!m_OwnedTickBySystem.TryGetValue(ownedSystem, out var registration)) continue;
-                    if (!ReferenceEquals(registration.ownerModule, ownerModule)) continue;
-
-                    registrations.Add(registration);
-                }
-
-                if (registrations.Count == 0)
-                {
-                    m_OwnedTicksByModule.Remove(ownerModule);
-                    return null;
-                }
-
-                List<OwnedTickRegistration> removedFromScheduler = null;
-                Exception failure = null;
-                for (int i = 0; i < registrations.Count; i++)
-                {
-                    var registration = registrations[i];
-                    try
-                    {
-                        RemoveTrackedTickSystem(registration.tickSystem, "detaching owned tick systems");
-                        removedFromScheduler ??= new List<OwnedTickRegistration>(registrations.Count);
-                        removedFromScheduler.Add(registration);
-                    }
-                    catch (Exception ex)
-                    {
-                        failure = ex;
-                        break;
-                    }
-                }
-
-                if (failure != null)
-                {
-                    if (removedFromScheduler != null)
-                    {
-                        for (int i = removedFromScheduler.Count - 1; i >= 0; i--)
-                        {
-                            var registration = removedFromScheduler[i];
-                            try
-                            {
-                                m_Scheduler.AddSystem(registration.tickSystem, registration.runInBackground);
-                            }
-                            catch (Exception rollbackException)
-                            {
-                                failure = GameModuleUtility.CombineErrors(failure, rollbackException);
-                            }
-                        }
-                    }
-
-                    var moduleName = GameModuleUtility.GetTypeDisplayName(ownerModule.GetType());
-                    throw new InvalidOperationException($"Failed to detach owned tick systems for module {moduleName}.", failure);
-                }
-
-                for (int i = 0; i < registrations.Count; i++)
-                {
-                    m_OwnedTickBySystem.Remove(registrations[i].tickSystem);
-                }
-
-                m_OwnedTicksByModule.Remove(ownerModule);
-                return registrations;
-            }
-        }
+        /// <param name="ownerModule">所属模块。</param>
+        internal void DetachOwnedTicks(IGameModule ownerModule) => m_TickRegistry.Detach(ownerModule);
 
         /// <summary>
-        ///   <para>重新挂回先前暂时拆离的 Tick 对象</para>
-        /// </summary>
-        internal void ReattachOwnedTicks(List<OwnedTickRegistration> registrations)
-        {
-            if (registrations == null || registrations.Count == 0) return;
-            if (IsDisposedOrDisposing) return;
-
-            lock (m_Registry.SyncRoot)
-            {
-                List<OwnedTickRegistration> reattached = null;
-                Exception failure = null;
-                for (int i = 0; i < registrations.Count; i++)
-                {
-                    var registration = registrations[i];
-                    if (registration.ownerModule == null || registration.tickSystem == null) continue;
-
-                    try
-                    {
-                        m_Scheduler.AddSystem(registration.tickSystem, registration.runInBackground);
-                        TrackOwnedTickNoLock(registration.ownerModule, registration.tickSystem, registration.runInBackground);
-                        reattached ??= new List<OwnedTickRegistration>(registrations.Count);
-                        reattached.Add(registration);
-                    }
-                    catch (Exception ex)
-                    {
-                        failure = ex;
-                        break;
-                    }
-                }
-
-                if (failure == null) return;
-
-                if (reattached != null)
-                {
-                    for (int i = reattached.Count - 1; i >= 0; i--)
-                    {
-                        var registration = reattached[i];
-                        bool removalSucceeded = false;
-                        try
-                        {
-                            RemoveTrackedTickSystem(registration.tickSystem, "rolling back owned tick reattach");
-                            removalSucceeded = true;
-                        }
-                        catch (Exception rollbackException)
-                        {
-                            failure = GameModuleUtility.CombineErrors(failure, rollbackException);
-                        }
-                        finally
-                        {
-                            if (removalSucceeded)
-                            {
-                                UntrackOwnedTickNoLock(registration.ownerModule, registration.tickSystem);
-                            }
-                        }
-                    }
-                }
-
-                throw new InvalidOperationException($"Failed to reattach owned tick objects for module {GameModuleUtility.GetTypeDisplayName(registrations[0].ownerModule?.GetType())}.", failure);
-            }
-        }
-
-        /// <summary>
-        ///   <para>在容器已释放或正在释放时抛出异常</para>
+        ///   <para>在容器已释放或正在释放时抛出异常。</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ThrowIfNotAlive()
@@ -757,50 +704,113 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>开始一次容器释放流程，并等待所有当前 Tick 退出</para>
+        ///   <para>开始一次容器释放流程，并等待所有当前 Tick 退出。</para>
         /// </summary>
         private bool TryBeginDispose()
         {
-            lock (m_TickBarrierLock)
+            while (true)
             {
-                if (IsDisposed) return false;
-                if (m_IsChanging != 0)
+                lock (m_TickBarrierLock)
                 {
-                    throw new InvalidOperationException($"Cannot dispose {nameof(GameModules)} while a module change is in progress.");
-                }
-                if (TickExecutionScope.IsActive)
-                {
-                    throw new InvalidOperationException($"Cannot dispose {nameof(GameModules)} from within Tick callbacks. Schedule the disposal after the current Tick.");
+                    if (IsDisposed) return false;
+                    if (TickExecutionScope.IsActive)
+                    {
+                        throw new InvalidOperationException($"Cannot dispose {nameof(GameModules)} from within Tick callbacks. Schedule the disposal after the current Tick.");
+                    }
+
+                    if (m_IsChanging != 0)
+                    {
+                        if (IsCurrentThreadOwningChangeNoLock() || GameModuleLifecycleScope.IsActive)
+                        {
+                            throw new InvalidOperationException($"Cannot dispose {nameof(GameModules)} from the same thread that is running a module lifecycle change.");
+                        }
+
+                        RequestCurrentChangeCancellationNoLock();
+                        while (m_IsChanging != 0)
+                        {
+                            Monitor.Wait(m_TickBarrierLock, 50);
+                        }
+
+                        continue;
+                    }
+
+                    if (Interlocked.CompareExchange(
+                            ref m_DisposeState,
+                            (int)DisposeState.Disposing,
+                            (int)DisposeState.Alive) != (int)DisposeState.Alive)
+                    {
+                        return false;
+                    }
+
+                    while (m_ActiveTickCount > 0)
+                    {
+                        Monitor.Wait(m_TickBarrierLock);
+                    }
                 }
 
-                if (Interlocked.CompareExchange(
-                        ref m_DisposeState,
-                        (int)DisposeState.Disposing,
-                        (int)DisposeState.Alive) != (int)DisposeState.Alive)
-                {
-                    return false;
-                }
-
-                while (m_ActiveTickCount > 0)
-                {
-                    Monitor.Wait(m_TickBarrierLock);
-                }
+                return true;
             }
-
-            return true;
         }
 
         /// <summary>
-        ///   <para>把容器释放状态回滚到可运行状态</para>
+        ///   <para>异步开始一次容器释放流程，并等待所有当前 Tick 退出。</para>
+        /// </summary>
+        /// <param name="ct">取消令牌。</param>
+        private async ValueTask<bool> TryBeginDisposeAsync(CancellationToken ct)
+        {
+            while (true)
+            {
+                Task waitTask = null;
+                lock (m_TickBarrierLock)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (IsDisposed) return false;
+                    if (TickExecutionScope.IsActive)
+                    {
+                        throw new InvalidOperationException($"Cannot dispose {nameof(GameModules)} from within Tick callbacks. Schedule the disposal after the current Tick.");
+                    }
+
+                    if (m_IsChanging != 0)
+                    {
+                        if (GameModuleLifecycleScope.IsActive)
+                        {
+                            throw new InvalidOperationException($"Cannot dispose {nameof(GameModules)} from within a module lifecycle callback.");
+                        }
+
+                        RequestCurrentChangeCancellationNoLock();
+                        waitTask = m_ChangeCompletion?.Task;
+                    }
+                    else
+                    {
+                        if (Interlocked.CompareExchange(
+                                ref m_DisposeState,
+                                (int)DisposeState.Disposing,
+                                (int)DisposeState.Alive) != (int)DisposeState.Alive)
+                        {
+                            return false;
+                        }
+
+                        while (m_ActiveTickCount > 0)
+                        {
+                            Monitor.Wait(m_TickBarrierLock);
+                        }
+
+                        return true;
+                    }
+                }
+
+                await WaitForChangeCompletionAsync(waitTask, ct);
+            }
+        }
+
+        /// <summary>
+        ///   <para>把容器释放状态回滚到可运行状态。</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ResetDisposeStateToAlive()
-        {
-            Volatile.Write(ref m_DisposeState, (int)DisposeState.Alive);
-        }
+        private void ResetDisposeStateToAlive() => Volatile.Write(ref m_DisposeState, (int)DisposeState.Alive);
 
         /// <summary>
-        ///   <para>完成容器释放状态提交并通知外部句柄层</para>
+        ///   <para>完成容器释放状态并通知外部句柄层。</para>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void FinalizeDisposeState()
@@ -810,85 +820,142 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>登记某个模块实例的容器所有权</para>
+        ///   <para>登记某个模块实例的容器所有权。</para>
         /// </summary>
-        internal void TakeModuleOwnership(IGameModule module)
+        /// <param name="module">模块。</param>
+        internal void TakeModuleOwnership(IGameModule module) => ((GameModule)module).TakeOwnership(this);
+
+        /// <summary>
+        ///   <para>释放某个模块实例的容器所有权。</para>
+        /// </summary>
+        /// <param name="module">模块。</param>
+        internal void ReleaseModuleOwnership(IGameModule module) => ((GameModule)module).ReleaseOwnership(this);
+
+        /// <summary>
+        ///   <para>进入一次容器级模块变更流程。</para>
+        /// </summary>
+        /// <param name="ct">取消令牌。</param>
+        internal ChangeScope EnterChangeScope(CancellationToken ct = default) => new ChangeScope(this, ct);
+
+        /// <summary>
+        ///   <para>异步进入一次不暂停 Tick 的容器级模块变更流程。</para>
+        /// </summary>
+        /// <param name="ct">取消令牌。</param>
+        internal async ValueTask<ChangeScope> EnterChangeOperationScopeAsync(CancellationToken ct = default)
         {
-            if (module == null) throw new ArgumentNullException(nameof(module));
+            var token = await BeginChangeAsync(ct, pauseTicks: false);
+            return ChangeScope.CreateEntered(this, token);
+        }
 
-            lock (s_ModuleOwnershipLock)
+        /// <summary>
+        ///   <para>短暂暂停 Tick，用于应用注册表或调度器变更。</para>
+        /// </summary>
+        /// <param name="ct">取消令牌。</param>
+        internal TickPauseScope EnterTickPauseScope(CancellationToken ct = default) => new TickPauseScope(this, ct);
+
+        /// <summary>
+        ///   <para>开始一次容器级模块变更。</para>
+        /// </summary>
+        /// <param name="ct">取消令牌。</param>
+        /// <param name="pauseTicks">是否暂停 Tick。</param>
+        private CancellationToken BeginChange(CancellationToken ct, bool pauseTicks)
+        {
+            while (true)
             {
-                if (!s_ModuleOwners.TryGetValue(module, out var owner))
+                lock (m_TickBarrierLock)
                 {
-                    s_ModuleOwners.Add(module, this);
-                    return;
-                }
+                    ct.ThrowIfCancellationRequested();
+                    EnsureCanStartOrWaitForChangeNoLock();
 
-                var moduleTypeName = GameModuleUtility.GetTypeDisplayName(module.GetType());
-                if (ReferenceEquals(owner, this))
-                {
-                    throw new InvalidOperationException(
-                        $"Module instance is already owned by this {nameof(GameModules)} container. type={moduleTypeName}");
-                }
+                    if (m_IsChanging == 0)
+                    {
+                        return StartChangeNoLock(ct, pauseTicks);
+                    }
 
-                throw new InvalidOperationException(
-                    $"Module instance is already owned by another {nameof(GameModules)} container. type={moduleTypeName}");
+                    if (IsCurrentThreadOwningChangeNoLock())
+                    {
+                        throw new InvalidOperationException("Cannot wait for a module change started on the same thread. Await the current change first.");
+                    }
+
+                    while (m_IsChanging != 0)
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        Monitor.Wait(m_TickBarrierLock, 50);
+                    }
+                }
             }
         }
 
         /// <summary>
-        ///   <para>释放某个模块实例的容器所有权</para>
+        ///   <para>异步开始一次容器级模块变更。</para>
         /// </summary>
-        internal void ReleaseModuleOwnership(IGameModule module)
+        /// <param name="ct">取消令牌。</param>
+        /// <param name="pauseTicks">是否暂停 Tick。</param>
+        private async ValueTask<CancellationToken> BeginChangeAsync(CancellationToken ct, bool pauseTicks)
         {
-            if (module == null) return;
-
-            lock (s_ModuleOwnershipLock)
+            while (true)
             {
-                if (s_ModuleOwners.TryGetValue(module, out var owner) && ReferenceEquals(owner, this))
+                Task waitTask = null;
+                lock (m_TickBarrierLock)
                 {
-                    s_ModuleOwners.Remove(module);
+                    ct.ThrowIfCancellationRequested();
+                    EnsureCanStartOrWaitForChangeNoLock();
+
+                    if (m_IsChanging == 0)
+                    {
+                        return StartChangeNoLock(ct, pauseTicks);
+                    }
+
+                    waitTask = m_ChangeCompletion?.Task;
                 }
+
+                await WaitForChangeCompletionAsync(waitTask, ct);
             }
         }
 
         /// <summary>
-        ///   <para>进入一次容器级模块变更流程</para>
+        ///   <para>校验当前调用是否可以进入或等待模块变更。</para>
         /// </summary>
-        internal ChangeScope EnterChangeScope()
+        private void EnsureCanStartOrWaitForChangeNoLock()
         {
-            return new ChangeScope(this);
+            if (IsDisposedOrDisposing) throw new ObjectDisposedException(nameof(GameModules));
+            if (TickExecutionScope.IsActive)
+            {
+                throw new InvalidOperationException("Cannot change modules from within Tick callbacks. Schedule the change after the current Tick.");
+            }
+
+            if (GameModuleLifecycleScope.IsActive)
+            {
+                throw new InvalidOperationException("Cannot start a nested module change from within a module lifecycle callback.");
+            }
         }
 
         /// <summary>
-        ///   <para>开始一次容器级模块变更</para>
+        ///   <para>进入模块变更状态，并按需暂停新 Tick 进入。</para>
         /// </summary>
-        private void BeginChange()
+        /// <param name="ct">取消令牌。</param>
+        /// <param name="pauseTicks">是否暂停 Tick。</param>
+        private CancellationToken StartChangeNoLock(CancellationToken ct, bool pauseTicks)
         {
-            lock (m_TickBarrierLock)
+            m_IsChanging = 1;
+            m_ChangeOwnerThreadId = Thread.CurrentThread.ManagedThreadId;
+            m_ChangeCancellation = ct.CanBeCanceled
+                ? CancellationTokenSource.CreateLinkedTokenSource(ct)
+                : new CancellationTokenSource();
+            m_ChangeCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            if (pauseTicks)
             {
-                if (IsDisposedOrDisposing) throw new ObjectDisposedException(nameof(GameModules));
-                if (m_IsChanging != 0)
-                {
-                    throw new InvalidOperationException("Concurrent module changes are not supported on the same GameModules container.");
-                }
-                if (TickExecutionScope.IsActive)
-                {
-                    throw new InvalidOperationException("Cannot change modules from within Tick callbacks. Schedule the change after the current Tick.");
-                }
+                m_ChangeOwnsTickPause = true;
+                BeginTickPauseNoLock();
+            }
 
-                m_IsChanging = 1;
-                while (m_ActiveTickCount > 0)
-                {
-                    Monitor.Wait(m_TickBarrierLock);
-                }
-
-                if (IsDisposedOrDisposing)
-                {
-                    m_IsChanging = 0;
-                    Monitor.PulseAll(m_TickBarrierLock);
-                    throw new ObjectDisposedException(nameof(GameModules));
-                }
+            if (IsDisposedOrDisposing)
+            {
+                ClearChangeStateNoLock(out var cancellation, out var completion);
+                Monitor.PulseAll(m_TickBarrierLock);
+                CompleteChangeWaiters(cancellation, completion);
+                throw new ObjectDisposedException(nameof(GameModules));
             }
 
             try
@@ -900,152 +967,199 @@ namespace Verve
                 EndChange();
                 throw;
             }
+
+            return m_ChangeCancellation.Token;
         }
 
         /// <summary>
-        ///   <para>结束一次容器级模块变更并恢复 Tick 进入</para>
+        ///   <para>开始一次短暂 Tick 暂停。</para>
+        /// </summary>
+        /// <param name="ct">取消令牌。</param>
+        private void BeginTickPause(CancellationToken ct)
+        {
+            lock (m_TickBarrierLock)
+            {
+                ct.ThrowIfCancellationRequested();
+                if (IsDisposedOrDisposing) throw new ObjectDisposedException(nameof(GameModules));
+                if (TickExecutionScope.IsActive)
+                {
+                    throw new InvalidOperationException("Cannot pause module ticks from within Tick callbacks. Schedule the change after the current Tick.");
+                }
+
+                BeginTickPauseNoLock();
+            }
+
+            try
+            {
+                m_Scheduler.WaitForIdle();
+            }
+            catch
+            {
+                EndTickPause();
+                throw;
+            }
+        }
+
+        /// <summary>
+        ///   <para>进入 Tick 暂停状态，并等待当前 Tick 退出。</para>
+        /// </summary>
+        private void BeginTickPauseNoLock()
+        {
+            m_TickPauseDepth++;
+            while (m_ActiveTickCount > 0)
+            {
+                Monitor.Wait(m_TickBarrierLock);
+            }
+        }
+
+        /// <summary>
+        ///   <para>结束一次短暂 Tick 暂停。</para>
+        /// </summary>
+        private void EndTickPause()
+        {
+            lock (m_TickBarrierLock)
+            {
+                if (m_TickPauseDepth <= 0) return;
+                m_TickPauseDepth--;
+                if (m_TickPauseDepth == 0)
+                {
+                    Monitor.PulseAll(m_TickBarrierLock);
+                }
+            }
+        }
+
+        /// <summary>
+        ///   <para>结束一次容器级模块变更并恢复 Tick 进入。</para>
         /// </summary>
         private void EndChange()
         {
-            bool shouldNotify = Interlocked.Exchange(ref m_ModulesChangedQueued, 0) != 0;
+            CancellationTokenSource cancellation = null;
+            TaskCompletionSource<bool> completion = null;
 
             lock (m_TickBarrierLock)
             {
                 if (m_IsChanging == 0) return;
-                m_IsChanging = 0;
+                ClearChangeStateNoLock(out cancellation, out completion);
                 Monitor.PulseAll(m_TickBarrierLock);
             }
 
-            if (shouldNotify)
-            {
-                GameModuleUtility.InvokeEvent(OnModulesChanged, nameof(OnModulesChanged));
-            }
+            CompleteChangeWaiters(cancellation, completion);
         }
 
         /// <summary>
-        ///   <para>返回对象支持的 Tick 相位文本</para>
+        ///   <para>清理当前变更状态。</para>
         /// </summary>
-        internal static string GetTickPhasesText(object system)
+        /// <param name="cancellation">取消源。</param>
+        /// <param name="completion">完成通知。</param>
+        private void ClearChangeStateNoLock(
+            out CancellationTokenSource cancellation,
+            out TaskCompletionSource<bool> completion)
         {
-            if (system == null) return GameModuleUtility.NoneText;
-
-            List<string> phases = null;
-
-#if UNITY_2018_3_OR_NEWER || !UNITY_5_1_OR_NEWER
-            if (system is IEarlyTick)
+            cancellation = m_ChangeCancellation;
+            completion = m_ChangeCompletion;
+            m_ChangeCancellation = null;
+            m_ChangeCompletion = null;
+            m_ChangeOwnerThreadId = 0;
+            if (m_ChangeOwnsTickPause)
             {
-                phases ??= new List<string>(4);
-                phases.Add(TickGroup.Early.ToString());
-            }
-#endif
-            if (system is IPhysicsTick)
-            {
-                phases ??= new List<string>(4);
-                phases.Add(TickGroup.Physics.ToString());
+                m_ChangeOwnsTickPause = false;
+                if (m_TickPauseDepth > 0)
+                {
+                    m_TickPauseDepth--;
+                }
             }
 
-            if (system is IGameplayTick)
-            {
-                phases ??= new List<string>(4);
-                phases.Add(TickGroup.Gameplay.ToString());
-            }
-
-            if (system is ILateTick)
-            {
-                phases ??= new List<string>(4);
-                phases.Add(TickGroup.Late.ToString());
-            }
-
-            return phases == null
-                ? GameModuleUtility.NoneText
-                : string.Join(GameModuleUtility.TextListSeparator, phases);
+            m_IsChanging = 0;
         }
 
         /// <summary>
-        ///   <para>校验模块拥有的 Tick 对象</para>
+        ///   <para>通知等待变更结束的同步/异步调用方。</para>
         /// </summary>
-        /// <param name="system">要校验的对象</param>
-        /// <param name="requireTickInterfaces">是否要求对象实现 Tick 接口</param>
+        /// <param name="cancellation">取消源。</param>
+        /// <param name="completion">完成通知。</param>
+        private static void CompleteChangeWaiters(
+            CancellationTokenSource cancellation,
+            TaskCompletionSource<bool> completion)
+        {
+            cancellation?.Dispose();
+            completion?.TrySetResult(true);
+        }
+
+        /// <summary>
+        ///   <para>请求当前模块变更尽快取消。</para>
+        /// </summary>
+        private void RequestCurrentChangeCancellationNoLock()
+        {
+            try
+            {
+                m_ChangeCancellation?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // 生命周期结束时重复取消是允许的并发竞态。
+            }
+        }
+
+        /// <summary>
+        ///   <para>当前线程是否就是启动模块变更的线程。</para>
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ValidateOwnedTickSystem(object system, bool requireTickInterfaces)
+        private bool IsCurrentThreadOwningChangeNoLock()
         {
-            if (system is GameModule module)
-            {
-                throw new InvalidOperationException(
-                    $"Owned tick objects cannot be {nameof(GameModule)} instances. Register a separate runtime object instead. type={GameModuleUtility.GetTypeDisplayName(module.GetType())}");
-            }
-
-            if (requireTickInterfaces && !GameModuleUtility.HasTickInterfaces(system))
-            {
-                throw new InvalidOperationException(
-                    $"Tick system must implement {GameModuleUtility.GetTickInterfaceNames()}. type={GameModuleUtility.GetTypeDisplayName(system?.GetType())}");
-            }
+            return m_ChangeOwnerThreadId != 0 &&
+                   m_ChangeOwnerThreadId == Thread.CurrentThread.ManagedThreadId;
         }
 
         /// <summary>
-        ///   <para>登记一个 Tick 对象的所有权</para>
+        ///   <para>异步等待变更完成通知。</para>
         /// </summary>
-        private void TrackOwnedTickNoLock(IGameModule ownerModule, object system, bool runInBackground)
+        /// <param name="waitTask">等待任务。</param>
+        /// <param name="ct">取消令牌。</param>
+        private static async ValueTask WaitForChangeCompletionAsync(Task waitTask, CancellationToken ct)
         {
-            m_OwnedTickBySystem[system] = new OwnedTickRegistration(ownerModule, system, runInBackground);
-            if (!m_OwnedTicksByModule.TryGetValue(ownerModule, out var ownedSystems))
+            if (waitTask == null)
             {
-                ownedSystems = new HashSet<object>(GameModuleUtility.ReferenceComparer<object>.Instance);
-                m_OwnedTicksByModule[ownerModule] = ownedSystems;
-            }
-
-            ownedSystems.Add(system);
-        }
-
-        /// <summary>
-        ///   <para>解除一个 Tick 对象的所有权登记</para>
-        /// </summary>
-        private void UntrackOwnedTickNoLock(IGameModule ownerModule, object system)
-        {
-            m_OwnedTickBySystem.Remove(system);
-            if (!m_OwnedTicksByModule.TryGetValue(ownerModule, out var ownedSystems))
-            {
+                await Task.Yield();
+                ct.ThrowIfCancellationRequested();
                 return;
             }
 
-            ownedSystems.Remove(system);
-            if (ownedSystems.Count == 0)
+            if (!ct.CanBeCanceled)
             {
-                m_OwnedTicksByModule.Remove(ownerModule);
-            }
-        }
-
-        /// <summary>
-        ///   <para>要求调度器成功移除一个仍被框架跟踪的 Tick 系统</para>
-        /// </summary>
-        private void RemoveTrackedTickSystem(object system, string operation)
-        {
-            if (system == null) throw new ArgumentNullException(nameof(system));
-
-            if (m_Scheduler.RemoveSystem(system))
-            {
+                await waitTask;
                 return;
             }
 
-            throw new InvalidOperationException(
-                $"Tracked tick system could not be removed from scheduler. operation={operation}, type={GameModuleUtility.GetTypeDisplayName(system.GetType())}");
+            var cancelTask = Task.Delay(Timeout.Infinite, ct);
+            if (await Task.WhenAny(waitTask, cancelTask) == cancelTask)
+            {
+                ct.ThrowIfCancellationRequested();
+            }
+
+            await waitTask;
         }
 
         /// <summary>
-        ///   <para>尝试进入一次 Tick 执行</para>
+        ///   <para>返回对象支持的 Tick 相位文本。</para>
+        /// </summary>
+        /// <param name="system">系统。</param>
+        internal static string GetTickPhasesText(object system) => GameModuleTickRegistry.GetTickPhasesText(system);
+
+        /// <summary>
+        ///   <para>尝试进入一次 Tick 执行。</para>
         /// </summary>
         private bool TryEnterTick()
         {
             lock (m_TickBarrierLock)
             {
-                if (IsDisposedOrDisposing || m_IsChanging != 0) return false;
+                if (IsDisposedOrDisposing || m_TickPauseDepth != 0) return false;
                 m_ActiveTickCount++;
                 return true;
             }
         }
 
         /// <summary>
-        ///   <para>结束一次 Tick 执行并在空闲时唤醒等待释放的线程</para>
+        ///   <para>结束一次 Tick 执行并在空闲时唤醒等待释放的线程。</para>
         /// </summary>
         private void ExitTick()
         {
@@ -1062,8 +1176,9 @@ namespace Verve
         }
 
         /// <summary>
-        ///   <para>把容器释放期间收集到的异常统一抛出</para>
+        ///   <para>把容器释放期间收集到的异常统一抛出。</para>
         /// </summary>
+        /// <param name="errors">错误。</param>
         private static void ThrowDisposeErrors(List<Exception> errors)
         {
             if (errors == null || errors.Count == 0) return;

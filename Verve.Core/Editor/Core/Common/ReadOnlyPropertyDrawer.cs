@@ -4,36 +4,21 @@ namespace Verve.Editor
 {
     using UnityEditor;
     using UnityEngine;
-    using System.Collections;
-    using System.Collections.Generic;
-
     
+    /// <summary>
+    ///   <para>只读属性绘制器。</para>
+    /// </summary>
     [CustomPropertyDrawer(typeof(ReadOnlyAttribute))]
     sealed class ReadOnlyPropertyDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            bool isCollectionType = 
-                fieldInfo.FieldType.IsArray || 
-                (fieldInfo.FieldType.IsGenericType && 
-                 (fieldInfo.FieldType.GetGenericTypeDefinition() == typeof(List<>) ||
-                  fieldInfo.FieldType.GetGenericTypeDefinition() == typeof(HashSet<>) ||
-                  fieldInfo.FieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>))) ||
-                typeof(ICollection).IsAssignableFrom(fieldInfo.FieldType);
-
-            if (isCollectionType)
-            {
-                EditorGUI.BeginDisabledGroup(true);
+            using (new EditorGUI.DisabledScope(true))
                 EditorGUI.PropertyField(position, property, label, true);
-                EditorGUI.EndDisabledGroup();
-            }
-            else
-            {
-                GUI.enabled = false;
-                EditorGUI.PropertyField(position, property, label, true);
-                GUI.enabled = true;
-            }
         }
+
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+            => EditorGUI.GetPropertyHeight(property, label, true);
     }
 }
     

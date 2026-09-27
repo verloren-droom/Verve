@@ -1,0 +1,11 @@
+# 端点创建时加载；省略字段采用默认值，拼写错误或无效值会报错。
+# 宿主显式调用 reload 后，仅下面两个接收速率字段可在线更新。
+# 重载同样使用默认值补全省略字段；非默认的固定字段必须保留。
+# 证书、私钥与监听地址由宿主单独提供。
+max_frame = 65536
+max_state_bytes = 8388608
+queue_frames = 32
+max_connections = 128
+frames_per_second = 2048
+bytes_per_second = 16777216
+timeout_ms = 10000

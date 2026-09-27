@@ -3,481 +3,356 @@
 namespace Verve
 {
     using System;
-    using UnityEngine;
-    using System.Threading;
     using System.Collections;
+    using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
-    using System.Runtime.CompilerServices;
-    
-    
+    using UnityEngine;
+
     /// <summary>
-    ///   <para>协程扩展</para>
+    ///   <para>协程转换扩展；适配 <see cref="System.Threading.Tasks.Task"/>、<see cref="System.Threading.Tasks.ValueTask"/> 与 Unity 等待机制。</para>
     /// </summary>
     public static class CoroutineExtension
     {
-        private static SynchronizationContext s_CurrentContext;
-        
-        /// <summary>
-        ///   <para>检查当前是否在Unity主线程</para>
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool IsOnMainThread()
-        {
-            return SynchronizationContext.Current == s_CurrentContext;
-        }
-
-        private static SynchronizationContext CurrentContext
-        {
-            get
-            {
-                s_CurrentContext ??= SynchronizationContext.Current;
-                return s_CurrentContext;
-            }
-        }
-
 #if UNITY_2023_1_OR_NEWER
-        public static Awaitable AsAwaitable(this Task self, Action onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
+        /// <summary>
+        ///   <para>转换为可等待操作。</para>
+        /// </summary>
+        /// <param name="self">目标对象。</param>
+        /// <param name="onComplete">完成回调。</param>
+        /// <param name="onError">错误回调。</param>
+        /// <param name="token">取消令牌。</param>
+        public static async Awaitable AsAwaitable(this Task self, Action onComplete = null,
+            Action<Exception> onError = null, CancellationToken token = default)
         {
-            if (self == null) return default;
-
-            var source = new AwaitableCompletionSource();
-            var completed = 0;
-
-            void TryComplete(Action action)
+            Game.ThrowIfNotOnMainThread(nameof(AsAwaitable));
+            try
             {
-                if (Interlocked.Exchange(ref completed, 1) != 0) return;
-                action();
+                await self.WaitWithCancellationAsync(token);
+                onComplete?.Invoke();
             }
-
-            if (token.CanBeCanceled)
+            catch (Exception error)
             {
-                token.Register(() =>
-                {
-                    TryComplete(() =>
-                    {
-                        source.SetCanceled();
-                        if (onError != null) InvokeOnContext(onError, new OperationCanceledException(token));
-                    });
-                });
+                onError?.Invoke(error);
+                throw;
             }
-
-            self.ContinueWith(t =>
-            {
-                if (t.IsCanceled || token.IsCancellationRequested)
-                {
-                    TryComplete(() =>
-                    {
-                        source.SetCanceled();
-                        if (onError != null) InvokeOnContext(onError, new OperationCanceledException(token));
-                    });
-                    return;
-                }
-
-                if (t.IsFaulted)
-                {
-                    var exception = t.Exception?.Flatten().InnerException ?? t.Exception;
-                    TryComplete(() =>
-                    {
-                        source.SetException(exception);
-                        if (onError != null) InvokeOnContext(onError, exception);
-                        else InvokeOnContext(() => Debug.LogException(exception));
-                    });
-                    return;
-                }
-
-                TryComplete(() =>
-                {
-                    source.SetResult();
-                    if (onComplete != null) InvokeOnContext(onComplete);
-                });
-            }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
-
-            return source.Awaitable;
         }
 
-        public static Awaitable<T> AsAwaitable<T>(this Task<T> self, Action<T> onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
-        {
-            if (self == null) return default;
-
-            var source = new AwaitableCompletionSource<T>();
-            var completed = 0;
-
-            void TryComplete(Action action)
-            {
-                if (Interlocked.Exchange(ref completed, 1) != 0) return;
-                action();
-            }
-
-            if (token.CanBeCanceled)
-            {
-                token.Register(() =>
-                {
-                    TryComplete(() =>
-                    {
-                        source.SetCanceled();
-                        if (onError != null) InvokeOnContext(onError, new OperationCanceledException(token));
-                    });
-                });
-            }
-
-            self.ContinueWith(t =>
-            {
-                if (t.IsCanceled || token.IsCancellationRequested)
-                {
-                    TryComplete(() =>
-                    {
-                        source.SetCanceled();
-                        if (onError != null) InvokeOnContext(onError, new OperationCanceledException(token));
-                    });
-                    return;
-                }
-
-                if (t.IsFaulted)
-                {
-                    var exception = t.Exception?.Flatten().InnerException ?? t.Exception;
-                    TryComplete(() =>
-                    {
-                        source.SetException(exception);
-                        if (onError != null) InvokeOnContext(onError, exception);
-                        else InvokeOnContext(() => Debug.LogException(exception));
-                    });
-                    return;
-                }
-
-                TryComplete(() =>
-                {
-                    source.SetResult(t.Result);
-                    if (onComplete != null) InvokeOnContext(onComplete, t.Result);
-                });
-            }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
-
-            return source.Awaitable;
-        }
-
-        public static Awaitable AsAwaitable(this ValueTask self, Action onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
-        {
-            return self.AsTask().AsAwaitable(onComplete, onError, token);
-        }
-
-        public static Awaitable<T> AsAwaitable<T>(this ValueTask<T> self, Action<T> onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
-        {
-            return self.AsTask().AsAwaitable(onComplete, onError, token);
-        }
+        /// <summary>
+        ///   <para>转换为可等待操作。</para>
+        /// </summary>
+        /// <param name="self">目标对象。</param>
+        /// <param name="onComplete">完成回调。</param>
+        /// <param name="onError">错误回调。</param>
+        /// <param name="token">取消令牌。</param>
+        public static Awaitable AsAwaitable(this ValueTask self, Action onComplete = null,
+            Action<Exception> onError = null, CancellationToken token = default)
+            => self.AsTask().AsAwaitable(onComplete, onError, token);
 #endif
 
         /// <summary>
-        ///   <para>将异步转为Unity协程</para>
+        ///   <para>转换为协程迭代器。</para>
         /// </summary>
-        /// <param name="self">异步任务</param>
-        /// <param name="onComplete">任务完成回调</param>
-        /// <param name="onError">任务错误回调</param>
-        /// <param name="token">取消任务</param>
-        public static IEnumerator AsIEnumerator(this Task self, Action onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
+        /// <param name="self">目标对象。</param>
+        /// <param name="onComplete">完成回调。</param>
+        /// <param name="onError">错误回调。</param>
+        /// <param name="token">取消令牌。</param>
+        public static IEnumerator AsIEnumerator(this Task self, Action onComplete = null,
+            Action<Exception> onError = null, CancellationToken token = default)
         {
-            if (self == null) yield break;
-
-            // while (!self.IsCompleted && !token.IsCancellationRequested) yield return null;
-            yield return new WaitUntil(() => self.IsCompleted || token.IsCancellationRequested);
-            
-            if (token.IsCancellationRequested)
+            if (self == null) throw new ArgumentNullException(nameof(self));
+            while (!self.IsCompleted && !token.IsCancellationRequested) yield return null;
+            Exception failure = null;
+            try
             {
-                onError?.Invoke(new OperationCanceledException(token));
+                token.ThrowIfCancellationRequested();
+                self.GetAwaiter().GetResult();
             }
-            else if (self.IsFaulted)
+            catch (Exception error) { failure = error; }
+            if (failure != null)
             {
-                var exception = self.Exception?.Flatten().InnerException ?? self.Exception;
-                if (onError != null) InvokeOnContext(onError, exception);
-                else InvokeOnContext(() => Debug.LogException(exception));
+                if (onError == null) ExceptionUtility.Rethrow(failure);
+                else onError(failure);
             }
-            else if (onComplete != null && self.IsCompletedSuccessfully)
-            {
-                InvokeOnContext(onComplete);
-            }
-        }
-        
-        /// <summary>
-        ///   <para>将异步转为Unity协程</para>
-        /// </summary>
-        /// <typeparam name="T">异步结果类型</typeparam>
-        /// <param name="self">异步任务</param>
-        /// <param name="onComplete">任务完成回调</param>
-        /// <param name="onError">任务错误回调</param>
-        /// <param name="token">取消任务</param>
-        public static IEnumerator AsIEnumerator<T>(this Task<T> self, Action<T> onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
-        {
-            if (self == null) yield break;
-            
-            // while (!self.IsCompleted && !token.IsCancellationRequested) yield return null;
-            yield return new WaitUntil(() => self.IsCompleted || token.IsCancellationRequested);
-            
-            if (token.IsCancellationRequested)
-            {
-                onError?.Invoke(new OperationCanceledException(token));
-            }
-            else if (self.IsFaulted)
-            {
-                var exception = self.Exception?.Flatten().InnerException ?? self.Exception;
-                if (onError != null) InvokeOnContext(onError, exception);
-                else InvokeOnContext(() => Debug.LogException(exception));
-            }
-            else if (onComplete != null && self.IsCompletedSuccessfully)
-            {
-                InvokeOnContext(onComplete, self.Result);
-            }
+            else onComplete?.Invoke();
         }
 
         /// <summary>
-        ///   <para>将异步转为Unity协程</para>
+        ///   <para>转换为协程迭代器。</para>
         /// </summary>
-        /// <typeparam name="T">异步结果类型</typeparam>
-        /// <param name="self">异步任务</param>
-        /// <param name="onComplete">任务完成回调</param>
-        /// <param name="onError">任务错误回调</param>
-        /// <param name="token">取消任务</param>
+        /// <param name="self">目标对象。</param>
+        /// <param name="onComplete">完成回调。</param>
+        /// <param name="onError">错误回调。</param>
+        /// <param name="token">取消令牌。</param>
         public static IEnumerator AsIEnumerator(this ValueTask self, Action onComplete = null,
             Action<Exception> onError = null, CancellationToken token = default)
-        {
-            if (self == null) yield break;
-            
-            // while (!self.IsCompleted && !token.IsCancellationRequested) yield return null;
-            yield return new WaitUntil(() => self.IsCompleted || token.IsCancellationRequested);
-            
-            if (token.IsCancellationRequested)
-            {
-                onError?.Invoke(new OperationCanceledException(token));
-            }
-            else if (self.IsFaulted)
-            {
-                try
-                {
-                    var task = self.Preserve().AsTask();
-                    var exception = task.Exception?.Flatten().InnerException ?? task.Exception;
-                    if (onError != null) InvokeOnContext(onError, exception);
-                    else InvokeOnContext(() => Debug.LogException(exception));
-                }
-                catch (Exception ex)
-                {
-                    if (onError != null) InvokeOnContext(onError, ex);
-                    else InvokeOnContext(() => Debug.LogException(ex));
-                }
-            }
-            else if (onComplete != null && self.IsCompletedSuccessfully)
-            {
-                InvokeOnContext(onComplete);
-            }
-        }
+            => self.AsTask().AsIEnumerator(onComplete, onError, token);
 
         /// <summary>
-        ///   <para>将异步转为Unity协程</para>
+        ///   <para>启动协程。</para>
         /// </summary>
-        /// <typeparam name="T">异步结果类型</typeparam>
-        /// <param name="self">异步任务</param>
-        /// <param name="onComplete">任务完成回调</param>
-        /// <param name="onError">任务错误回调</param>
-        /// <param name="token">取消任务</param>
-        public static IEnumerator AsIEnumerator<T>(this ValueTask<T> self, Action<T> onComplete = null,
+        /// <param name="self">目标对象。</param>
+        /// <param name="onComplete">完成回调。</param>
+        /// <param name="onError">错误回调。</param>
+        /// <param name="token">取消令牌。</param>
+        public static CoroutineOperation AsCoroutine(this Task self, Action onComplete = null,
+            Action<Exception> onError = null, CancellationToken token = default)
+            => new(ct => self.AsIEnumerator(onComplete, onError, ct), token);
+
+        /// <summary>
+        ///   <para>启动协程。</para>
+        /// </summary>
+        /// <param name="self">目标对象。</param>
+        /// <param name="onComplete">完成回调。</param>
+        /// <param name="onError">错误回调。</param>
+        /// <param name="token">取消令牌。</param>
+        public static CoroutineOperation AsCoroutine(this ValueTask self, Action onComplete = null,
+            Action<Exception> onError = null, CancellationToken token = default)
+            => self.AsTask().AsCoroutine(onComplete, onError, token);
+
+#if UNITY_2023_1_OR_NEWER
+        /// <summary>
+        ///   <para>转换为可等待操作。</para>
+        /// </summary>
+        /// <param name="self">目标对象。</param>
+        /// <param name="onComplete">完成回调。</param>
+        /// <param name="onError">错误回调。</param>
+        /// <param name="token">取消令牌。</param>
+        /// <typeparam name="T">数据类型。</typeparam>
+        public static async Awaitable<T> AsAwaitable<T>(this Task<T> self, Action<T> onComplete = null,
             Action<Exception> onError = null, CancellationToken token = default)
         {
-            if (self == null) yield break;
-            
-            // while (!self.IsCompleted && !token.IsCancellationRequested) yield return null;
-            yield return new WaitUntil(() => self.IsCompleted || token.IsCancellationRequested);
-            
-            if (token.IsCancellationRequested)
+            Game.ThrowIfNotOnMainThread(nameof(AsAwaitable));
+            try
             {
-                onError?.Invoke(new OperationCanceledException(token));
+                var result = await self.WaitWithCancellationAsync(token);
+                onComplete?.Invoke(result);
+                return result;
             }
-            else if (self.IsFaulted)
+            catch (Exception error)
             {
-                try
-                {
-                    var task = self.Preserve().AsTask();
-                    var exception = task.Exception?.Flatten().InnerException ?? task.Exception;
-                    if (onError != null) InvokeOnContext(onError, exception);
-                    else InvokeOnContext(() => Debug.LogException(exception));
-                }
-                catch (Exception ex)
-                {
-                    if (onError != null) InvokeOnContext(onError, ex);
-                    else InvokeOnContext(() => Debug.LogException(ex));
-                }
-            }
-            else if (onComplete != null && self.IsCompletedSuccessfully)
-            {
-                InvokeOnContext(onComplete, self.Result);
+                onError?.Invoke(error);
+                throw;
             }
         }
-        
-        /// <summary>
-        ///   <para>在主线程执行</para>
-        /// </summary>
-        /// <param name="action"></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InvokeOnContext(Action action)
-        {
-            if (action == null) return;
-            if (IsOnMainThread()) action();
-            else CurrentContext.Post(_ => action(), null);
-        }
-    
-        /// <summary>
-        ///   <para>在主线程执行</para>
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InvokeOnContext<T>(Action<T> action, T arg)
-        {
-            if (action == null) return;
-            if (IsOnMainThread()) action(arg);
-            else CurrentContext.Post(_ => action(arg), null);
-        }
-        
-        /// <summary>
-        ///   <para>将异步转为Unity协程</para>
-        /// </summary>
-        /// <param name="self">异步任务</param>
-        /// <param name="onComplete">任务完成回调</param>
-        /// <param name="onError">任务错误回调</param>
-        /// <param name="token">取消任务</param>
-        /// <returns>
-        ///   <para>协程句柄</para>
-        /// </returns>
-        public static CoroutineOperation AsCoroutine(this Task self, Action onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
-        {
-            var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            var coroutine = CoroutineRunner.Instance.StartCoroutine(self.AsIEnumerator(onComplete, onError, cts.Token));
-            return new CoroutineOperation(coroutine, cts);
-        }
-        
-        /// <summary>
-        ///   <para>将异步转为Unity协程</para>
-        /// </summary>
-        /// <typeparam name="T">异步结果类型</typeparam>
-        /// <param name="self">异步任务</param>
-        /// <param name="onComplete">任务完成回调</param>
-        /// <param name="onError">任务错误回调</param>
-        /// <param name="token">取消任务</param>
-        /// <returns>
-        ///   <para>协程句柄</para>
-        /// </returns>
-        public static CoroutineOperation AsCoroutine<T>(this Task<T> self, Action<T> onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
-        {
-            var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            var coroutine = CoroutineRunner.Instance.StartCoroutine(self.AsIEnumerator(onComplete, onError, cts.Token));
-            return new CoroutineOperation(coroutine, cts);
-        }
-        
-        /// <summary>
-        ///   <para>将异步转为Unity协程</para>
-        /// </summary>
-        /// <param name="self">异步任务</param>
-        /// <param name="onComplete">任务完成回调</param>
-        /// <param name="onError">任务错误回调</param>
-        /// <param name="token">取消任务</param>
-        /// <returns>
-        ///   <para>协程句柄</para>
-        /// </returns>
-        public static CoroutineOperation AsCoroutine(this ValueTask self, Action onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
-        {
-            var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            var coroutine = CoroutineRunner.Instance.StartCoroutine(self.AsIEnumerator(onComplete, onError, cts.Token));
-            return new CoroutineOperation(coroutine, cts);
-        }
 
         /// <summary>
-        ///   <para>将异步转为Unity协程</para>
+        ///   <para>转换为可等待操作。</para>
         /// </summary>
-        /// <typeparam name="T">异步结果类型</typeparam>
-        /// <param name="self">异步任务</param>
-        /// <param name="onComplete">任务完成回调</param>
-        /// <param name="onError">任务错误回调</param>
-        /// <param name="token">取消任务</param>
-        /// <returns>
-        ///   <para>协程句柄</para>
-        /// </returns>
-        public static CoroutineOperation AsCoroutine<T>(this ValueTask<T> self, Action<T> onComplete = null, Action<Exception> onError = null, CancellationToken token = default)
-        {
-            var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            var coroutine = CoroutineRunner.Instance.StartCoroutine(self.AsIEnumerator(onComplete, onError, cts.Token));
-            return new CoroutineOperation(coroutine, cts);
-        }
-    }
-    
-    
-    /// <summary>
-    ///   <para>协程操作句柄</para>
-    /// </summary>
-    public struct CoroutineOperation : IDisposable
-    {
-        private Coroutine m_Coroutine;
-        private CancellationTokenSource m_CancellationTokenSource;
-        private bool m_IsDisposed;
-
-        public Coroutine Coroutine => m_Coroutine;
-        public CancellationToken CancellationToken => m_CancellationTokenSource?.Token ?? default;
-        public bool IsRunning => m_Coroutine != null && !m_IsDisposed;
-        public bool IsCancellationRequested => m_CancellationTokenSource?.IsCancellationRequested ?? false;
-
-        internal CoroutineOperation(Coroutine coroutine, CancellationTokenSource cts)
-        {
-            m_Coroutine = coroutine;
-            m_CancellationTokenSource = cts;
-            m_IsDisposed = false;
-        }
+        /// <param name="self">目标对象。</param>
+        /// <param name="onComplete">完成回调。</param>
+        /// <param name="onError">错误回调。</param>
+        /// <param name="token">取消令牌。</param>
+        /// <typeparam name="T">数据类型。</typeparam>
+        public static Awaitable<T> AsAwaitable<T>(this ValueTask<T> self, Action<T> onComplete = null,
+            Action<Exception> onError = null, CancellationToken token = default)
+            => self.AsTask().AsAwaitable(onComplete, onError, token);
+#endif
 
         /// <summary>
-        ///   <para>停止协程操作</para>
+        ///   <para>转换为协程迭代器。</para>
         /// </summary>
-        public void Stop()
+        /// <param name="self">目标对象。</param>
+        /// <param name="onComplete">完成回调。</param>
+        /// <param name="onError">错误回调。</param>
+        /// <param name="token">取消令牌。</param>
+        /// <typeparam name="T">数据类型。</typeparam>
+        public static IEnumerator AsIEnumerator<T>(this Task<T> self, Action<T> onComplete = null,
+            Action<Exception> onError = null, CancellationToken token = default)
         {
-            if (m_IsDisposed) return;
-
-            m_CancellationTokenSource?.Cancel();
-            
-            if (m_Coroutine != null && CoroutineRunner.Instance != null)
+            if (self == null) throw new ArgumentNullException(nameof(self));
+            while (!self.IsCompleted && !token.IsCancellationRequested) yield return null;
+            Exception failure = null;
+            T result = default;
+            try
             {
-                CoroutineRunner.Instance.StopCoroutine(m_Coroutine);
+                token.ThrowIfCancellationRequested();
+                result = self.GetAwaiter().GetResult();
             }
-                
-            Dispose();
+            catch (Exception error) { failure = error; }
+            if (failure != null)
+            {
+                if (onError == null) ExceptionUtility.Rethrow(failure);
+                else onError(failure);
+            }
+            else onComplete?.Invoke(result);
         }
 
-        public void Dispose()
-        {
-            if (m_IsDisposed) return;
-                
-            m_CancellationTokenSource?.Cancel();
-            m_CancellationTokenSource?.Dispose();
-            m_CancellationTokenSource = null;
-            m_Coroutine = null;
-            m_IsDisposed = true;
-        }
+        /// <summary>
+        ///   <para>转换为协程迭代器。</para>
+        /// </summary>
+        /// <param name="self">目标对象。</param>
+        /// <param name="onComplete">完成回调。</param>
+        /// <param name="onError">错误回调。</param>
+        /// <param name="token">取消令牌。</param>
+        /// <typeparam name="T">数据类型。</typeparam>
+        public static IEnumerator AsIEnumerator<T>(this ValueTask<T> self, Action<T> onComplete = null,
+            Action<Exception> onError = null, CancellationToken token = default)
+            => self.AsTask().AsIEnumerator(onComplete, onError, token);
+
+        /// <summary>
+        ///   <para>启动协程。</para>
+        /// </summary>
+        /// <param name="self">目标对象。</param>
+        /// <param name="onComplete">完成回调。</param>
+        /// <param name="onError">错误回调。</param>
+        /// <param name="token">取消令牌。</param>
+        /// <typeparam name="T">数据类型。</typeparam>
+        public static CoroutineOperation AsCoroutine<T>(this Task<T> self, Action<T> onComplete = null,
+            Action<Exception> onError = null, CancellationToken token = default)
+            => new(ct => self.AsIEnumerator(onComplete, onError, ct), token);
+
+        /// <summary>
+        ///   <para>启动协程。</para>
+        /// </summary>
+        /// <param name="self">目标对象。</param>
+        /// <param name="onComplete">完成回调。</param>
+        /// <param name="onError">错误回调。</param>
+        /// <param name="token">取消令牌。</param>
+        /// <typeparam name="T">数据类型。</typeparam>
+        public static CoroutineOperation AsCoroutine<T>(this ValueTask<T> self, Action<T> onComplete = null,
+            Action<Exception> onError = null, CancellationToken token = default)
+            => self.AsTask().AsCoroutine(onComplete, onError, token);
+
     }
 
+    /// <summary>
+    ///   <para>协程操作句柄；拥有协程与取消源，结束后不再运行。</para>
+    /// </summary>
+    public sealed class CoroutineOperation : DisposableObject
+    {
+        /// <summary>
+        ///   <para>执行器。</para>
+        /// </summary>
+        private readonly CoroutineRunner m_Runner;
+        /// <summary>
+        ///   <para>取消源。</para>
+        /// </summary>
+        private CancellationTokenSource m_Cancellation;
+        /// <summary>
+        ///   <para>协程迭代器；停止时显式释放，不依赖 Unity 调用迭代器清理。</para>
+        /// </summary>
+        private IEnumerator m_Routine;
+        /// <summary>
+        ///   <para>协程。</para>
+        /// </summary>
+        public Coroutine Coroutine { get; private set; }
+        /// <summary>
+        ///   <para>取消令牌。</para>
+        /// </summary>
+        public CancellationToken CancellationToken { get; }
+        /// <summary>
+        ///   <para>是否正在运行。</para>
+        /// </summary>
+        public bool IsRunning { get; private set; }
+        /// <summary>
+        ///   <para>是否已请求取消。</para>
+        /// </summary>
+        public bool IsCancellationRequested => CancellationToken.IsCancellationRequested;
+
+        /// <summary>
+        ///   <para>创建协程操作句柄。</para>
+        /// </summary>
+        /// <param name="routine">协程。</param>
+        /// <param name="token">取消令牌。</param>
+        internal CoroutineOperation(Func<CancellationToken, IEnumerator> routine, CancellationToken token)
+        {
+            Game.ThrowIfNotOnMainThread(nameof(CoroutineOperation));
+            m_Runner = CoroutineRunner.Instance;
+            m_Cancellation = CancellationTokenSource.CreateLinkedTokenSource(token);
+            CancellationToken = m_Cancellation.Token;
+            IsRunning = true;
+            try
+            {
+                m_Routine = routine(CancellationToken);
+                m_Runner.Operations.Add(this);
+                var coroutine = m_Runner.StartCoroutine(Run(m_Routine));
+                if (IsRunning) Coroutine = coroutine;
+            }
+            catch (Exception failure)
+            {
+                try { Dispose(); }
+                catch (Exception cleanup) { throw ExceptionUtility.Combine(failure, cleanup); }
+                throw;
+            }
+        }
+
+        /// <summary>
+        ///   <para>停止操作。</para>
+        /// </summary>
+        public void Stop() => Dispose();
+
+        /// <inheritdoc />
+        protected override void OnDispose()
+        {
+            Game.ThrowIfNotOnMainThread(nameof(CoroutineOperation));
+            var cancellation = m_Cancellation;
+            m_Cancellation = null;
+            List<Exception> errors = null;
+            try { cancellation?.Cancel(); }
+            catch (Exception error) { ExceptionUtility.Add(ref errors, error); }
+            try
+            {
+                if (IsRunning && Coroutine != null && m_Runner != null) m_Runner.StopCoroutine(Coroutine);
+            }
+            catch (Exception error) { ExceptionUtility.Add(ref errors, error); }
+            try { Complete(); }
+            catch (Exception error) { ExceptionUtility.Add(ref errors, error); }
+            finally { cancellation?.Dispose(); }
+            ExceptionUtility.ThrowIfAny(errors);
+        }
+
+        /// <summary>
+        ///   <para>执行操作。</para>
+        /// </summary>
+        /// <param name="routine">协程。</param>
+        private IEnumerator Run(IEnumerator routine)
+        {
+            try
+            {
+                while (IsRunning && routine.MoveNext() && IsRunning) yield return routine.Current;
+            }
+            finally { Complete(); }
+        }
+
+        /// <summary>
+        ///   <para>结束操作并解除执行器所有权。</para>
+        /// </summary>
+        private void Complete()
+        {
+            IsRunning = false;
+            Coroutine = null;
+            m_Runner.Operations.Remove(this);
+            var routine = m_Routine;
+            m_Routine = null;
+            var cancellation = m_Cancellation;
+            m_Cancellation = null;
+            try { (routine as IDisposable)?.Dispose(); }
+            finally { cancellation?.Dispose(); }
+        }
+    }
 
     /// <summary>
-    ///   <para>协程运行器</para>
+    ///   <para>协程执行组件。</para>
     /// </summary>
-    [DisallowMultipleComponent]
-    class CoroutineRunner : ComponentInstanceBase<CoroutineRunner>
+    [DisallowMultipleComponent, AddComponentMenu("")]
+    internal sealed class CoroutineRunner : ComponentInstanceBase<CoroutineRunner>
     {
-        // private static int? s_MainThreadId;
-        //
-        // /// <summary>
-        // ///   <para>当前线程是否是主线程</para>
-        // /// </summary>
-        // public static bool IsMainThread
-        // {
-        //     get
-        //     {
-        //         s_MainThreadId ??= Thread.CurrentThread.ManagedThreadId;
-        //         return Thread.CurrentThread.ManagedThreadId == s_MainThreadId.Value;
-        //     }
-        // }
-        
+        /// <summary>
+        ///   <para>运行中的操作；执行器销毁时全部停止。</para>
+        /// </summary>
+        internal readonly List<CoroutineOperation> Operations = new();
+
         protected override void OnInitialized()
         {
             base.OnInitialized();
             gameObject.hideFlags = HideFlags.HideAndDontSave;
+        }
+
+        protected override void OnDestroy()
+        {
+            try { ResourceUtility.ReleaseAll(Operations, operation => operation.Dispose()); }
+            finally { base.OnDestroy(); }
         }
     }
 }

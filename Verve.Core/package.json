@@ -2,7 +2,7 @@
   "name": "com.benfach.verve.core",
   "displayName": "Verve Core",
   "version": "0.0.1-beta",
-  "unity": "2018.1",
+  "unity": "2021.3",
   "description": "A .NET development framework.",
   "author": {
     "name": "Benfach"
@@ -16,5 +16,22 @@
     "url": "https://github.com/verloren-droom/Verve.git"
   },
   "documentationUrl": "https://verloren-droom.github.io/Verve",
-  "samples": []
+  "dependencies": {
+    "com.unity.addressables": "1.21.19",
+    "com.unity.ugui": "1.0.0",
+    "com.unity.modules.audio": "1.0.0",
+    "com.unity.modules.imgui": "1.0.0",
+    "com.unity.nuget.newtonsoft-json": "3.0.2",
+    "com.unity.modules.assetbundle": "1.0.0",
+    "com.unity.modules.jsonserialize": "1.0.0",
+    "com.unity.modules.unitywebrequest": "1.0.0",
+    "com.unity.modules.unitywebrequestassetbundle": "1.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "Verve Samples",
+      "description": "Basic Verve Core samples.",
+      "path": "Samples~"
+    }
+  ]
 }

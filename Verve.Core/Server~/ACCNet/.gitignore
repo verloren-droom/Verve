@@ -1,0 +1,8 @@
+/target/
+**/bin/
+**/obj/
+*.key
+*.pem
+*.der
+*.class
+.DS_Store

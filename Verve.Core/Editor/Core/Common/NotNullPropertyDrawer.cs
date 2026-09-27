@@ -5,6 +5,9 @@ namespace Verve.Editor
     using UnityEngine;
     using UnityEditor;
     
+    /// <summary>
+    ///   <para>非空属性绘制器。</para>
+    /// </summary>
     [CustomPropertyDrawer(typeof(NotNullAttribute))]
     sealed class NotNullPropertyDrawer : PropertyDrawer
     {
