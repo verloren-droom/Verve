@@ -2,18 +2,18 @@ name: Unity Tests
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
     paths:
-      - 'Verve.Core/**'
-      - '.github/workflows/tests.yml'
+      - "Verve.Core/**"
+      - ".github/workflows/tests.yml"
   pull_request:
     paths:
-      - 'Verve.Core/**'
-      - '.github/workflows/tests.yml'
+      - "Verve.Core/**"
+      - ".github/workflows/tests.yml"
   workflow_dispatch:
 
 env:
-  TEST_PROJECT_PATH: '.ci/unity-project'
+  TEST_PROJECT_PATH: ".ci/unity-project"
 
 concurrency:
   group: unity-tests-${{ github.ref }}
@@ -33,17 +33,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - unityVersion: '2021.3.21f1c1'
-            testFrameworkVersion: '1.3.3'
+          - unityVersion: "2021.3.21f1"
+            unityImage: "unityci/editor:ubuntu-2021.3.21f1-linux-il2cpp-1"
+            testFrameworkVersion: "1.3.3"
             testMode: editmode
-          - unityVersion: '2021.3.21f1c1'
-            testFrameworkVersion: '1.3.3'
+          - unityVersion: "2021.3.21f1"
+            unityImage: "unityci/editor:ubuntu-2021.3.21f1-linux-il2cpp-1"
+            testFrameworkVersion: "1.3.3"
             testMode: playmode
-          - unityVersion: '6000.3.7f1'
-            testFrameworkVersion: '1.6.0'
+          - unityVersion: "6000.3.7f1"
+            unityImage: "unityci/editor:ubuntu-6000.3.7f1-linux-il2cpp-3"
+            testFrameworkVersion: "1.6.0"
             testMode: editmode
-          - unityVersion: '6000.3.7f1'
-            testFrameworkVersion: '1.6.0'
+          - unityVersion: "6000.3.7f1"
+            unityImage: "unityci/editor:ubuntu-6000.3.7f1-linux-il2cpp-3"
+            testFrameworkVersion: "1.6.0"
             testMode: playmode
 
     steps:
@@ -83,6 +87,7 @@ jobs:
         with:
           projectPath: ${{ env.TEST_PROJECT_PATH }}
           unityVersion: ${{ env.UNITY_VERSION }}
+          customImage: ${{ matrix.unityImage }}
           testMode: ${{ matrix.testMode }}
           artifactsPath: artifacts/${{ matrix.unityVersion }}/${{ matrix.testMode }}
           githubToken: ${{ secrets.GITHUB_TOKEN }}
