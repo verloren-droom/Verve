@@ -1312,7 +1312,7 @@ namespace Verve.Editor
         private static ConfigTableSource LoadCsvSource(string filePath, string text)
         {
             var tableName = GetTableNameFromFilePath(filePath);
-            var rows = Game.CsvUtility.Parse(text);
+            var rows = Game.Csv.Parse(text);
             if (rows.Count < 5)
             {
                 throw new InvalidDataException("配置表至少需要 5 行元数据：字段、类型、注释、引用、标签。");
@@ -2428,14 +2428,14 @@ namespace Verve.Editor
         {
             var builder = new StringBuilder();
     
-            Game.CsvUtility.AppendRow(builder, source.table.fields);
-            Game.CsvUtility.AppendRow(builder, source.table.types);
-            Game.CsvUtility.AppendRow(builder, source.table.comments);
-            Game.CsvUtility.AppendRow(builder, source.table.references);
-            Game.CsvUtility.AppendRow(builder, source.tags);
+            Game.Csv.AppendRow(builder, source.table.fields);
+            Game.Csv.AppendRow(builder, source.table.types);
+            Game.Csv.AppendRow(builder, source.table.comments);
+            Game.Csv.AppendRow(builder, source.table.references);
+            Game.Csv.AppendRow(builder, source.tags);
             for (int i = 0; i < source.table.rows.Length; i++)
             {
-                Game.CsvUtility.AppendRow(builder, source.table.rows[i].values);
+                Game.Csv.AppendRow(builder, source.table.rows[i].values);
             }
     
             string outputPath = GetCsvPath(source.table.tableName);

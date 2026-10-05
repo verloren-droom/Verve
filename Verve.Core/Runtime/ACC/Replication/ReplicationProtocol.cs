@@ -19,34 +19,35 @@ namespace Verve
         ///   <para>协议标记；小端字节为 VACC。</para>
         /// </summary>
         private const uint Magic = 0x43434156;
+        
         /// <summary>
         ///   <para>是否为首次完整状态。</para>
         /// </summary>
-        internal readonly bool Full;
+        internal readonly bool full;
         /// <summary>
         ///   <para>组件协议指纹。</para>
         /// </summary>
-        internal readonly ulong Schema;
+        internal readonly ulong schema;
         /// <summary>
         ///   <para>当前批次序列；会话内不回绕。</para>
         /// </summary>
-        internal readonly ulong Sequence;
+        internal readonly ulong sequence;
         /// <summary>
         ///   <para>依赖的上一批次。</para>
         /// </summary>
-        internal readonly ulong Baseline;
+        internal readonly ulong baseline;
         /// <summary>
         ///   <para>权威端采样 Tick。</para>
         /// </summary>
-        internal readonly ulong Tick;
+        internal readonly ulong tick;
         /// <summary>
         ///   <para>批次总字节数。</para>
         /// </summary>
-        internal readonly int Total;
+        internal readonly int total;
         /// <summary>
         ///   <para>分片偏移。</para>
         /// </summary>
-        internal readonly int Offset;
+        internal readonly int offset;
 
         /// <summary>
         ///   <para>创建批次包头。</para>
@@ -59,13 +60,13 @@ namespace Verve
         /// <param name="offset">分片偏移。</param>
         internal ReplicationHeader(ulong schema, ulong sequence, ulong baseline, ulong tick, int total, int offset)
         {
-            Full = baseline == 0;
-            Schema = schema;
-            Sequence = sequence;
-            Baseline = baseline;
-            Tick = tick;
-            Total = total;
-            Offset = offset;
+            full = baseline == 0;
+            this.schema = schema;
+            this.sequence = sequence;
+            this.baseline = baseline;
+            this.tick = tick;
+            this.total = total;
+            this.offset = offset;
         }
 
         /// <summary>
@@ -100,14 +101,14 @@ namespace Verve
         {
             BinaryPrimitives.WriteUInt32LittleEndian(packet, Magic);
             packet[4] = 2;
-            packet[5] = Full ? (byte)1 : (byte)2;
+            packet[5] = full ? (byte)1 : (byte)2;
             BinaryPrimitives.WriteUInt16LittleEndian(packet.Slice(6), 0);
-            BinaryPrimitives.WriteUInt64LittleEndian(packet.Slice(8), Schema);
-            BinaryPrimitives.WriteUInt64LittleEndian(packet.Slice(16), Sequence);
-            BinaryPrimitives.WriteUInt64LittleEndian(packet.Slice(24), Baseline);
-            BinaryPrimitives.WriteUInt64LittleEndian(packet.Slice(32), Tick);
-            BinaryPrimitives.WriteUInt32LittleEndian(packet.Slice(40), (uint)Total);
-            BinaryPrimitives.WriteUInt32LittleEndian(packet.Slice(44), (uint)Offset);
+            BinaryPrimitives.WriteUInt64LittleEndian(packet.Slice(8), schema);
+            BinaryPrimitives.WriteUInt64LittleEndian(packet.Slice(16), sequence);
+            BinaryPrimitives.WriteUInt64LittleEndian(packet.Slice(24), baseline);
+            BinaryPrimitives.WriteUInt64LittleEndian(packet.Slice(32), tick);
+            BinaryPrimitives.WriteUInt32LittleEndian(packet.Slice(40), (uint)total);
+            BinaryPrimitives.WriteUInt32LittleEndian(packet.Slice(44), (uint)offset);
         }
     }
 
@@ -120,10 +121,12 @@ namespace Verve
         ///   <para>容量上限。</para>
         /// </summary>
         private readonly int m_Maximum;
+        
         /// <summary>
         ///   <para>连续字节存储。</para>
         /// </summary>
         private byte[] m_Bytes = Array.Empty<byte>();
+        
         /// <summary>
         ///   <para>有效字节数。</para>
         /// </summary>
@@ -159,17 +162,20 @@ namespace Verve
         /// </summary>
         /// <param name="value">整数。</param>
         internal void WriteUInt(uint value) => BinaryPrimitives.WriteUInt32LittleEndian(Append(4), value);
+        
         /// <summary>
         ///   <para>写入实体标识。</para>
         /// </summary>
         /// <param name="id">实体标识。</param>
         internal void WriteId(long id) => BinaryPrimitives.WriteInt64LittleEndian(Append(8), id);
+        
         /// <summary>
         ///   <para>完成预留计数。</para>
         /// </summary>
         /// <param name="offset">计数位置。</param>
         /// <param name="count">计数。</param>
         internal void SetCount(int offset, int count) => BinaryPrimitives.WriteInt32LittleEndian(m_Bytes.AsSpan(offset, 4), count);
+        
         /// <summary>
         ///   <para>清空长度并保留容量。</para>
         /// </summary>
@@ -185,15 +191,18 @@ namespace Verve
         ///   <para>尚未读取的字节。</para>
         /// </summary>
         private ReadOnlySpan<byte> m_Remaining;
+        
         /// <summary>
         ///   <para>剩余字节数。</para>
         /// </summary>
         internal int Remaining => m_Remaining.Length;
+        
         /// <summary>
         ///   <para>创建读取器。</para>
         /// </summary>
         /// <param name="bytes">完整批次。</param>
         internal ReplicationReader(ReadOnlySpan<byte> bytes) => m_Remaining = bytes;
+        
         /// <summary>
         ///   <para>读取区域。</para>
         /// </summary>
@@ -205,10 +214,12 @@ namespace Verve
             m_Remaining = m_Remaining.Slice(size);
             return result;
         }
+        
         /// <summary>
         ///   <para>读取字段 ID。</para>
         /// </summary>
         internal uint ReadUInt() => BinaryPrimitives.ReadUInt32LittleEndian(Read(4));
+        
         /// <summary>
         ///   <para>读取实体 ID。</para>
         /// </summary>
@@ -218,6 +229,7 @@ namespace Verve
             if (id <= 0) throw new InvalidDataException("Replication entity IDs must be positive.");
             return id;
         }
+        
         /// <summary>
         ///   <para>读取有界计数；先验证剩余字节，避免畸形计数触发大分配。</para>
         /// </summary>

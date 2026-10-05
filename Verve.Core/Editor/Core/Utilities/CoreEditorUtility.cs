@@ -4,12 +4,12 @@ namespace Verve.Editor
 {
     using System;
     using System.Text;
-    using System.Reflection;
     using System.Linq;
-    using System.Collections.Generic;
-    using System.Security;
     using UnityEditor;
     using UnityEngine;
+    using System.Security;
+    using System.Reflection;
+    using System.Collections.Generic;
     using UnityEditor.SceneManagement;
     using Object = UnityEngine.Object;
 

@@ -19,6 +19,7 @@ namespace Verve
         ///   <para>传输接管标记；所有条目共享同一值，避免无意义分配。</para>
         /// </summary>
         private static readonly object s_TransportMarker = new();
+        
         /// <summary>
         ///   <para>所属世界。</para>
         /// </summary>
@@ -43,6 +44,7 @@ namespace Verve
         ///   <para>共享候选缓冲区；避免每个连接重复查询标记。</para>
         /// </summary>
         private readonly List<Actor> m_ReplicationCandidates = new();
+        
         /// <summary>
         ///   <para>更新或关闭期间的重入保护。</para>
         /// </summary>
@@ -257,7 +259,7 @@ namespace Verve
         /// <param name="delta">未缩放时间。</param>
         private static void CheckDelta(float delta)
         {
-            if (delta < 0 || float.IsNaN(delta) || float.IsInfinity(delta)) throw new ArgumentOutOfRangeException(nameof(delta));
+            if (delta < 0 || !Game.NumberUtility.IsFinite(delta)) throw new ArgumentOutOfRangeException(nameof(delta));
         }
     }
 }

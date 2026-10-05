@@ -108,17 +108,14 @@ namespace Verve
             get => m_Description;
             set => m_Description = value;
         }
-
         /// <summary>
         ///   <para>能力类型条目列表。</para>
         /// </summary>
         public IReadOnlyList<TypeEntry> CapabilityTypeEntries => m_CapabilityTypes;
-
         /// <summary>
         ///   <para>组件类型条目列表。</para>
         /// </summary>
         public IReadOnlyList<TypeEntry> ComponentTypeEntries => m_ComponentTypes;
-
         /// <summary>
         ///   <para>子表单列表。</para>
         /// </summary>

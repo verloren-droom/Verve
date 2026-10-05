@@ -44,6 +44,7 @@ namespace Verve
                 this.world = world;
             }
         }
+        
         /// <summary>
         ///   <para>发现的模块句柄缓冲区。</para>
         /// </summary>
@@ -111,6 +112,7 @@ namespace Verve
         ///   <para>当前样式文字颜色。</para>
         /// </summary>
         private Color m_StyleFontColor;
+        
         [Preserve]
         public WorldDebugTabWindow(DebugTabWindowSettings settings) : base(settings) { }
 
@@ -480,9 +482,6 @@ namespace Verve
                 }
             }
         }
-
-
-
     }
 }
 

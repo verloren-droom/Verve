@@ -29,6 +29,7 @@ namespace Verve
         ///   <para>保护类型映射及 ID 分配的锁。</para>
         /// </summary>
         private static readonly object s_Lock = new();
+        
         /// <summary>
         ///   <para>当前已注册的能力类型数量。</para>
         /// </summary>
@@ -37,6 +38,7 @@ namespace Verve
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get { lock (s_Lock) return s_TypeToId.Count; }
         }
+        
         /// <summary>
         ///   <para>获取或注册能力类型的进程内标识。</para>
         /// </summary>

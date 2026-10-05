@@ -293,7 +293,7 @@ namespace Verve.Tests.ACC
             slow.Allowance = int.MaxValue;
             pair.Step();
             Assert.That(peer.Sequence, Is.EqualTo(1));
-            Assert.That(ReplicationHeader.Read(slow.Sent[0], 8388608).Full, Is.True);
+            Assert.That(ReplicationHeader.Read(slow.Sent[0], 8388608).full, Is.True);
         }
 
         [TestCase(10000), TestCase(100000)]

@@ -46,10 +46,12 @@ namespace Verve
         ///   <para>协议字段；按显式 ID 排序。</para>
         /// </summary>
         private readonly SortedDictionary<uint, ReplicationComponent> m_Components = new();
+        
         /// <summary>
         ///   <para>冻结后的字段数组。</para>
         /// </summary>
         private ReplicationComponent[] m_Frozen;
+        
         /// <summary>
         ///   <para>协议指纹；覆盖版本、字段 ID 和编码大小。</para>
         /// </summary>
@@ -130,6 +132,7 @@ namespace Verve
         ///   <para>固定编码长度。</para>
         /// </summary>
         internal readonly int Size;
+        
         /// <summary>
         ///   <para>自动编码格式指纹；自定义编码通过项目协议版本区分。</para>
         /// </summary>

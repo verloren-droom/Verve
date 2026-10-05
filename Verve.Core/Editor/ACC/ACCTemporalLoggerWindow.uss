@@ -1,0 +1,23 @@
+#acc-header-resizer {
+    cursor: resize-horizontal;
+}
+
+#acc-content-split > .unity-two-pane-split-view__dragline-anchor,
+#acc-content-split .unity-two-pane-split-view__dragline {
+    cursor: resize-vertical;
+}
+
+#acc-ruler:enabled,
+.acc-scrub-cursor {
+    cursor: slide-arrow;
+}
+
+#acc-ruler.acc-pan-cursor,
+.acc-pan-cursor {
+    cursor: pan;
+}
+
+#acc-ruler.acc-zoom-cursor,
+.acc-zoom-cursor {
+    cursor: zoom;
+}

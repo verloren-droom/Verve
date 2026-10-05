@@ -140,6 +140,11 @@ namespace Verve
         internal int Count => m_Count;
 
         /// <summary>
+        ///   <para>事件写入通知；供日志接收完整事件流，不受环形缓冲区覆盖影响。</para>
+        /// </summary>
+        internal event Action<CapabilityDebugEvent> Recorded;
+
+        /// <summary>
         ///   <para>设置一个调试工具的记录权。</para>
         /// </summary>
         /// <param name="owner">记录权所有者。</param>
@@ -196,7 +201,7 @@ namespace Verve
         /// <param name="error">说明文本。</param>
         private void RecordCore(Actor actor, Capability capability, CapabilityDebugEventKind kind, string error)
         {
-            m_Events[m_NextIndex] = new CapabilityDebugEvent(
+            var item = new CapabilityDebugEvent(
                 ++m_NextSequence,
                 actor,
                 capability.GetType(),
@@ -204,9 +209,11 @@ namespace Verve
                 GetFrame(),
                 GetTime(),
                 error);
+            m_Events[m_NextIndex] = item;
             m_NextIndex = (m_NextIndex + 1) % m_Events.Length;
             if (m_Count < m_Events.Length)
                 m_Count++;
+            Recorded?.Invoke(item);
         }
 
         /// <summary>

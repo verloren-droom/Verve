@@ -13,7 +13,7 @@ namespace Verve
         public static class PathUtility
         {
             /// <summary>
-            ///   <para>项目路径比较器。</para>
+            ///   <para>项目路径比较器；忽略大小写。</para>
             /// </summary>
             public static readonly StringComparer ProjectPathComparer = StringComparer.OrdinalIgnoreCase;
 

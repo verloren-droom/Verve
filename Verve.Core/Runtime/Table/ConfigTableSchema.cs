@@ -807,7 +807,7 @@ namespace Verve
         internal static bool TryParseFloat(string value, out float result)
         {
             return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result) &&
-                !float.IsNaN(result) && !float.IsInfinity(result);
+                Game.NumberUtility.IsFinite(result);
         }
         
         /// <summary>

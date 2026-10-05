@@ -123,9 +123,9 @@ namespace Verve
             Schema = schema ?? throw new ArgumentNullException(nameof(schema));
             if (role != ReplicationRole.Authority && role != ReplicationRole.Replica)
                 throw new ArgumentOutOfRangeException(nameof(role));
-            if (float.IsNaN(sendInterval) || float.IsInfinity(sendInterval) || sendInterval < 0)
+            if (!Game.NumberUtility.IsFinite(sendInterval) || sendInterval < 0)
                 throw new ArgumentOutOfRangeException(nameof(sendInterval));
-            if (float.IsNaN(transferTimeout) || float.IsInfinity(transferTimeout) || transferTimeout <= 0)
+            if (!Game.NumberUtility.IsFinite(transferTimeout) || transferTimeout <= 0)
                 throw new ArgumentOutOfRangeException(nameof(transferTimeout));
             if (maxPacketBytes < 256 || maxPacketBytes > 262144) throw new ArgumentOutOfRangeException(nameof(maxPacketBytes));
             if (maxStateBytes < 12 || maxStateBytes > 64 * 1024 * 1024) throw new ArgumentOutOfRangeException(nameof(maxStateBytes));

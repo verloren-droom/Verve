@@ -43,7 +43,7 @@ namespace Verve
             bool enableStorageThreadSafety,
             float growthFactor)
         {
-            if (float.IsNaN(growthFactor) || float.IsInfinity(growthFactor))
+            if (!Game.NumberUtility.IsFinite(growthFactor))
                 throw new ArgumentOutOfRangeException(nameof(growthFactor));
             this.initialCapacity = Math.Clamp(initialCapacity, MIN_CAPACITY, MAX_CAPACITY);
             this.enableStorageThreadSafety = enableStorageThreadSafety;

@@ -16,5 +16,6 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyInformationalVersion("0.1.0.0-beta")]
 [assembly: InternalsVisibleTo("Verve.Editor")]
 [assembly: InternalsVisibleTo("Verve.Tests")]
+[assembly: InternalsVisibleTo("Verve.Editor.Tests")]
 [assembly: InternalsVisibleTo("Verve.ACC.Editor")]
 [assembly: InternalsVisibleTo("Verve.ACC.Benchmarks")]

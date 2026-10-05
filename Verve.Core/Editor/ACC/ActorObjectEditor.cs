@@ -8,6 +8,7 @@ namespace Verve.Editor
     using UnityEngine;
     using System.Reflection;
     using System.Collections.Generic;
+    using UnityEngine.UIElements;
 
     /// <summary>
     ///   <para><see cref="ActorObject"/> Inspector；配置表单和对象级禁用能力。</para>
@@ -75,6 +76,26 @@ namespace Verve.Editor
 
             EditorGUILayout.Space(4f);
             DrawRuntimeState();
+        }
+
+        /// <inheritdoc />
+        public override VisualElement CreateInspectorGUI()
+        {
+            var root = new VisualElement();
+            root.Add(new IMGUIContainer(OnInspectorGUI));
+            var components = new Foldout { text = "实时组件", value = false };
+            var view = new ACCComponentView();
+            view.style.height = 280f;
+            components.Add(view);
+            root.Add(components);
+            root.schedule.Execute(() =>
+            {
+                var running = Application.isPlaying && m_ActorObject != null && m_ActorObject.IsCreated;
+                components.style.display = running ? DisplayStyle.Flex : DisplayStyle.None;
+                if (!running) view.Refresh(null, Actor.none);
+                else if (components.value) view.Refresh(m_ActorObject.World, m_ActorObject.Actor);
+            }).Every(200);
+            return root;
         }
 
         /// <summary>

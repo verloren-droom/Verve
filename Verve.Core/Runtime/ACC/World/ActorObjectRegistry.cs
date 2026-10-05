@@ -19,11 +19,11 @@ namespace Verve
             /// <summary>
             ///   <para>外部对象。</para>
             /// </summary>
-            internal readonly IActorObject Object;
+            internal readonly IActorObject obj;
             /// <summary>
             ///   <para>解除对象关联的内部回调。</para>
             /// </summary>
-            internal readonly Action Detach;
+            internal readonly Action detach;
 
             /// <summary>
             ///   <para>创建对象登记项。</para>
@@ -32,8 +32,8 @@ namespace Verve
             /// <param name="detach">解除回调。</param>
             internal Registration(IActorObject actorObject, Action detach)
             {
-                Object = actorObject ?? throw new ArgumentNullException(nameof(actorObject));
-                Detach = detach ?? throw new ArgumentNullException(nameof(detach));
+                obj = actorObject ?? throw new ArgumentNullException(nameof(actorObject));
+                this.detach = detach ?? throw new ArgumentNullException(nameof(detach));
             }
         }
 
@@ -63,7 +63,7 @@ namespace Verve
             if (!m_Objects.TryGetValue(actor, out var objects))
                 m_Objects.Add(actor, objects = new List<Registration>(1));
             for (var i = 0; i < objects.Count; i++)
-                if (ReferenceEquals(objects[i].Object, actorObject))
+                if (ReferenceEquals(objects[i].obj, actorObject))
                     throw new InvalidOperationException("The actor object is already registered.");
 
             objects.Add(new Registration(actorObject, detach));
@@ -82,7 +82,7 @@ namespace Verve
             var index = -1;
             for (var i = 0; i < objects.Count; i++)
             {
-                if (!ReferenceEquals(objects[i].Object, actorObject)) continue;
+                if (!ReferenceEquals(objects[i].obj, actorObject)) continue;
                 index = i;
                 break;
             }
@@ -90,7 +90,7 @@ namespace Verve
             var registration = objects[index];
             objects.RemoveAt(index);
             if (objects.Count == 0) m_Objects.Remove(actorObject.Actor);
-            registration.Detach();
+            registration.detach();
             return true;
         }
 
@@ -108,7 +108,7 @@ namespace Verve
             {
                 for (int i = objects.Count - 1; i >= 0; i--)
                 {
-                    try { objects[i].Detach(); }
+                    try { objects[i].detach(); }
                     catch (Exception exception) { (errors ??= new List<Exception>()).Add(exception); }
                 }
             }

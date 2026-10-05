@@ -36,7 +36,7 @@ namespace Verve.Tests.Core
         public void EmptyConfiguration_UsesStatelessDefaults()
         {
             Game.ConfigureTools(new GameToolConfiguration());
-            Assert.That(Game.Serializer, Is.TypeOf<JsonSerializer>());
+            Assert.That(Game.JsonSerializer, Is.TypeOf<JsonSerializer>());
             Assert.That(Game.Compression, Is.TypeOf<GZipCompression>());
             Assert.That(Game.GetTool<ILogger>(), Is.TypeOf<Logger>());
             Assert.That(Game.Crypto, Is.TypeOf<AesCrypto>());
@@ -184,7 +184,7 @@ namespace Verve.Tests.Core
                 Assert.That(module.IsDisposed, Is.True);
                 Assert.That(Game.ShutdownModulesAsync(), Is.SameAs(shutdown));
                 Assert.That(Game.GetTool<IProjectTool>(), Is.SameAs(tool));
-                Assert.That(Game.Serializer, Is.TypeOf<JsonSerializer>());
+                Assert.That(Game.JsonSerializer, Is.TypeOf<JsonSerializer>());
             }
             finally
             {

@@ -156,7 +156,7 @@ namespace Verve
             {
                 using var request = new HttpRequestMessage(method, url) { Content = content };
                 ct.ThrowIfCancellationRequested();
-                if (timeout.HasValue && (timeout.Value <= 0 || float.IsNaN(timeout.Value) || float.IsInfinity(timeout.Value)))
+                if (timeout.HasValue && (timeout.Value <= 0 || !Game.NumberUtility.IsFinite(timeout.Value)))
                     throw new ArgumentOutOfRangeException(nameof(timeout));
                 if (headers != null)
                     foreach (var header in headers)

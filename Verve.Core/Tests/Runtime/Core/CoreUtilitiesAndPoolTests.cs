@@ -85,6 +85,24 @@ namespace Verve.Tests.Core
         }
 
         [Test]
+        public void NumberUtility_IsFiniteAcceptsFiniteFloatAndDoubleValuesOnly()
+        {
+            Assert.That(Game.NumberUtility.IsFinite(0f), Is.True);
+            Assert.That(Game.NumberUtility.IsFinite(float.MinValue), Is.True);
+            Assert.That(Game.NumberUtility.IsFinite(float.MaxValue), Is.True);
+            Assert.That(Game.NumberUtility.IsFinite(float.NaN), Is.False);
+            Assert.That(Game.NumberUtility.IsFinite(float.PositiveInfinity), Is.False);
+            Assert.That(Game.NumberUtility.IsFinite(float.NegativeInfinity), Is.False);
+
+            Assert.That(Game.NumberUtility.IsFinite(0d), Is.True);
+            Assert.That(Game.NumberUtility.IsFinite(double.MinValue), Is.True);
+            Assert.That(Game.NumberUtility.IsFinite(double.MaxValue), Is.True);
+            Assert.That(Game.NumberUtility.IsFinite(double.NaN), Is.False);
+            Assert.That(Game.NumberUtility.IsFinite(double.PositiveInfinity), Is.False);
+            Assert.That(Game.NumberUtility.IsFinite(double.NegativeInfinity), Is.False);
+        }
+
+        [Test]
         public void ObjectPool_AllowsEqualValuesButRejectsDuplicateReferences()
         {
             using var values = new ObjectPool<int>(() => 1, preSize: 3, capacity: 3);
@@ -391,11 +409,11 @@ namespace Verve.Tests.Core
             };
 
             using var stream = new MemoryStream();
-            Game.Serializer.Serialize(stream, payload, new UTF8Encoding(false));
+            Game.JsonSerializer.Serialize(stream, payload, new UTF8Encoding(false));
             Assert.That(stream.CanRead, Is.True);
             stream.Position = 0;
 
-            var decoded = Game.Serializer.Deserialize<SerializationPayload>(stream, Encoding.UTF8);
+            var decoded = Game.JsonSerializer.Deserialize<SerializationPayload>(stream, Encoding.UTF8);
 
             Assert.That(decoded.text, Is.EqualTo(payload.text));
             Assert.That(decoded.count, Is.EqualTo(payload.count));
@@ -409,11 +427,11 @@ namespace Verve.Tests.Core
             foreach (var encoding in new Encoding[] { new UTF8Encoding(false), new UTF8Encoding(true), Encoding.Unicode, Encoding.BigEndianUnicode })
             {
                 var payload = new SerializationPayload { text = "中文/🎮", count = 42 };
-                var text = Game.Serializer.SerializeToString(payload, encoding);
+                var text = Game.JsonSerializer.SerializeToString(payload, encoding);
                 Assert.That(text[0], Is.EqualTo('{'));
-                Assert.That(Game.Serializer.Deserialize<SerializationPayload>(text, encoding).text, Is.EqualTo(payload.text));
-                var bytes = Game.Serializer.SerializeToBytes(payload, encoding);
-                Assert.That(Game.Serializer.Deserialize<SerializationPayload>(bytes, encoding).count, Is.EqualTo(42));
+                Assert.That(Game.JsonSerializer.Deserialize<SerializationPayload>(text, encoding).text, Is.EqualTo(payload.text));
+                var bytes = Game.JsonSerializer.SerializeToBytes(payload, encoding);
+                Assert.That(Game.JsonSerializer.Deserialize<SerializationPayload>(bytes, encoding).count, Is.EqualTo(42));
             }
         }
 

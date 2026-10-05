@@ -161,7 +161,7 @@ namespace Verve
                 cancellationToken.ThrowIfCancellationRequested();
                 ThrowIfNotOnMainThread(nameof(SendAsync));
                 if (request == null) throw new ArgumentNullException(nameof(request));
-                if (timeout.HasValue && (timeout.Value <= 0 || float.IsNaN(timeout.Value) || float.IsInfinity(timeout.Value)))
+                if (timeout.HasValue && (timeout.Value <= 0 || !Game.NumberUtility.IsFinite(timeout.Value)))
                     throw new ArgumentOutOfRangeException(nameof(timeout), "Timeout must be finite and positive, or null.");
 
                 var timer = timeout.HasValue ? Stopwatch.StartNew() : null;

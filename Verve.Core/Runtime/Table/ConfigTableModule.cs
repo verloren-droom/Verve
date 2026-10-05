@@ -55,14 +55,14 @@ namespace Verve
             Game.ThrowIfNotOnMainThread(nameof(ReloadAsync));
             if (!IsInstalled) throw new InvalidOperationException("ConfigTableModule is not installed.");
             if (!m_ReloadTask.IsCompleted) throw new InvalidOperationException("A config table reload is already in progress.");
-            return m_ReloadTask = ReloadCoreAsync(cancellationToken);
+            return m_ReloadTask = ReloadImplAsync(cancellationToken);
         }
 
         /// <inheritdoc />
         protected override async ValueTask OnInstall(GameModuleContext context, CancellationToken ct)
         {
             m_Lifetime = new CancellationTokenSource();
-            await ReloadCoreAsync(ct);
+            await ReloadImplAsync(ct);
         }
 
         /// <inheritdoc />
@@ -114,7 +114,7 @@ namespace Verve
         ///   <para>异步重新加载。</para>
         /// </summary>
         /// <param name="cancellationToken">取消令牌。</param>
-        private async Task ReloadCoreAsync(CancellationToken cancellationToken)
+        private async Task ReloadImplAsync(CancellationToken cancellationToken)
         {
             using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, m_Lifetime.Token);
             var ct = cancellation.Token;

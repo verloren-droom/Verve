@@ -3,6 +3,8 @@
     "rootNamespace": "",
     "references": [
         "Verve.Core",
+        "Verve.ACC",
+        "Verve.ACC.Editor",
         "Verve.Editor",
         "Verve.Table",
         "Verve.UI",

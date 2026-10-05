@@ -78,6 +78,7 @@ namespace Verve
         ///   <para>保护反射委托缓存。</para>
         /// </summary>
         private static readonly object s_MethodCacheLock = new();
+        
         /// <summary>
         ///   <para>当前表单包含的能力类型。</para>
         /// </summary>

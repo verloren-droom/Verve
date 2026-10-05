@@ -1,96 +1,65 @@
 # ACC
 
-ACC（Actor–Component–Capability）把实体、数据和行为分开。框架只提供存储、调度、表单和复制基础设施；组件与能力由项目定义。
+> ACC（Actor-Component-Capability）把实体、数据和行为分开管理。`World` 拥有运行时对象，组件保存数据，能力执行行为，项目负责定义具体类型。
 
-## 概念
+## 公共入口
 
-| 类型 | 作用 |
-| --- | --- |
-| `Actor` | 带版本的实体句柄，避免槽位复用后的旧引用误命中 |
-| `IComponent` | 存储在世界中的纯数据结构体 |
-| `Capability` | 由世界创建、调度和释放的行为 |
-| `CapabilitySheet` | 批量组合组件、能力和子表单 |
-| `World` | 拥有实体、组件、能力和复制层 |
+| 类型 | 责任 | 所有者 |
+| --- | --- | --- |
+| `WorldManagerModule` / `IWorldManager` | 创建、切换、Tick 和销毁世界 | 模块容器 |
+| `World` | 管理实体、组件、能力、能力表和可选复制 | `IWorldManager` |
+| `Actor` | 带版本的实体句柄 | `World` |
+| `IComponent` | 纯数据结构，必须是值类型 | `World` / 组件存储 |
+| `Capability` | 面向实体的行为和 Tick | `World` |
+| `CapabilitySheet` | 批量组合组件和能力 | `World.Sheets` |
+| `WorldReplication` | 按复制配置同步组件状态 | `World` |
 
 ```mermaid
 flowchart LR
     M[WorldManagerModule] --> W[World]
-    W --> A[Actor 与组件]
-    W --> C[CapabilityManager]
-    C --> B[能力实例]
-    C --> S[SheetManager 与表单实例]
-    W --> R[可选 Replication]
+    W --> A[Actor]
+    W --> C[Component Storage]
+    W --> B[CapabilityManager]
+    W --> S[SheetManager]
+    W --> R[WorldReplication]
+    A -.索引.-> C
+    A -.索引.-> B
 ```
-
-箭头表示所有权。模块卸载会释放世界；销毁 Actor 会清理其组件、能力和表单。表单只移除本次应用创建的资源。
 
 ## 最小用法
 
 ```csharp
-using Verve;
-
 public struct Motion : IComponent
 {
     public float Position;
     public float Speed;
 }
 
-public sealed class Move : Capability
-{
-    protected override void OnSetup() => Require<Motion>();
-
-    protected override void TickActive(in float deltaTime)
-    {
-        ref var motion = ref this.GetComponent<Motion>();
-        motion.Position += motion.Speed * deltaTime;
-    }
-}
-```
-
-```csharp
-var handle = Game.CreateModules();
+using var handle = Game.CreateModules();
 handle.Modules.Install<WorldManagerModule>();
+
 var worlds = handle.Modules.GetModule<IWorldManager>();
 var world = worlds.Create("Game");
 var actor = world.CreateActor();
 world.AddComponent<Motion>(actor).Speed = 2f;
-world.AddCapability<Move>(actor);
 ```
 
-在启动时创建并保存 `handle`，退出时调用 `handle.Dispose()`。`WorldManagerModule` 自动驱动活跃世界；批量配置使用 `world.ApplySheet(actor, sheet)`。
+## 复制边界
 
-## 更新边界
-
-- 结构变更在世界所属线程执行；其他线程通过 `World.Enqueue` 提交。
-- `OnSetup` 中声明 `Require<T>`、`Block<T>` 和 Tick 配置。
-- 能力条件、生命周期和 Tick 在世界线程按阶段、顺序、注册次序执行。
-- 重计算可交给 Jobs/Burst 或独立任务，使用独立数据，完成后通过 `World.Enqueue` 提交；组件引用不能跨结构变更或释放保存。
-
-## 可选复制
-
-创建世界时传入 `ReplicationOptions`，用 `ReplicationSchema.Register<T>(id)` 登记需要同步的组件，并为要发布的 Actor 添加 `Replicated`。Schema 首次使用后冻结；两端必须使用相同的稳定 ID 和编码格式。特殊格式实现 `IReplicationCodec<T>`，可见性实现 `IReplicationInterest`。
+| 配置或接口 | 作用 |
+| --- | --- |
+| `ReplicationOptions` | 创建世界时固定角色、预算和可见性策略 |
+| `ReplicationSchema.Register<T>` | 为组件登记稳定协议 ID |
+| `IReplicationCodec<T>` | 自定义组件编码和解码 |
+| `IReplicationInterest` | 按连接筛选可见实体 |
+| `IReplicationTransport` | 接入可靠、有序且保持帧边界的传输 |
 
 ```mermaid
 flowchart LR
-    A[权威 World] --> D[组件差异]
+    A[Authority World] --> D[Component Delta]
     D --> T[IReplicationTransport]
-    T --> V[校验与解码]
-    V --> R[副本 World]
+    T --> V[Validate / Decode]
+    V --> R[Replica World]
 ```
 
-调用 `world.Replication.Attach(transport)` 接入可信、可靠、有序且保留帧边界的传输；成功后由复制层独占并释放。框架自动处理背压，接收校验或解码失败不会提交部分状态。可选 QUIC/TLS 接入见 [ACCNet](../../Server~/ACCNet/README.md)。
-
-## 编辑器入口
-
-| 入口 | 用途 |
-| --- | --- |
-| `Verve/Capability Sheet` | 创建和编辑表单资产 |
-| `Verve/ACC/时间记录器` | Play Mode 中按时间轴查看能力激活、停用、移除和异常事件 |
-| `Verve/ACC/能力表单资源` | 搜索、选择和定位项目内 `CapabilitySheetAsset` |
-| `Verve/ACC/校验全部能力表单` | 校验表单引用、类型和循环依赖 |
-| `Project Settings > Verve > Modules > ACC > Tag Registry` | 维护标签及稳定 ID |
-| 运行时 `World` 调试页 | 查看世界、Actor 和能力状态 |
-
-## 验证
-
-在 Unity Test Runner 的 PlayMode 中运行 [ACC 测试](../../Tests/Runtime/ACC)；性能比较见 [基准说明](../../Tests/Runtime/ACC/Benchmarks/README.md)。
+> **注意** 销毁 `Actor` 会清理其组件、能力和能力表；释放 `WorldManagerModule` 会释放全部世界。复制 Schema 首次使用后冻结，两端必须使用相同的稳定 ID 和编码格式。

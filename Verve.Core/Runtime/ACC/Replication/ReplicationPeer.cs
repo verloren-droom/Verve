@@ -215,24 +215,24 @@ namespace Verve
                     throw new InvalidDataException("An authority cannot receive replicated state.");
                 var packet = m_Packet.AsSpan(0, count);
                 var header = ReplicationHeader.Read(packet, Owner.Options.MaxStateBytes);
-                if (header.Schema != Owner.Options.Schema.Fingerprint || header.Baseline != Sequence ||
-                    header.Offset != m_State.Length || header.Tick <= Tick)
+                if (header.schema != Owner.Options.Schema.Fingerprint || header.baseline != Sequence ||
+                    header.offset != m_State.Length || header.tick <= Tick)
                     throw new InvalidDataException("Replication schema, baseline, tick or fragment order mismatch.");
                 if (m_State.Length == 0)
                 {
                     m_Incoming = header;
                     m_TransferElapsed = 0;
                 }
-                else if (header.Total != m_Incoming.Total || header.Tick != m_Incoming.Tick)
+                else if (header.total != m_Incoming.total || header.tick != m_Incoming.tick)
                     throw new InvalidDataException("Replication fragment metadata changed within a batch.");
                 packet.Slice(ReplicationHeader.Size).CopyTo(m_State.Append(count - ReplicationHeader.Size));
-                if (m_State.Length != header.Total) continue;
+                if (m_State.Length != header.total) continue;
                 Owner.IsReading = true;
                 try { Decode(); }
                 finally { Owner.IsReading = false; }
                 Apply();
-                Sequence = header.Sequence;
-                Tick = header.Tick;
+                Sequence = header.sequence;
+                Tick = header.tick;
                 m_State.Clear();
             }
         }

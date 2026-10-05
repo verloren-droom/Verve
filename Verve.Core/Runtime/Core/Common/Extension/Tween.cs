@@ -22,7 +22,7 @@ namespace Verve
         public static IEnumerator Run(float duration, Action<float> apply, bool unscaledTime = false,
             CancellationToken ct = default)
         {
-            if (duration < 0 || float.IsNaN(duration) || float.IsInfinity(duration))
+            if (duration < 0 || !Game.NumberUtility.IsFinite(duration))
                 throw new ArgumentOutOfRangeException(nameof(duration));
             if (apply == null) throw new ArgumentNullException(nameof(apply));
             return Animate(duration, apply, unscaledTime, ct);

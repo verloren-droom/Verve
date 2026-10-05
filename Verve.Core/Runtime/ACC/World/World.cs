@@ -91,7 +91,7 @@ namespace Verve
             [MethodImpl(MethodImplOptions.AggressiveInlining)] get => m_TimeScale;
             [MethodImpl(MethodImplOptions.AggressiveInlining)] set
             {
-                if (float.IsNaN(value) || float.IsInfinity(value))
+                if (!Game.NumberUtility.IsFinite(value))
                     throw new ArgumentOutOfRangeException(nameof(value));
                 m_TimeScale = Math.Max(0, value);
             }
@@ -558,7 +558,7 @@ namespace Verve
         internal void Tick(float deltaTime, TickGroup tickGroup)
         {
             ValidateStructuralChange();
-            if (deltaTime < 0 || float.IsNaN(deltaTime) || float.IsInfinity(deltaTime))
+            if (deltaTime < 0 || !Game.NumberUtility.IsFinite(deltaTime))
                 throw new ArgumentOutOfRangeException(nameof(deltaTime));
             if (m_IsTicking) throw new InvalidOperationException("World Tick cannot be reentered.");
             m_IsTicking = true;

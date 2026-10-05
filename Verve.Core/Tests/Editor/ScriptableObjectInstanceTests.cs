@@ -51,6 +51,17 @@ namespace Verve.Tests.Editor
         }
 
         [Test]
+        public void MissingResource_CacheIsInvalidatedWhenAssetAppears()
+        {
+            Assert.That(GlobalSettingsProbe.TryGetInstance(out _), Is.False);
+            var source = CreateAt(GlobalSettingsProbe.AssetPath);
+            AssetDatabase.Refresh();
+
+            Assert.That(GlobalSettingsProbe.TryGetInstance(out var instance), Is.True);
+            Assert.That(instance, Is.SameAs(source));
+        }
+
+        [Test]
         public void DuplicateOrMisplacedResource_FailsValidationAndBuild()
         {
             CreateAt(DuplicatePath);
@@ -70,6 +81,18 @@ namespace Verve.Tests.Editor
             AssetDatabase.AddObjectToAsset(duplicate, GlobalSettingsProbe.AssetPath);
             AssetDatabase.SaveAssets();
             Assert.Throws<InvalidOperationException>(() => GlobalSettingsProbe.LoadAsset());
+        }
+
+        [Test]
+        public void DifferentTypeSubasset_DoesNotCountAsAnotherGlobalInstance()
+        {
+            var source = CreateAt(GlobalSettingsProbe.AssetPath);
+            var metadata = new TextAsset("metadata");
+            AssetDatabase.AddObjectToAsset(metadata, GlobalSettingsProbe.AssetPath);
+            AssetDatabase.SaveAssets();
+
+            Assert.That(GlobalSettingsProbe.TryGetInstance(out var instance), Is.True);
+            Assert.That(instance, Is.SameAs(source));
         }
 
         [Test]

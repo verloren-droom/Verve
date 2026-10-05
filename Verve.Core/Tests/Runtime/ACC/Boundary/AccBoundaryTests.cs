@@ -424,8 +424,8 @@ namespace Verve.Tests.ACC
             {
                 var actual = world.GetComponent<MathState>(actors[i]);
                 Assert.That(actual.Steps, Is.EqualTo(tickCount));
-                Assert.That(IsFinite(actual.Value), Is.True);
-                Assert.That(IsFinite(actual.Phase), Is.True);
+                Assert.That(Game.NumberUtility.IsFinite(actual.Value), Is.True);
+                Assert.That(Game.NumberUtility.IsFinite(actual.Phase), Is.True);
                 Assert.That(actual.Value, Is.EqualTo(expected[i].Value).Within(1e-5f));
                 Assert.That(actual.Phase, Is.EqualTo(expected[i].Phase).Within(1e-5f));
             }
@@ -522,7 +522,6 @@ namespace Verve.Tests.ACC
             public void Dispose() => Releases++;
         }
 
-        private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
         private static ReplicationSchema Schema()
             => new ReplicationSchema(1).Register<Value>(1);
